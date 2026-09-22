@@ -1,0 +1,104 @@
+# Focused causal study of persistent static-A* replay versus dynamic waiting.
+# Every scenario belongs to a phase-matched five-obstacle pair. The two members
+# differ only in the primary obstacle phase: control permits the static A* path,
+# while conflict provably requires an observable wait.
+inherits: dynamic_office_clean_v2.yaml
+
+experiment:
+  name: dynamic_office_clean_v3
+  output_root: outputs/dynamic_office_clean_v3
+  run_name_prefix: office_clean_v3
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_clean_v3_pairs.json
+  behavior_search_seed: 20260981
+  scenario_counts: {train: 36, validation: 12, test: 24}
+  evaluation_design: phase_matched_astar_conflict_control_pairs
+  route_pool_counts:
+    train: {corridor: 13, background: 0}
+    validation: {corridor: 13, background: 0}
+    test: {corridor: 13, background: 0}
+  route_pool_preview: maps/previews/office_40x40_clean_v3_route_pools.png
+  training_preview: maps/previews/office_40x40_clean_v3_training_pairs.png
+  validation_preview: maps/previews/office_40x40_clean_v3_validation_pairs.png
+  test_preview: maps/previews/office_40x40_clean_v3_test_pairs.png
+  paired_astar_conflict:
+    route_template_source_manifest: outputs/office_behavior_v10_dataset_design/visible_avoidance_batch_pilots/20260909_211848_318101000/verified_pairs.json
+    pair_counts: {train: 18, validation: 6, test: 12}
+    difficulty_fractions: {easy: 0.40, medium: 0.35, hard: 0.25}
+    move_every_choices: [1]
+    primary_obstacle_index: 0
+    max_search_attempts_per_candidate: 20000
+    max_attempts_without_acceptance: 5000
+    normal_max_safe_detour_steps: 0
+    minimum_wait_advantage_steps: 1
+    minimum_oracle_wait_steps: 1
+    minimum_wait_gate_margin_steps: 0
+    minimum_reroute_margin_steps: 1
+    require_primary_demo_conflict: true
+    require_strict_demo_conflict_reduction_in_pair: true
+  split_isolation:
+    enabled: true
+    require_distinct_sources: true
+    level: exact_scenario
+
+training:
+  seeds: [0, 1]
+  max_environment_steps: 600000
+  epsilon_decay_environment_steps: 510000
+  validation_interval_environment_steps: 25000
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: causal_primary_1
+        start_environment_step: 200000
+        obstacle_count: 1
+        obstacle_indices: [0]
+        allowed_difficulties: [control, easy]
+      - name: primary_plus_context_3
+        start_environment_step: 350000
+        obstacle_count: 3
+        obstacle_indices: [0, 1, 2]
+        allowed_difficulties: [control, easy, medium]
+      - name: full_paired_scenario_5
+        start_environment_step: 500000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]
+        allowed_difficulties: [control, easy, medium, hard]
+  dynamic_obstacle_curriculum_gate:
+    enabled: true
+    # Three complete pairs, one from each conflict-difficulty stratum. These
+    # scenarios never enter replay or gradient updates.
+    probe_scenario_ids: [0, 1, 14, 15, 26, 27]
+    failure_policy: stop_run
+    stages:
+      - name: static_foundation_0
+        minimum_environment_steps: 50000
+        maximum_environment_steps: 200000
+        safe_success_threshold: 1.0
+        required_consecutive_passes: 2
+      - name: causal_primary_1
+        minimum_environment_steps: 50000
+        maximum_environment_steps: 150000
+        safe_success_threshold: 1.0
+        required_consecutive_passes: 2
+      - name: primary_plus_context_3
+        minimum_environment_steps: 75000
+        maximum_environment_steps: 150000
+        safe_success_threshold: 1.0
+        required_consecutive_passes: 2
+  dynamic_obstacle_curriculum_rehearsal_probabilities:
+    - [1.00, 0.00, 0.00, 0.00]
+    - [0.20, 0.80, 0.00, 0.00]
+    - [0.10, 0.20, 0.70, 0.00]
+    - [0.10, 0.10, 0.15, 0.65]
+
+paired_evaluation:
+  enabled: true
+  control_maximum_excess_steps: 0
+  control_requires_no_wait: true
+  conflict_requires_wait: true

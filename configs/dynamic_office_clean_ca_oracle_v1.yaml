@@ -1,0 +1,18 @@
+# Adaptive-decay mechanism prototype. Conflict is computed from simulator state
+# during training, so this is explicitly an oracle ablation rather than a
+# deployable partial-observation detector.
+inherits: dynamic_office_clean_v1.yaml
+
+experiment:
+  name: dynamic_office_clean_ca_oracle_v1
+  output_root: outputs/dynamic_office_clean_ca_oracle_v1
+  run_name_prefix: office_clean_ca_oracle_v1
+  method_supervision: simulator_oracle_training_only
+
+training:
+  conflict_demo_fraction_min: 0.05
+  conflict_ema_alpha: 0.5
+  conflict_recovery_alpha: 0.005
+  conflict_sensitivity: 1.0
+  conflict_event_binary: true
+  conflict_predict_next: true

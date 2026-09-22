@@ -1,0 +1,35 @@
+inherits: dynamic_spatial_generalization_office_behavior_v6_terminal_v1.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_behavior_v8_static_mask_curriculum_v2
+  output_root: outputs/dynamic_spatial_generalization_office_behavior_v8_static_mask_curriculum_v2
+  run_name_prefix: dynamic_spatial_generalization_office_behavior_v8
+
+# Static walls and map boundaries are known constraints, so actions that would
+# hit them are removed. Dynamic obstacles remain unmasked and must be learned.
+environment:
+  mask_static_invalid_actions: true
+
+# Difficulty order is based on the v6 scenario audit. Indices 2/3/4 (z3/z4/z5)
+# interfere with fewer A* demonstrations than indices 0/1 (z1/z2). Validation
+# and test always retain all five obstacles.
+training:
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: low_conflict_z3_1
+        start_environment_step: 60000
+        obstacle_count: 1
+        obstacle_indices: [2]
+      - name: medium_conflict_z3_z4_z5_3
+        start_environment_step: 140000
+        obstacle_count: 3
+        obstacle_indices: [2, 3, 4]
+      - name: full_conflict_z1_to_z5_5
+        start_environment_step: 240000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]

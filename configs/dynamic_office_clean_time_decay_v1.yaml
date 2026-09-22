@@ -1,0 +1,12 @@
+# Non-adaptive decay control: same data, seeds, curriculum, and budget as clean_v1.
+inherits: dynamic_office_clean_v1.yaml
+
+experiment:
+  name: dynamic_office_clean_time_decay_v1
+  output_root: outputs/dynamic_office_clean_time_decay_v1
+  run_name_prefix: office_clean_time_decay_v1
+
+training:
+  demo_fraction_final: 0.0
+  demo_fraction_decay_start_environment_step: 200000
+  demo_fraction_decay_end_environment_step: 340000

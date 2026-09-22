@@ -1,0 +1,44 @@
+{
+  "format_version": 3,
+  "episodes": 20,
+  "seed": 7400,
+  "max_steps": 600,
+  "observation": {
+    "mode": "local_static_dynamic_history_goal_vector",
+    "window_size": 15,
+    "spatial_shape": [
+      4,
+      15,
+      15
+    ],
+    "scalar_dim": 2,
+    "goal_normalization": "map_extent"
+  },
+  "maps": [
+    {
+      "map_id": "office_40x40",
+      "grid_sha256": "6865c1d6a21ec9f6805e196bd87279f7c202d195d444978815d21b5d26545c4f",
+      "start": [
+        2,
+        2
+      ],
+      "goal": [
+        37,
+        37
+      ]
+    }
+  ],
+  "reward": {
+    "step": -0.01,
+    "progress": 0.05,
+    "stay": 0.0,
+    "collision": -1.0,
+    "goal": 10.0
+  },
+  "reward_semantics": "exclusive_terminal_events_v1",
+  "environment_id": "static_nominal_zero_dynamic_channels",
+  "transitions": 1400,
+  "dataset": "office_40x40_clean_v1.npz",
+  "dataset_sha256": "2602d2bedfb34c8a21a23bbe8a52bdd72e999b125852559ac96c6fa806cb2cbe",
+  "collection_seconds": 0.17742660001385957
+}

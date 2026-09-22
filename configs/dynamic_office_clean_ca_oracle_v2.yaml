@@ -1,0 +1,17 @@
+# Reserved adaptive-decay prototype for the clean_v2 protocol. Conflict uses
+# simulator state during training and is therefore an oracle mechanism ablation.
+inherits: dynamic_office_clean_v2.yaml
+
+experiment:
+  name: dynamic_office_clean_ca_oracle_v2
+  output_root: outputs/dynamic_office_clean_ca_oracle_v2
+  run_name_prefix: office_clean_ca_oracle_v2
+  method_supervision: simulator_oracle_training_only
+
+training:
+  conflict_demo_fraction_min: 0.05
+  conflict_ema_alpha: 0.5
+  conflict_recovery_alpha: 0.005
+  conflict_sensitivity: 1.0
+  conflict_event_binary: true
+  conflict_predict_next: true

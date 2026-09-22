@@ -1,0 +1,62 @@
+# Compatibility pilot on the EXISTING frozen v6 dataset. No v10 generation.
+inherits: dynamic_spatial_generalization_office_behavior_v8_static_mask_curriculum_v2.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_v6_development_v1
+  output_root: outputs/dynamic_spatial_generalization_office_v6_development_v1
+  run_name_prefix: office_v6_development_v1
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_behavior_v6.json
+  scenario_counts: {train: 100, validation: 20, test: 50}
+  route_pool_counts:
+    train: {corridor: 15, background: 0}
+    validation: {corridor: 10, background: 0}
+    test: {corridor: 13, background: 0}
+
+environment:
+  terminate_on_collision: true
+  mask_static_invalid_actions: true
+
+# Preserve the agreed terminal reward and remove only the extra STAY penalty,
+# as already specified in v9/v10. STAY still pays the ordinary step cost.
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: 0.0
+  collision: -1.0
+  goal: 10.0
+
+training:
+  # One seed per strategy is a development pilot, not statistical confirmation.
+  seeds: [0]
+  max_environment_steps: 400000
+  epsilon_decay_environment_steps: 340000
+  validation_interval_environment_steps: 25000
+  demo_fraction: 0.25
+  dynamic_obstacle_curriculum:
+    enabled: true
+    # Full list replacement is intentional. v6 difficulty_stratum stores
+    # behavior names, NOT control/easy/medium/hard. Do not filter those labels.
+    # Subsets are not guaranteed difficulty levels or causal primary obstacles.
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+        allowed_difficulties: null
+      - name: subset_z3_1
+        start_environment_step: 60000
+        obstacle_count: 1
+        obstacle_indices: [2]
+        allowed_difficulties: null
+      - name: subset_z3_z4_z5_3
+        start_environment_step: 140000
+        obstacle_count: 3
+        obstacle_indices: [2, 3, 4]
+        allowed_difficulties: null
+      - name: full_dynamic_5
+        start_environment_step: 240000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]
+        allowed_difficulties: null

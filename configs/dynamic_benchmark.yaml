@@ -1,0 +1,70 @@
+experiment:
+  name: dynamic_replay_benchmark_v1
+  seed: 0
+  output_root: outputs/dynamic_benchmark
+
+map:
+  generator: astar_iddqn_style_random_v1
+  size: 20
+  density: 0.20
+  start: [1, 1]
+  goal: [18, 18]
+  endpoint_clearance: 1
+  min_path_steps: 36
+  max_path_steps: 90
+  min_turns: 2
+  max_attempts: 5000
+
+map_sets:
+  train:
+    seed_start: 2000
+    count: 5
+    file: maps/random_benchmark/train/maps.json
+
+environment:
+  kind: dynamic
+  observation: local_static_dynamic_history_goal_vector
+  spatial_channels: 4
+  window_size: 11
+  max_steps: 350
+  action_count: 5
+  terminate_on_collision: false
+
+dynamic_obstacle:
+  count: 1
+  route_length: 5
+  motion: deterministic_bounce
+  planning: ignored_by_astar
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: -0.05
+  collision: -1.0
+  goal: 10.0
+
+demonstrations:
+  episodes: 20
+  seed: 7000
+  file: data/demonstrations/dynamic_nominal_astar_demos.npz
+
+agent:
+  learning_rate: 0.0003
+  gamma: 0.99
+  target_sync_interval: 250
+  gradient_clip_norm: 10.0
+  hidden_dim: 256
+  device: auto
+
+training:
+  episodes: 1500
+  replay_capacity: 10000
+  batch_size: 64
+  learning_starts: 64
+  updates_per_step: 1
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 1200
+  replay_strategy: persistent_demo
+  demo_fraction: 0.25
+  progress_interval: 100

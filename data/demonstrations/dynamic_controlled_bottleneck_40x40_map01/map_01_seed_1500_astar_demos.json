@@ -1,0 +1,44 @@
+{
+  "format_version": 3,
+  "episodes": 20,
+  "seed": 7400,
+  "max_steps": 600,
+  "observation": {
+    "mode": "local_static_dynamic_history_goal_vector",
+    "window_size": 15,
+    "spatial_shape": [
+      4,
+      15,
+      15
+    ],
+    "scalar_dim": 2,
+    "goal_normalization": "map_extent"
+  },
+  "maps": [
+    {
+      "map_id": "calibration_40x40_map_01",
+      "grid_sha256": "e1a37ba10e974df2d08433e56c9f8cb8ade0ab20a461409d3cb3f36872fa0c17",
+      "start": [
+        1,
+        1
+      ],
+      "goal": [
+        39,
+        39
+      ]
+    }
+  ],
+  "reward": {
+    "step": -0.01,
+    "progress": 0.05,
+    "stay": -0.05,
+    "collision": -1.0,
+    "goal": 10.0
+  },
+  "reward_semantics": "exclusive_terminal_events_v1",
+  "environment_id": "static_nominal_zero_dynamic_channels_v1",
+  "transitions": 1520,
+  "dataset": "map_01_seed_1500_astar_demos.npz",
+  "dataset_sha256": "41338ae11d01cc79c148d6475e1079e9573c82f9cf46be832b9f0d1f319fe274",
+  "collection_seconds": 0.12897729998803698
+}
