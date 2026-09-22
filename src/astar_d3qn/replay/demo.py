@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections import deque
 from collections.abc import Iterable
 from math import floor
 
@@ -277,6 +278,130 @@ class SafeInterventionReplay(PersistentDemoReplay):
         self._rng.shuffle(batch)
         self.last_demo_sample_count = demo_count
         self.last_safe_sample_count = safe_count
+        self.last_online_sample_count = online_count
+        return batch
+
+
+class IndexedRiskReplay(PersistentDemoReplay):
+    """Sample marked risks from the ordinary online ring without retaining them."""
+
+    def __init__(
+        self,
+        demonstrations: Iterable[Transition],
+        online_capacity: int,
+        demo_fraction: float,
+        risk_samples_per_batch: int,
+        seed: int = 0,
+    ) -> None:
+        if risk_samples_per_batch < 0:
+            raise ValueError("risk_samples_per_batch must be nonnegative.")
+        super().__init__(
+            demonstrations,
+            online_capacity=online_capacity,
+            demo_fraction=demo_fraction,
+            seed=seed,
+        )
+        self.risk_samples_per_batch = int(risk_samples_per_batch)
+        self._online_tokens: deque[int | None] = deque(maxlen=online_capacity)
+        self._risk_tokens: set[int] = set()
+        self._next_online_token = 0
+        self._risk_rng = random.Random(seed + 41)
+        self.risk_total_marked = 0
+        self.last_demo_sample_count = 0
+        self.last_risk_sample_count = 0
+        self.last_online_sample_count = 0
+
+    def initialize_online_index(self) -> None:
+        """Align token slots after loading the foundation's ordinary replay."""
+
+        self._online_tokens = deque(
+            [None] * self.online_size,
+            maxlen=self.online.capacity,
+        )
+        self._risk_tokens.clear()
+
+    @property
+    def risk_size(self) -> int:
+        return len(self._risk_tokens)
+
+    def add(self, transition: Transition) -> int:
+        if len(self._online_tokens) != self.online_size:
+            raise RuntimeError("Online risk index is not aligned with replay contents.")
+        evicted = (
+            self._online_tokens[0]
+            if len(self._online_tokens) == self._online_tokens.maxlen
+            else None
+        )
+        token = self._next_online_token
+        self._next_online_token += 1
+        self.online.add(transition)
+        self._online_tokens.append(token)
+        if evicted is not None:
+            self._risk_tokens.discard(evicted)
+        return token
+
+    def mark_risk(self, token: int) -> None:
+        if token not in self._online_tokens:
+            return
+        self._risk_tokens.add(int(token))
+        self.risk_total_marked += 1
+
+    def partition_counts(self, batch_size: int) -> tuple[int, int, int]:
+        demo_count, online_allocation = super().sample_counts(batch_size)
+        risk_count = min(
+            self.risk_samples_per_batch,
+            self.risk_size,
+            online_allocation,
+        )
+        return demo_count, risk_count, online_allocation - risk_count
+
+    def sample_counts(self, batch_size: int) -> tuple[int, int]:
+        demo_count, risk_count, online_count = self.partition_counts(batch_size)
+        return demo_count, risk_count + online_count
+
+    def can_sample(self, batch_size: int) -> bool:
+        demo_count, risk_count, online_count = self.partition_counts(batch_size)
+        return (
+            self.demonstration_size >= demo_count
+            and self.online_size >= risk_count + online_count
+        )
+
+    def sample(self, batch_size: int) -> list[Transition]:
+        demo_count, risk_count, online_count = self.partition_counts(batch_size)
+        if risk_count == 0:
+            batch = super().sample(batch_size)
+            self.last_demo_sample_count = demo_count
+            self.last_risk_sample_count = 0
+            self.last_online_sample_count = online_count
+            return batch
+        if not self.can_sample(batch_size):
+            raise ValueError(
+                "Insufficient replay data for indexed-risk batch: "
+                f"demo={self.demonstration_size}/{demo_count}, "
+                f"risk={self.risk_size}/{risk_count}, "
+                f"online={self.online_size}/{online_count}."
+            )
+        online_snapshot = self.online.snapshot()
+        indexed = list(zip(self._online_tokens, online_snapshot))
+        risk_candidates = [
+            (token, transition)
+            for token, transition in indexed
+            if token in self._risk_tokens
+        ]
+        selected_risks = self._risk_rng.sample(risk_candidates, risk_count)
+        selected_tokens = {token for token, _ in selected_risks}
+        ordinary_candidates = [
+            transition
+            for token, transition in indexed
+            if token not in selected_tokens
+        ]
+        batch = self._rng.sample(self._demonstrations, demo_count)
+        batch.extend(transition for _, transition in selected_risks)
+        if online_count:
+            batch.extend(self.online._rng.sample(ordinary_candidates, online_count))
+        self._rng.shuffle(batch)
+        self.last_demo_sample_count = demo_count
+        self.last_risk_sample_count = risk_count
         self.last_online_sample_count = online_count
         return batch
 

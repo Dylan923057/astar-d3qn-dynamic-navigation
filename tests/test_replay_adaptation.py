@@ -26,6 +26,7 @@ from astar_d3qn.maps.io import problem_from_record
 from astar_d3qn.envs.dynamic_grid import DynamicGridNavigationEnv, DynamicObstacleSpec
 from astar_d3qn.envs.types import Observation
 from astar_d3qn.replay.demo import (
+    IndexedRiskReplay,
     PersistentDemoReplay,
     RiskCoverageHandoverReplay,
     SafeInterventionReplay,
@@ -273,6 +274,95 @@ class SafeInterventionReplayTests(unittest.TestCase):
         replay.add_safe(self.transition, (5, 0, 1))
         self.assertEqual(replay.partition_counts(64), (16, 1, 47))
         self.assertEqual(len(replay.sample(64)), 64)
+
+
+class IndexedRiskReplayTests(unittest.TestCase):
+    def setUp(self):
+        torch.set_num_threads(1)
+        observation = Observation(
+            spatial=np.zeros((4, 3, 3), dtype=np.float32),
+            scalars=np.zeros(2, dtype=np.float32),
+        )
+        self.transition = Transition(observation, 0, 0.0, observation, False)
+        self.config = yaml.safe_load(
+            (ROOT / "configs/replay_adaptation_v1.yaml").read_text(encoding="utf-8")
+        )
+        self.config.update(
+            window_size=7,
+            hidden_dim=16,
+            batch_size=8,
+            demo_episodes=2,
+            replay_capacity=100,
+        )
+        self.problem = tiny_problem()
+        seed_everything(42)
+        agent = make_agent(self.config, 42, "cpu")
+        demos = collect_demos(self.problem, self.config)
+        replay = PersistentDemoReplay(demos, 88, .25, 42)
+        replay.online.extend(demos)
+        for _ in range(3):
+            agent.train_batch(replay.sample(8))
+        self.base = snapshot(agent, replay)
+
+    def test_risks_are_indexed_inside_online_capacity(self):
+        replay = IndexedRiskReplay(
+            [self.transition] * 32, 8, .25, 4, seed=3
+        )
+        replay.online.extend([self.transition] * 4)
+        replay.initialize_online_index()
+        tokens = [replay.add(self.transition) for _ in range(4)]
+        replay.mark_risk(tokens[0])
+        replay.mark_risk(tokens[1])
+        self.assertEqual(replay.online_size, 8)
+        self.assertEqual(replay.risk_size, 2)
+        self.assertEqual(replay.partition_counts(8), (2, 2, 4))
+        for _ in range(8):
+            replay.add(self.transition)
+        self.assertEqual(replay.online_size, 8)
+        self.assertEqual(replay.risk_size, 0)
+
+    def test_zero_risk_sampling_matches_persistent_replay(self):
+        ordinary = PersistentDemoReplay([self.transition] * 32, 100, .25, seed=7)
+        indexed = IndexedRiskReplay([self.transition] * 32, 100, .25, 0, seed=7)
+        ordinary.online.extend([self.transition] * 80)
+        indexed.online.load_state_dict(ordinary.online.state_dict())
+        indexed.initialize_online_index()
+        self.assertEqual(ordinary.sample(64), indexed.sample(64))
+        self.assertEqual(ordinary._rng.getstate(), indexed._rng.getstate())
+        self.assertEqual(ordinary.online._rng.getstate(), indexed.online._rng.getstate())
+
+    def test_zero_risk_training_is_equivalent_to_time_decay(self):
+        stage = dict(
+            max_steps=12,
+            evaluation_interval=4,
+            epsilon_start=.5,
+            epsilon_end=.1,
+            epsilon_decay_steps=12,
+        )
+        digests = []
+        for schedule in ("decay", "risk_sampling"):
+            agent, replay = restore(
+                self.config,
+                self.base,
+                .25,
+                42,
+                "cpu",
+                replay_schedule=(schedule if schedule == "risk_sampling" else None),
+                risk_sample_count=0,
+            )
+            train_steps(
+                agent,
+                replay,
+                self.problem,
+                self.config,
+                stage,
+                [],
+                42,
+                lambda *args: False,
+                replay_schedule=schedule,
+            )
+            digests.append(state_digest(snapshot(agent, replay)))
+        self.assertEqual(digests[0], digests[1])
 
 
 class SummaryTests(unittest.TestCase):

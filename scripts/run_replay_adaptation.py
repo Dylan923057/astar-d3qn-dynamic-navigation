@@ -33,15 +33,21 @@ def main():
     parser.add_argument("--fractions", nargs="+", type=float)
     parser.add_argument(
         "--schedule",
-        choices=("fixed", "decay", "risk_handover", "safe_intervention"),
+        choices=("fixed", "decay", "risk_handover", "safe_intervention", "risk_sampling"),
         default="fixed",
-        help="Use fixed fractions, time decay, risk handover, or safe intervention replay",
+        help="Use fixed, decay, handover, safe-intervention, or indexed-risk replay",
     )
     parser.add_argument(
         "--safe-samples",
         nargs="+",
         type=int,
         help="Safe transitions per batch; safe_intervention defaults to 0 4 8",
+    )
+    parser.add_argument(
+        "--risk-samples",
+        nargs="+",
+        type=int,
+        help="Indexed online-risk samples per batch; use 4 16 and reuse time_decay for zero",
     )
     parser.add_argument("--stage", choices=("foundation", "adapt", "all"), default="all")
     parser.add_argument("--device", default="auto")
@@ -81,6 +87,16 @@ def main():
         or any(count < 0 or count >= config["batch_size"] for count in safe_samples)
     ):
         raise SystemExit("Safe sample counts must be distinct and in [0, batch_size).")
+    if args.schedule != "risk_sampling" and args.risk_samples is not None:
+        raise SystemExit("--risk-samples requires --schedule risk_sampling.")
+    risk_samples = args.risk_samples if args.risk_samples is not None else [4, 16]
+    if args.schedule == "risk_sampling" and (
+        len(set(risk_samples)) != len(risk_samples)
+        or any(count <= 0 or count >= config["batch_size"] for count in risk_samples)
+    ):
+        raise SystemExit(
+            "Risk sample counts must be distinct and in (0, batch_size); zero reuses time_decay."
+        )
     fractions = args.fractions if args.fractions is not None else config["demo_fractions"]
     if len(set(seeds)) != len(seeds) or any(seed < 0 for seed in seeds):
         raise SystemExit("Seeds must be distinct nonnegative integers.")
@@ -105,6 +121,7 @@ def main():
     print(json.dumps({"output": str(destination), "seeds": seeds, "fractions": fractions,
                       "schedule": args.schedule,
                       "safe_samples": safe_samples if args.schedule == "safe_intervention" else None,
+                      "risk_samples": risk_samples if args.schedule == "risk_sampling" else None,
                       "static_steps_max": config["foundation"]["max_steps"],
                       "adaptation_steps_per_branch": config["adaptation"]["max_steps"],
                       "device": device, "smoke": args.smoke,
@@ -138,13 +155,13 @@ def main():
         if not checkpoint["metadata"]["qualified"] and not args.smoke:
             print(f"seed={seed}: static foundation unqualified; no adaptation comparison for this seed.", flush=True)
             continue
-        runs = [(fraction, None, f"demo_{round(fraction * 100):02d}", 0) for fraction in fractions]
+        runs = [(fraction, None, f"demo_{round(fraction * 100):02d}", 0, 0) for fraction in fractions]
         if args.schedule == "decay":
-            runs = [(None, "decay", "schedule_decay", 0)]
+            runs = [(None, "decay", "schedule_decay", 0, 0)]
         elif args.schedule == "risk_handover":
             if "risk_replay" not in config:
                 raise SystemExit("The selected config does not define risk_replay.")
-            runs = [(None, "risk_handover", "risk_handover", 0)]
+            runs = [(None, "risk_handover", "risk_handover", 0, 0)]
         elif args.schedule == "safe_intervention":
             runs = [
                 (
@@ -152,10 +169,16 @@ def main():
                     "safe_intervention",
                     "intervention_only" if count == 0 else f"safe_replay_{count:02d}",
                     count,
+                    0,
                 )
                 for count in safe_samples
             ]
-        for fraction, schedule, branch_name, safe_sample_count in runs:
+        elif args.schedule == "risk_sampling":
+            runs = [
+                (None, "risk_sampling", f"risk_sample_{count:02d}", 0, count)
+                for count in risk_samples
+            ]
+        for fraction, schedule, branch_name, safe_sample_count, risk_sample_count in runs:
             branch = root / branch_name
             result_path = branch / "result.json"
             if result_path.exists():
@@ -165,6 +188,7 @@ def main():
                         and result.get("fraction") == fraction
                         and result.get("replay_schedule") == (schedule or "fixed")
                         and result.get("safe_sample_count", 0) == safe_sample_count
+                        and result.get("risk_sample_count", 0) == risk_sample_count
                         and result.get("smoke") == args.smoke
                         and result.get("status") == "complete"):
                     print(f"Already complete: {branch}", flush=True)
@@ -174,7 +198,8 @@ def main():
                 raise SystemExit(f"Incomplete branch preserved at {branch}. Use a NEW output_root for a clean rerun.")
             train_branch(problem, config, scenarios, seed, device, branch, checkpoint, fraction,
                          smoke=args.smoke, replay_schedule=schedule,
-                         safe_sample_count=safe_sample_count)
+                         safe_sample_count=safe_sample_count,
+                         risk_sample_count=risk_sample_count)
 
 
 if __name__ == "__main__":

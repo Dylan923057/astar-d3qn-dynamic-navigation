@@ -24,6 +24,7 @@ from astar_d3qn.envs.static_grid import RewardConfig
 from astar_d3qn.evaluation.behavior_oracle import shortest_safe_plan
 from astar_d3qn.maps.adaptation import spec_from_record
 from astar_d3qn.replay.demo import (
+    IndexedRiskReplay,
     PersistentDemoReplay,
     RiskCoverageHandoverReplay,
     SafeInterventionReplay,
@@ -114,7 +115,7 @@ def snapshot(agent, replay):
 
 
 def restore(config, base, fraction, seed, device, *, replay_schedule=None,
-            safe_sample_count=0):
+            safe_sample_count=0, risk_sample_count=0):
     state = copy.deepcopy(base)
     agent = make_agent(config, seed, device)
     agent.load_training_state_dict(state["agent"])
@@ -137,10 +138,20 @@ def restore(config, base, fraction, seed, device, *, replay_schedule=None,
             safe_sample_count,
             seed,
         )
+    elif replay_schedule == "risk_sampling":
+        replay = IndexedRiskReplay(
+            state["demonstrations"],
+            state["online_replay"]["capacity"],
+            fraction,
+            risk_sample_count,
+            seed,
+        )
     else:
         replay = PersistentDemoReplay(state["demonstrations"],
                                       state["online_replay"]["capacity"], fraction, seed)
     replay.online.load_state_dict(state["online_replay"])
+    if isinstance(replay, IndexedRiskReplay):
+        replay.initialize_online_index()
     replay._rng.setstate(state["demo_rng"])
     random.setstate(state["python_rng"])
     np.random.set_state(state["numpy_rng"])
@@ -318,10 +329,11 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
     teacher_planner_calls = 0
     teacher_cache = {}
     risk_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
+    risk_token_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
     reference_actions = {p: int(action_between(p, q)) for p, q in zip(problem.nominal_path, problem.nominal_path[1:])}
     start_time = perf_counter()
     for step in range(1, stage["max_steps"] + 1):
-        if replay_schedule in {"decay", "safe_intervention"}:
+        if replay_schedule in {"decay", "safe_intervention", "risk_sampling"}:
             replay.set_demo_fraction(decay_demo_fraction(step))
         epsilon = epsilon_at(stage, step - 1)
         visible_steps += int(bool(obs.spatial[1:].any()))
@@ -361,7 +373,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
         result = env.step(action)
         transition = Transition(obs, action, result.reward, result.observation,
                                 result.terminated, env.action_mask(True))
-        replay.add(transition)
+        online_token = replay.add(transition)
         if replay_schedule == "safe_intervention" and action != proposed_action:
             if not isinstance(replay, SafeInterventionReplay):
                 raise RuntimeError("safe_intervention requires SafeInterventionReplay.")
@@ -371,6 +383,8 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 (int(obstacle_count), int(proposed_action), int(action)),
             )
         risk_history.append(transition)
+        if isinstance(replay, IndexedRiskReplay):
+            risk_token_history.append(online_token)
         if replay_schedule == "risk_handover" and (
             reference_risk
             or selected_action_risk
@@ -384,6 +398,15 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             )
             for item in risk_history:
                 replay.add_risk(item, risk_key)
+        if replay_schedule == "risk_sampling" and (
+            reference_risk
+            or selected_action_risk
+            or result.info["collision_type"] == "dynamic"
+        ):
+            if not isinstance(replay, IndexedRiskReplay):
+                raise RuntimeError("risk_sampling requires IndexedRiskReplay.")
+            for token in risk_token_history:
+                replay.mark_risk(token)
         obs = result.observation
         reward += result.reward
         if replay.can_sample(config["batch_size"]) and replay.online_size >= config["batch_size"]:
@@ -394,6 +417,8 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             demo_samples += d
             online_samples += o
             if isinstance(replay, RiskCoverageHandoverReplay):
+                risk_samples += replay.last_risk_sample_count
+            if isinstance(replay, IndexedRiskReplay):
                 risk_samples += replay.last_risk_sample_count
             if isinstance(replay, SafeInterventionReplay):
                 safe_samples += replay.last_safe_sample_count
@@ -413,6 +438,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                             "sampled_visible_dynamic_cumulative": sampled_visible,
                             "risk_samples_cumulative": risk_samples,
                             "risk_buffer_size": getattr(replay, "risk_size", 0),
+                            "risk_marked_total": getattr(replay, "risk_total_marked", 0),
                             "risk_coverage_count": getattr(replay, "covered_risk_count", 0),
                             "handover_progress": getattr(replay, "handover_progress", 0.0),
                             "proposed_risk_steps_cumulative": proposed_risk_steps,
@@ -431,6 +457,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                         "visible_dynamic_steps": visible_steps, "reference_risk_steps": reference_risk_steps,
                         "sampled_visible_dynamic": sampled_visible, "risk_samples": risk_samples,
                         "risk_buffer_size": getattr(replay, "risk_size", 0),
+                        "risk_marked_total": getattr(replay, "risk_total_marked", 0),
                         "risk_coverage_count": getattr(replay, "covered_risk_count", 0),
                         "handover_progress": getattr(replay, "handover_progress", 0.0),
                         "proposed_risk_steps": proposed_risk_steps,
@@ -446,6 +473,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             episode += 1
             episode_start, reward = step, 0.0
             risk_history.clear()
+            risk_token_history.clear()
             scene = next_scene()
             env = make_env(problem, config, scene)
             obs = env.reset()
@@ -454,6 +482,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             "visible_dynamic_steps": visible_steps, "reference_risk_steps": reference_risk_steps,
             "sampled_visible_dynamic": sampled_visible, "risk_samples": risk_samples,
             "risk_buffer_size": getattr(replay, "risk_size", 0),
+            "risk_marked_total": getattr(replay, "risk_total_marked", 0),
             "risk_coverage_count": getattr(replay, "covered_risk_count", 0),
             "handover_progress": getattr(replay, "handover_progress", 0.0),
             "proposed_risk_steps": proposed_risk_steps,
@@ -503,13 +532,14 @@ def train_foundation(problem, config, seed, device, directory, provenance, *, sm
 
 
 def train_branch(problem, config, scenarios, seed, device, directory, checkpoint, fraction,
-                 *, smoke=False, replay_schedule=None, safe_sample_count=0):
+                 *, smoke=False, replay_schedule=None, safe_sample_count=0,
+                 risk_sample_count=0):
     if not checkpoint["metadata"]["qualified"] and not smoke:
         raise ValueError("Foundation is not qualified; adaptation must not start.")
     if bool(checkpoint["metadata"]["smoke"]) != smoke:
         raise ValueError("Smoke and formal artifacts cannot be mixed.")
     initial_fraction = 0.25 if replay_schedule in {
-        "decay", "risk_handover", "safe_intervention"
+        "decay", "risk_handover", "safe_intervention", "risk_sampling"
     } else fraction
     agent, replay = restore(
         config,
@@ -519,6 +549,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
         device,
         replay_schedule=replay_schedule,
         safe_sample_count=safe_sample_count,
+        risk_sample_count=risk_sample_count,
     )
     digest = state_digest(snapshot(agent, replay))
     if digest != checkpoint["metadata"]["snapshot_sha256"]:
@@ -530,6 +561,10 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                  "demo_count_per_batch": d,
                  "online_count_per_batch": o, "effective_demo_fraction": d / (d + o),
                  "safe_samples_per_batch": safe_sample_count,
+                 "risk_samples_per_batch": risk_sample_count,
+                 "risk_storage_mode": (
+                     "online_index_only" if replay_schedule == "risk_sampling" else None
+                 ),
                 "online_capacity": replay.online.capacity, "fork_environment": "fresh static start; dynamic clock reset",
                 "epsilon_clock": "steps since fork", "smoke": smoke}, directory / "fork_audit.json")
     validation = flatten_pairs(scenarios["validation"])
@@ -571,6 +606,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
     write_json({**checkpoint["metadata"], "status": "complete", "fraction": fraction,
                  "replay_schedule": replay_schedule or "fixed",
                  "safe_sample_count": safe_sample_count,
+                 "risk_sample_count": risk_sample_count,
                 "effective_fraction": effective_fraction, "fork_sha256": digest,
                 "adaptation_run": run, "gradient_updates_since_fork": agent.update_steps - initial_updates,
                 "validation_conflict_auc": auc, "threshold_confirmation_step": first_threshold,
