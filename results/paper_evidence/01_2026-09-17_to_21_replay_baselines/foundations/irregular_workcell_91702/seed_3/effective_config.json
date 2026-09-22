@@ -1,0 +1,70 @@
+{
+  "experiment": "replay_adaptation_v2",
+  "dataset": "data/replay_adaptation_v2/manifest.json",
+  "output_root": "outputs/replay_adaptation_v2",
+  "preview_root": "maps/previews/replay_adaptation_v2",
+  "coverage": {
+    "mode": "equal_path_thirds",
+    "minimum_decision_step_gap": 1
+  },
+  "map_seeds": [
+    91701,
+    91702,
+    91703
+  ],
+  "map_size": 40,
+  "demo_seed": 7400,
+  "demo_episodes": 20,
+  "pair_counts": {
+    "train": 18,
+    "validation": 6,
+    "test": 12
+  },
+  "training_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "demo_fractions": [
+    0.0,
+    0.1,
+    0.25
+  ],
+  "window_size": 15,
+  "max_episode_steps": 300,
+  "replay_capacity": 10000,
+  "batch_size": 64,
+  "learning_rate": 0.0003,
+  "gamma": 0.99,
+  "target_sync_interval": 250,
+  "hidden_dim": 256,
+  "reward": {
+    "step": -0.01,
+    "progress": 0.05,
+    "stay": 0.0,
+    "collision": -1.0,
+    "goal": 10.0
+  },
+  "foundation": {
+    "max_steps": 300000,
+    "minimum_steps": 50000,
+    "evaluation_interval": 10000,
+    "consecutive_passes": 3,
+    "maximum_path_ratio": 1.15,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_steps": 200000,
+    "demo_fraction": 0.25
+  },
+  "adaptation": {
+    "max_steps": 200000,
+    "evaluation_interval": 10000,
+    "epsilon_start": 0.3,
+    "epsilon_end": 0.05,
+    "epsilon_decay_steps": 150000,
+    "safe_success_threshold": 0.9,
+    "consecutive_passes": 2
+  }
+}
