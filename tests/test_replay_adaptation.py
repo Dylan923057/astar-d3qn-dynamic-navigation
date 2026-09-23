@@ -34,13 +34,57 @@ from astar_d3qn.replay.demo import (
 from astar_d3qn.replay.transition import Transition
 from astar_d3qn.training.replay_adaptation import (
     make_agent, collect_demos, snapshot, restore, state_digest, seed_everything,
-    evaluate, flatten_pairs, train_steps, train_branch,
+    action_risk_margin_masks, evaluate, flatten_pairs, train_steps, train_branch,
 )
 
 
 def tiny_problem():
     path = tuple((3, col) for col in range(1, 8))
     return NavigationProblem("tiny_crossing", 0, 10, path[0], path[-1], frozenset(), path)
+
+
+class ActionRiskMarginTests(unittest.TestCase):
+    class RiskEnvironment:
+        position = (2, 2)
+
+        @staticmethod
+        def action_mask(mask_collisions=True):
+            assert mask_collisions
+            return np.asarray([True, True, False, True, True], dtype=bool)
+
+        @staticmethod
+        def dynamic_action_collision_risk(action, *, predict_next=True):
+            assert predict_next
+            return action in {1, 3}
+
+    def test_demo_scope_labels_only_risky_reference_action(self):
+        safe, blocked = action_risk_margin_masks(
+            self.RiskEnvironment(),
+            {(2, 2): 3},
+            scope="demo_action",
+        )
+
+        np.testing.assert_array_equal(safe, [True, False, False, False, True])
+        np.testing.assert_array_equal(blocked, [False, False, False, True, False])
+
+    def test_all_action_scope_labels_every_statically_legal_risky_action(self):
+        safe, blocked = action_risk_margin_masks(
+            self.RiskEnvironment(),
+            {},
+            scope="all_actions",
+        )
+
+        np.testing.assert_array_equal(safe, [True, False, False, False, True])
+        np.testing.assert_array_equal(blocked, [False, True, False, True, False])
+
+    def test_demo_scope_skips_online_states_outside_reference_path(self):
+        masks = action_risk_margin_masks(
+            self.RiskEnvironment(),
+            {},
+            scope="demo_action",
+        )
+
+        self.assertEqual(masks, (None, None))
 
 
 class DynamicsAuditTests(unittest.TestCase):

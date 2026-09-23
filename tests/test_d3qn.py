@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import sys
 import unittest
 from dataclasses import replace
@@ -170,6 +171,35 @@ class D3QNAgentTests(unittest.TestCase):
         self.assertTrue(np.isfinite(stats["loss"]))
         self.assertGreaterEqual(stats["conflict_margin_loss"], 0.0)
         self.assertEqual(stats["conflict_margin_batch_count"], 2)
+
+    def test_zero_conflict_margin_weight_is_exactly_equivalent_to_td_only(self) -> None:
+        reference = self.make_agent()
+        treatment = self.make_agent()
+        treatment.load_training_state_dict(copy.deepcopy(reference.training_state_dict()))
+        plain_batch = self.make_batch()
+        labeled_batch = list(plain_batch)
+        safe = np.asarray([True, False, False, False, True], dtype=bool)
+        blocked = np.asarray([False, True, False, True, False], dtype=bool)
+        labeled_batch[0] = replace(
+            labeled_batch[0],
+            conflict_safe_action_mask=safe,
+            conflict_blocked_action_mask=blocked,
+        )
+
+        plain_stats = reference.train_batch(plain_batch)
+        labeled_stats = treatment.train_batch(
+            labeled_batch,
+            conflict_margin=0.8,
+            conflict_margin_loss_weight=0.0,
+        )
+
+        self.assertEqual(plain_stats["loss"], labeled_stats["loss"])
+        self.assertEqual(labeled_stats["conflict_margin_batch_count"], 0)
+        for plain, labeled in zip(
+            reference.policy_network.parameters(),
+            treatment.policy_network.parameters(),
+        ):
+            torch.testing.assert_close(plain, labeled, rtol=0.0, atol=0.0)
 
     def test_greedy_action_respects_valid_action_subset(self) -> None:
         agent = self.make_agent()

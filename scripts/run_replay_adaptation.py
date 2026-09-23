@@ -33,10 +33,15 @@ def main():
     parser.add_argument("--fractions", nargs="+", type=float)
     parser.add_argument(
         "--schedule",
-        choices=("fixed", "decay", "risk_handover", "safe_intervention", "risk_sampling"),
+        choices=(
+            "fixed", "decay", "risk_handover", "safe_intervention",
+            "risk_sampling", "demo_action_margin", "all_action_margin",
+        ),
         default="fixed",
-        help="Use fixed, decay, handover, safe-intervention, or indexed-risk replay",
+        help="Select the replay schedule or one training-only action-ranking treatment",
     )
+    parser.add_argument("--action-margin", type=float, default=0.8)
+    parser.add_argument("--action-margin-loss-weight", type=float, default=1.0)
     parser.add_argument(
         "--safe-samples",
         nargs="+",
@@ -58,6 +63,8 @@ def main():
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if args.action_margin < 0.0 or args.action_margin_loss_weight < 0.0:
+        raise SystemExit("Action-margin settings cannot be negative.")
     torch.set_num_threads(args.threads)
     config = yaml.safe_load((ROOT / args.config).read_text(encoding="utf-8"))
     if args.output_root:
@@ -122,6 +129,8 @@ def main():
                       "schedule": args.schedule,
                       "safe_samples": safe_samples if args.schedule == "safe_intervention" else None,
                       "risk_samples": risk_samples if args.schedule == "risk_sampling" else None,
+                      "action_margin": args.action_margin if args.schedule.endswith("action_margin") else None,
+                      "action_margin_loss_weight": args.action_margin_loss_weight if args.schedule.endswith("action_margin") else None,
                       "static_steps_max": config["foundation"]["max_steps"],
                       "adaptation_steps_per_branch": config["adaptation"]["max_steps"],
                       "device": device, "smoke": args.smoke,
@@ -178,6 +187,10 @@ def main():
                 (None, "risk_sampling", f"risk_sample_{count:02d}", 0, count)
                 for count in risk_samples
             ]
+        elif args.schedule == "demo_action_margin":
+            runs = [(None, "demo_action_margin", "demo_action_margin", 0, 0)]
+        elif args.schedule == "all_action_margin":
+            runs = [(None, "all_action_margin", "all_action_margin", 0, 0)]
         for fraction, schedule, branch_name, safe_sample_count, risk_sample_count in runs:
             branch = root / branch_name
             result_path = branch / "result.json"
@@ -189,6 +202,8 @@ def main():
                         and result.get("replay_schedule") == (schedule or "fixed")
                         and result.get("safe_sample_count", 0) == safe_sample_count
                         and result.get("risk_sample_count", 0) == risk_sample_count
+                        and result.get("action_margin", 0.8) == args.action_margin
+                        and result.get("action_margin_loss_weight", 1.0) == args.action_margin_loss_weight
                         and result.get("smoke") == args.smoke
                         and result.get("status") == "complete"):
                     print(f"Already complete: {branch}", flush=True)
@@ -199,7 +214,9 @@ def main():
             train_branch(problem, config, scenarios, seed, device, branch, checkpoint, fraction,
                          smoke=args.smoke, replay_schedule=schedule,
                          safe_sample_count=safe_sample_count,
-                         risk_sample_count=risk_sample_count)
+                         risk_sample_count=risk_sample_count,
+                         action_margin=args.action_margin,
+                         action_margin_loss_weight=args.action_margin_loss_weight)
 
 
 if __name__ == "__main__":

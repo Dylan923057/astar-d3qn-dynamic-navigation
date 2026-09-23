@@ -266,6 +266,40 @@ def decay_demo_fraction(step: int, *, first_boundary: int = 50_000,
     return 0.0
 
 
+def action_risk_margin_masks(env, reference_actions, *, scope, predict_next=True):
+    """Return safe/risky action masks for training-only ranking supervision.
+
+    ``demo_action`` reproduces the existing CA-margin scope: a label is emitted
+    only when the A* reference action at the current position is immediately
+    risky. ``all_actions`` instead labels every immediately risky statically
+    legal action at every online state. Neither mode changes action execution.
+    """
+
+    if scope not in {"demo_action", "all_actions"}:
+        raise ValueError(f"Unknown action-risk margin scope: {scope}")
+    static_legal = np.asarray(env.action_mask(True), dtype=bool)
+    risks = np.asarray(
+        [
+            bool(env.dynamic_action_collision_risk(action, predict_next=predict_next))
+            if static_legal[action]
+            else False
+            for action in range(len(static_legal))
+        ],
+        dtype=bool,
+    )
+    safe = np.logical_and(static_legal, ~risks)
+    blocked = np.zeros_like(static_legal)
+    if scope == "demo_action":
+        reference_action = reference_actions.get(tuple(env.position))
+        if reference_action is not None and static_legal[reference_action] and risks[reference_action]:
+            blocked[reference_action] = True
+    else:
+        blocked = np.logical_and(static_legal, risks)
+    if not safe.any() or not blocked.any():
+        return None, None
+    return safe, blocked
+
+
 def safe_teacher_action(problem, env):
     """Return an exact current-phase safe action, with a one-step fallback."""
 
@@ -294,7 +328,8 @@ def safe_teacher_action(problem, env):
 
 
 def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluation,
-                replay_schedule=None):
+                replay_schedule=None, action_margin=0.8,
+                action_margin_loss_weight=1.0):
     """Exact step budget, one gradient update per interaction after warm-up.
 
     Scene order is identical by episode across branches; visits and episode
@@ -327,13 +362,23 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
     teacher_unavailable_steps = 0
     teacher_cache_hits = 0
     teacher_planner_calls = 0
+    action_margin_candidate_steps = 0
+    action_margin_labeled_steps = 0
+    action_margin_safe_labels = 0
+    action_margin_blocked_labels = 0
+    action_margin_loss_total = 0.0
+    action_margin_update_count = 0
+    action_margin_batch_items = 0
     teacher_cache = {}
     risk_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
     risk_token_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
     reference_actions = {p: int(action_between(p, q)) for p, q in zip(problem.nominal_path, problem.nominal_path[1:])}
     start_time = perf_counter()
     for step in range(1, stage["max_steps"] + 1):
-        if replay_schedule in {"decay", "safe_intervention", "risk_sampling"}:
+        if replay_schedule in {
+            "decay", "safe_intervention", "risk_sampling",
+            "demo_action_margin", "all_action_margin",
+        }:
             replay.set_demo_fraction(decay_demo_fraction(step))
         epsilon = epsilon_at(stage, step - 1)
         visible_steps += int(bool(obs.spatial[1:].any()))
@@ -348,6 +393,28 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
         )
         selected_action_risk = bool(scene and env.dynamic_action_collision_risk(proposed_action))
         action = proposed_action
+        conflict_safe_action_mask = None
+        conflict_blocked_action_mask = None
+        if replay_schedule in {"demo_action_margin", "all_action_margin"}:
+            action_margin_candidate_steps += 1
+            margin_scope = (
+                "demo_action"
+                if replay_schedule == "demo_action_margin"
+                else "all_actions"
+            )
+            (
+                conflict_safe_action_mask,
+                conflict_blocked_action_mask,
+            ) = action_risk_margin_masks(
+                env,
+                reference_actions,
+                scope=margin_scope,
+                predict_next=True,
+            )
+            if conflict_safe_action_mask is not None:
+                action_margin_labeled_steps += 1
+                action_margin_safe_labels += int(conflict_safe_action_mask.sum())
+                action_margin_blocked_labels += int(conflict_blocked_action_mask.sum())
         teacher_fallback = False
         if replay_schedule == "safe_intervention" and selected_action_risk:
             proposed_risk_steps += 1
@@ -371,8 +438,16 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 teacher_fallback_steps += int(teacher_fallback)
         decision_position = tuple(env.position)
         result = env.step(action)
-        transition = Transition(obs, action, result.reward, result.observation,
-                                result.terminated, env.action_mask(True))
+        transition = Transition(
+            obs,
+            action,
+            result.reward,
+            result.observation,
+            result.terminated,
+            env.action_mask(True),
+            conflict_safe_action_mask=conflict_safe_action_mask,
+            conflict_blocked_action_mask=conflict_blocked_action_mask,
+        )
         online_token = replay.add(transition)
         if replay_schedule == "safe_intervention" and action != proposed_action:
             if not isinstance(replay, SafeInterventionReplay):
@@ -412,7 +487,22 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
         if replay.can_sample(config["batch_size"]) and replay.online_size >= config["batch_size"]:
             batch = replay.sample(config["batch_size"])
             sampled_visible += sum(bool(item.state.spatial[1:].any()) for item in batch)
-            agent.train_batch(batch)
+            update = agent.train_batch(
+                batch,
+                conflict_margin=(
+                    action_margin
+                    if replay_schedule in {"demo_action_margin", "all_action_margin"}
+                    else 0.0
+                ),
+                conflict_margin_loss_weight=(
+                    action_margin_loss_weight
+                    if replay_schedule in {"demo_action_margin", "all_action_margin"}
+                    else 0.0
+                ),
+            )
+            action_margin_loss_total += update["conflict_margin_loss"]
+            action_margin_update_count += 1
+            action_margin_batch_items += update["conflict_margin_batch_count"]
             d, o = replay.sample_counts(config["batch_size"])
             demo_samples += d
             online_samples += o
@@ -447,6 +537,15 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                             "teacher_unavailable_steps_cumulative": teacher_unavailable_steps,
                             "teacher_cache_hits_cumulative": teacher_cache_hits,
                             "teacher_planner_calls_cumulative": teacher_planner_calls,
+                            "action_margin_candidate_steps_cumulative": action_margin_candidate_steps,
+                            "action_margin_labeled_steps_cumulative": action_margin_labeled_steps,
+                            "action_margin_safe_labels_cumulative": action_margin_safe_labels,
+                            "action_margin_blocked_labels_cumulative": action_margin_blocked_labels,
+                            "action_margin_mean_loss": (
+                                action_margin_loss_total / action_margin_update_count
+                                if action_margin_update_count else 0.0
+                            ),
+                            "action_margin_batch_items_cumulative": action_margin_batch_items,
                             "safe_samples_cumulative": safe_samples,
                             "safe_buffer_size": getattr(replay, "safe_size", 0),
                             "safe_coverage_count": getattr(replay, "safe_coverage_count", 0)})
@@ -466,6 +565,15 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                         "teacher_unavailable_steps": teacher_unavailable_steps,
                         "teacher_cache_hits": teacher_cache_hits,
                         "teacher_planner_calls": teacher_planner_calls,
+                        "action_margin_candidate_steps": action_margin_candidate_steps,
+                        "action_margin_labeled_steps": action_margin_labeled_steps,
+                        "action_margin_safe_labels": action_margin_safe_labels,
+                        "action_margin_blocked_labels": action_margin_blocked_labels,
+                        "action_margin_mean_loss": (
+                            action_margin_loss_total / action_margin_update_count
+                            if action_margin_update_count else 0.0
+                        ),
+                        "action_margin_batch_items": action_margin_batch_items,
                         "safe_samples": safe_samples,
                         "safe_buffer_size": getattr(replay, "safe_size", 0),
                         "safe_coverage_count": getattr(replay, "safe_coverage_count", 0)}
@@ -491,6 +599,15 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             "teacher_unavailable_steps": teacher_unavailable_steps,
             "teacher_cache_hits": teacher_cache_hits,
             "teacher_planner_calls": teacher_planner_calls,
+            "action_margin_candidate_steps": action_margin_candidate_steps,
+            "action_margin_labeled_steps": action_margin_labeled_steps,
+            "action_margin_safe_labels": action_margin_safe_labels,
+            "action_margin_blocked_labels": action_margin_blocked_labels,
+            "action_margin_mean_loss": (
+                action_margin_loss_total / action_margin_update_count
+                if action_margin_update_count else 0.0
+            ),
+            "action_margin_batch_items": action_margin_batch_items,
             "safe_samples": safe_samples,
             "safe_buffer_size": getattr(replay, "safe_size", 0),
             "safe_coverage_count": getattr(replay, "safe_coverage_count", 0)}
@@ -533,13 +650,15 @@ def train_foundation(problem, config, seed, device, directory, provenance, *, sm
 
 def train_branch(problem, config, scenarios, seed, device, directory, checkpoint, fraction,
                  *, smoke=False, replay_schedule=None, safe_sample_count=0,
-                 risk_sample_count=0):
+                 risk_sample_count=0, action_margin=0.8,
+                 action_margin_loss_weight=1.0):
     if not checkpoint["metadata"]["qualified"] and not smoke:
         raise ValueError("Foundation is not qualified; adaptation must not start.")
     if bool(checkpoint["metadata"]["smoke"]) != smoke:
         raise ValueError("Smoke and formal artifacts cannot be mixed.")
     initial_fraction = 0.25 if replay_schedule in {
-        "decay", "risk_handover", "safe_intervention", "risk_sampling"
+        "decay", "risk_handover", "safe_intervention", "risk_sampling",
+        "demo_action_margin", "all_action_margin",
     } else fraction
     agent, replay = restore(
         config,
@@ -565,7 +684,14 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                  "risk_storage_mode": (
                      "online_index_only" if replay_schedule == "risk_sampling" else None
                  ),
-                "online_capacity": replay.online.capacity, "fork_environment": "fresh static start; dynamic clock reset",
+                "action_margin_scope": {
+                    "demo_action_margin": "demo_action",
+                    "all_action_margin": "all_actions",
+                }.get(replay_schedule),
+                "action_margin": action_margin,
+                "action_margin_loss_weight": action_margin_loss_weight,
+                "action_margin_changes_action_execution": False,
+                 "online_capacity": replay.online.capacity, "fork_environment": "fresh static start; dynamic clock reset",
                 "epsilon_clock": "steps since fork", "smoke": smoke}, directory / "fork_audit.json")
     validation = flatten_pairs(scenarios["validation"])
     stage = config["adaptation"]
@@ -591,7 +717,9 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
         return False
     check(0, [])
     run = train_steps(agent, replay, problem, config, stage, flatten_pairs(scenarios["train"]),
-                       seed, check, replay_schedule=replay_schedule)
+                       seed, check, replay_schedule=replay_schedule,
+                       action_margin=action_margin,
+                       action_margin_loss_weight=action_margin_loss_weight)
     # Fixed-budget final model only. Test never drives stopping or model selection.
     summary, test_rows, trajectories = evaluate(agent, problem, config, flatten_pairs(scenarios["test"]))
     write_records_csv(test_rows, directory / "test_evaluation.csv")
@@ -607,9 +735,15 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                  "replay_schedule": replay_schedule or "fixed",
                  "safe_sample_count": safe_sample_count,
                  "risk_sample_count": risk_sample_count,
+                "action_margin": action_margin,
+                "action_margin_loss_weight": action_margin_loss_weight,
                 "effective_fraction": effective_fraction, "fork_sha256": digest,
                 "adaptation_run": run, "gradient_updates_since_fork": agent.update_steps - initial_updates,
                 "validation_conflict_auc": auc, "threshold_confirmation_step": first_threshold,
                 "threshold_right_censored": first_threshold is None, "test": summary,
-                "interpretation": "total replay-allocation effect; not isolated gradient interference"},
+                "interpretation": (
+                    "training-only action-risk ranking effect; replay allocation and action execution unchanged"
+                    if replay_schedule in {"demo_action_margin", "all_action_margin"}
+                    else "total replay-allocation effect; not isolated gradient interference"
+                )},
                directory / "result.json")
