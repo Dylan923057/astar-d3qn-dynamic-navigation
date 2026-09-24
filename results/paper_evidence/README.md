@@ -53,7 +53,7 @@
 
 ## 总索引
 
-- `experiment_index.csv`：64 个正式运行的可读索引。
+- `experiment_index.csv`：76 个正式运行的可读索引。
 - `experiment_index.json`：与 CSV 对应的机器可读索引。
 - `provenance_groups.csv`：按代码、配置和数据哈希划分的来源组。
 - `SHA256SUMS.csv`：归档文件大小和 SHA-256，用于上传后核验。
@@ -80,4 +80,11 @@
 - 方法：`demo_action_margin`、`all_action_margin`，各 3 个 seed；A 组复用阶段 02。
 - 结论：B、C 的平均验证 AUC 均低于时间衰减基线，C 也低于 B；预登记继续条件未通过。
 - 用途：正式负结果、动作排序机制消融与毕业论文失败分析，不作为小论文性能提升证据。
+
+### 05：2026-09-24，动态占用预测辅助消融
+
+- 目录：`05_2026-09-24_dynamic_prediction_auxiliary/`
+- 方法：`global_prediction`、`decision_weighted_prediction`，各 3 个 seed；A 组复用既有 `time_decay`。
+- 结论：全局预测辅助 B 显示值得独立确认的验证增益；决策区加权 C 未增加价值并出现单 seed 退化。
+- 用途：B 可作为后续候选改进，C 作为消融和失败分析；本阶段未解锁测试集。
 

@@ -266,6 +266,33 @@ def decay_demo_fraction(step: int, *, first_boundary: int = 50_000,
     return 0.0
 
 
+def prediction_weight_map(
+    output_shape: tuple[int, int],
+    *,
+    mode: str,
+    decision_zone_size: int = 5,
+    decision_zone_weight: float = 3.0,
+) -> np.ndarray:
+    if mode not in {"global_prediction", "decision_weighted_prediction"}:
+        raise ValueError(f"Unknown prediction mode: {mode}")
+    if decision_zone_size <= 0 or decision_zone_size % 2 == 0:
+        raise ValueError("decision_zone_size must be a positive odd integer.")
+    if decision_zone_weight < 1.0:
+        raise ValueError("decision_zone_weight must be at least one.")
+    weights = np.ones(output_shape, dtype=np.float32)
+    if mode == "global_prediction":
+        return weights
+    radius = decision_zone_size // 2
+    center_row, center_column = output_shape[0] // 2, output_shape[1] // 2
+    if center_row - radius < 0 or center_column - radius < 0:
+        raise ValueError("decision_zone_size exceeds the prediction grid.")
+    weights[
+        center_row - radius:center_row + radius + 1,
+        center_column - radius:center_column + radius + 1,
+    ] = float(decision_zone_weight)
+    return weights
+
+
 def action_risk_margin_masks(env, reference_actions, *, scope, predict_next=True):
     """Return safe/risky action masks for training-only ranking supervision.
 
@@ -329,7 +356,11 @@ def safe_teacher_action(problem, env):
 
 def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluation,
                 replay_schedule=None, action_margin=0.8,
-                action_margin_loss_weight=1.0):
+                action_margin_loss_weight=1.0, prediction_mode=None,
+                prediction_loss_weight=0.1, prediction_pos_weight=20.0,
+                prediction_decision_zone_size=5,
+                prediction_decision_zone_weight=3.0,
+                prediction_diagnostic_batch_size=256):
     """Exact step budget, one gradient update per interaction after warm-up.
 
     Scene order is identical by episode across branches; visits and episode
@@ -369,15 +400,37 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
     action_margin_loss_total = 0.0
     action_margin_update_count = 0
     action_margin_batch_items = 0
+    prediction_loss_total = 0.0
+    prediction_td_loss_total = 0.0
+    prediction_update_count = 0
+    prediction_q_abs_max = 0.0
+    prediction_gradient_norm_total = 0.0
+    prediction_gradient_norm_max = 0.0
+    prediction_diagnostic_batch = []
     teacher_cache = {}
     risk_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
     risk_token_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
     reference_actions = {p: int(action_between(p, q)) for p, q in zip(problem.nominal_path, problem.nominal_path[1:])}
+    prediction_target_channel = getattr(env, "current_dynamic_channel", None)
+    if prediction_mode is not None and prediction_target_channel is None:
+        raise ValueError("Prediction requires an explicit current dynamic channel.")
+    prediction_weights = (
+        prediction_weight_map(
+            tuple(obs.spatial.shape[1:]),
+            mode=prediction_mode,
+            decision_zone_size=prediction_decision_zone_size,
+            decision_zone_weight=prediction_decision_zone_weight,
+        )
+        if prediction_mode is not None
+        else None
+    )
+    demonstration_ids = {id(item) for item in replay.demonstration_snapshot()}
     start_time = perf_counter()
     for step in range(1, stage["max_steps"] + 1):
         if replay_schedule in {
             "decay", "safe_intervention", "risk_sampling",
             "demo_action_margin", "all_action_margin",
+            "global_prediction", "decision_weighted_prediction",
         }:
             replay.set_demo_fraction(decay_demo_fraction(step))
         epsilon = epsilon_at(stage, step - 1)
@@ -449,6 +502,11 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             conflict_blocked_action_mask=conflict_blocked_action_mask,
         )
         online_token = replay.add(transition)
+        if (
+            prediction_mode is not None
+            and len(prediction_diagnostic_batch) < prediction_diagnostic_batch_size
+        ):
+            prediction_diagnostic_batch.append(transition)
         if replay_schedule == "safe_intervention" and action != proposed_action:
             if not isinstance(replay, SafeInterventionReplay):
                 raise RuntimeError("safe_intervention requires SafeInterventionReplay.")
@@ -499,10 +557,38 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                     if replay_schedule in {"demo_action_margin", "all_action_margin"}
                     else 0.0
                 ),
+                prediction_loss_weight=(
+                    prediction_loss_weight if prediction_mode is not None else 0.0
+                ),
+                prediction_pos_weight=prediction_pos_weight,
+                prediction_target_channel=(
+                    prediction_target_channel
+                    if prediction_target_channel is not None
+                    else 1
+                ),
+                prediction_spatial_weights=prediction_weights,
+                prediction_mask=[
+                    id(item) not in demonstration_ids for item in batch
+                ],
             )
+            finite_keys = (
+                "loss", "td_loss", "prediction_loss", "q_abs_max",
+                "gradient_norm_before_clip",
+            )
+            if not all(np.isfinite(update[key]) for key in finite_keys):
+                raise RuntimeError(f"Non-finite training statistic: {update}")
             action_margin_loss_total += update["conflict_margin_loss"]
             action_margin_update_count += 1
             action_margin_batch_items += update["conflict_margin_batch_count"]
+            prediction_loss_total += update["prediction_loss"]
+            prediction_td_loss_total += update["td_loss"]
+            prediction_update_count += 1
+            prediction_q_abs_max = max(prediction_q_abs_max, update["q_abs_max"])
+            prediction_gradient_norm_total += update["gradient_norm_before_clip"]
+            prediction_gradient_norm_max = max(
+                prediction_gradient_norm_max,
+                update["gradient_norm_before_clip"],
+            )
             d, o = replay.sample_counts(config["batch_size"])
             demo_samples += d
             online_samples += o
@@ -546,11 +632,35 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                                 if action_margin_update_count else 0.0
                             ),
                             "action_margin_batch_items_cumulative": action_margin_batch_items,
+                            "prediction_loss_mean": (
+                                prediction_loss_total / prediction_update_count
+                                if prediction_update_count else 0.0
+                            ),
+                            "prediction_td_loss_mean": (
+                                prediction_td_loss_total / prediction_update_count
+                                if prediction_update_count else 0.0
+                            ),
+                            "prediction_q_abs_max": prediction_q_abs_max,
+                            "prediction_gradient_norm_mean": (
+                                prediction_gradient_norm_total / prediction_update_count
+                                if prediction_update_count else 0.0
+                            ),
+                            "prediction_gradient_norm_max": prediction_gradient_norm_max,
+                            "prediction_diagnostic_batch_size": len(prediction_diagnostic_batch),
                             "safe_samples_cumulative": safe_samples,
                             "safe_buffer_size": getattr(replay, "safe_size", 0),
                             "safe_coverage_count": getattr(replay, "safe_coverage_count", 0)})
         if step % stage["evaluation_interval"] == 0 or step == stage["max_steps"]:
-            if on_evaluation(step, records):
+            prediction_metrics = (
+                agent.dynamic_prediction_metrics(
+                    prediction_diagnostic_batch,
+                    target_channel=prediction_target_channel,
+                    decision_zone_size=prediction_decision_zone_size,
+                )
+                if prediction_mode is not None and prediction_diagnostic_batch
+                else {}
+            )
+            if on_evaluation(step, records, prediction_metrics):
                 return {"steps": step, "early_stop": True, "seconds": perf_counter() - start_time,
                         "demo_samples": demo_samples, "online_samples": online_samples,
                         "visible_dynamic_steps": visible_steps, "reference_risk_steps": reference_risk_steps,
@@ -574,6 +684,22 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                             if action_margin_update_count else 0.0
                         ),
                         "action_margin_batch_items": action_margin_batch_items,
+                        "prediction_loss_mean": (
+                            prediction_loss_total / prediction_update_count
+                            if prediction_update_count else 0.0
+                        ),
+                        "prediction_td_loss_mean": (
+                            prediction_td_loss_total / prediction_update_count
+                            if prediction_update_count else 0.0
+                        ),
+                        "prediction_q_abs_max": prediction_q_abs_max,
+                        "prediction_gradient_norm_mean": (
+                            prediction_gradient_norm_total / prediction_update_count
+                            if prediction_update_count else 0.0
+                        ),
+                        "prediction_gradient_norm_max": prediction_gradient_norm_max,
+                        "prediction_diagnostic_batch_size": len(prediction_diagnostic_batch),
+                        "prediction_metrics": prediction_metrics,
                         "safe_samples": safe_samples,
                         "safe_buffer_size": getattr(replay, "safe_size", 0),
                         "safe_coverage_count": getattr(replay, "safe_coverage_count", 0)}
@@ -608,6 +734,30 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 if action_margin_update_count else 0.0
             ),
             "action_margin_batch_items": action_margin_batch_items,
+            "prediction_loss_mean": (
+                prediction_loss_total / prediction_update_count
+                if prediction_update_count else 0.0
+            ),
+            "prediction_td_loss_mean": (
+                prediction_td_loss_total / prediction_update_count
+                if prediction_update_count else 0.0
+            ),
+            "prediction_q_abs_max": prediction_q_abs_max,
+            "prediction_gradient_norm_mean": (
+                prediction_gradient_norm_total / prediction_update_count
+                if prediction_update_count else 0.0
+            ),
+            "prediction_gradient_norm_max": prediction_gradient_norm_max,
+            "prediction_diagnostic_batch_size": len(prediction_diagnostic_batch),
+            "prediction_metrics": (
+                agent.dynamic_prediction_metrics(
+                    prediction_diagnostic_batch,
+                    target_channel=prediction_target_channel,
+                    decision_zone_size=prediction_decision_zone_size,
+                )
+                if prediction_mode is not None and prediction_diagnostic_batch
+                else {}
+            ),
             "safe_samples": safe_samples,
             "safe_buffer_size": getattr(replay, "safe_size", 0),
             "safe_coverage_count": getattr(replay, "safe_coverage_count", 0)}
@@ -621,8 +771,9 @@ def train_foundation(problem, config, seed, device, directory, provenance, *, sm
                                   config["foundation"]["demo_fraction"], seed)
     stage = config["foundation"]
     rows, streak = [], 0
-    def check(step, training):
+    def check(step, training, prediction_metrics):
         nonlocal streak
+        del prediction_metrics
         result = rollout(agent, problem, config)
         passed = result["safe_success"] and result["steps"] <= problem.astar_steps * stage["maximum_path_ratio"]
         streak = streak + 1 if passed else 0
@@ -651,7 +802,15 @@ def train_foundation(problem, config, seed, device, directory, provenance, *, sm
 def train_branch(problem, config, scenarios, seed, device, directory, checkpoint, fraction,
                  *, smoke=False, replay_schedule=None, safe_sample_count=0,
                  risk_sample_count=0, action_margin=0.8,
-                 action_margin_loss_weight=1.0):
+                 action_margin_loss_weight=1.0,
+                 prediction_loss_weight=0.1,
+                 prediction_pos_weight=20.0,
+                 prediction_head_hidden_dim=128,
+                 prediction_decision_zone_size=5,
+                 prediction_decision_zone_weight=3.0,
+                 prediction_diagnostic_batch_size=256,
+                 defer_test=False,
+                 branch_provenance=None):
     if not checkpoint["metadata"]["qualified"] and not smoke:
         raise ValueError("Foundation is not qualified; adaptation must not start.")
     if bool(checkpoint["metadata"]["smoke"]) != smoke:
@@ -659,6 +818,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
     initial_fraction = 0.25 if replay_schedule in {
         "decay", "risk_handover", "safe_intervention", "risk_sampling",
         "demo_action_margin", "all_action_margin",
+        "global_prediction", "decision_weighted_prediction",
     } else fraction
     agent, replay = restore(
         config,
@@ -673,6 +833,25 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
     digest = state_digest(snapshot(agent, replay))
     if digest != checkpoint["metadata"]["snapshot_sha256"]:
         raise RuntimeError("Fork did not restore identical model/optimizer/replay/RNG state.")
+    prediction_mode = (
+        replay_schedule
+        if replay_schedule in {"global_prediction", "decision_weighted_prediction"}
+        else None
+    )
+    prediction_head_initial_sha256 = None
+    prediction_head_parameter_count = 0
+    if prediction_mode is not None:
+        agent.enable_dynamic_prediction(
+            (config["window_size"], config["window_size"]),
+            hidden_dim=prediction_head_hidden_dim,
+        )
+        assert agent.prediction_head is not None
+        prediction_head_initial_sha256 = state_digest(
+            agent.prediction_head.state_dict()
+        )
+        prediction_head_parameter_count = sum(
+            parameter.numel() for parameter in agent.prediction_head.parameters()
+        )
     directory.mkdir(parents=True, exist_ok=False)
     d, o = replay.sample_counts(config["batch_size"])
     write_json({"source_snapshot_sha256": digest, "verified_full_state_equal": True,
@@ -691,13 +870,32 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                 "action_margin": action_margin,
                 "action_margin_loss_weight": action_margin_loss_weight,
                 "action_margin_changes_action_execution": False,
+                "prediction_mode": prediction_mode,
+                "prediction_target": (
+                    "transition.next_state[current_dynamic_channel]"
+                    if prediction_mode is not None else None
+                ),
+                "prediction_uses_executed_action": prediction_mode is not None,
+                "prediction_loss_weight": prediction_loss_weight if prediction_mode else 0.0,
+                "prediction_pos_weight": prediction_pos_weight if prediction_mode else None,
+                "prediction_head_hidden_dim": prediction_head_hidden_dim if prediction_mode else None,
+                "prediction_head_initial_sha256": prediction_head_initial_sha256,
+                "prediction_head_parameter_count": prediction_head_parameter_count,
+                "prediction_decision_zone_size": prediction_decision_zone_size if prediction_mode else None,
+                "prediction_decision_zone_weight": (
+                    prediction_decision_zone_weight
+                    if prediction_mode == "decision_weighted_prediction" else 1.0
+                    if prediction_mode == "global_prediction" else None
+                ),
+                "prediction_changes_action_execution": False,
+                "branch_provenance": branch_provenance,
                  "online_capacity": replay.online.capacity, "fork_environment": "fresh static start; dynamic clock reset",
                 "epsilon_clock": "steps since fork", "smoke": smoke}, directory / "fork_audit.json")
     validation = flatten_pairs(scenarios["validation"])
     stage = config["adaptation"]
     curve, details, streak, first_threshold = [], [], 0, None
     initial_updates = agent.update_steps
-    def check(step, training):
+    def check(step, training, prediction_metrics):
         nonlocal streak, first_threshold
         summary, rows, _ = evaluate(agent, problem, config, validation)
         passed = summary["conflict_safe_success"] >= stage["safe_success_threshold"]
@@ -705,7 +903,8 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
         if streak >= stage["consecutive_passes"] and first_threshold is None:
             first_threshold = step
         curve.append({"environment_steps": step, "gradient_updates_since_fork": agent.update_steps - initial_updates,
-                      **summary, "threshold_consecutive_passes": streak})
+                      **summary, **prediction_metrics,
+                      "threshold_consecutive_passes": streak})
         details.extend({"environment_steps": step, **row} for row in rows)
         write_records_csv(curve, directory / "validation_curve.csv")
         write_records_csv(details, directory / "validation_details.csv")
@@ -715,35 +914,59 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
               f"conflict={summary['conflict_safe_success']:.3f} control={summary['control_safe_success']:.3f} "
               f"static={summary['static_safe_success']}", flush=True)
         return False
-    check(0, [])
+    check(0, [], {})
     run = train_steps(agent, replay, problem, config, stage, flatten_pairs(scenarios["train"]),
                        seed, check, replay_schedule=replay_schedule,
                        action_margin=action_margin,
-                       action_margin_loss_weight=action_margin_loss_weight)
-    # Fixed-budget final model only. Test never drives stopping or model selection.
-    summary, test_rows, trajectories = evaluate(agent, problem, config, flatten_pairs(scenarios["test"]))
-    write_records_csv(test_rows, directory / "test_evaluation.csv")
-    write_json(trajectories, directory / "test_trajectories.json")
+                       action_margin_loss_weight=action_margin_loss_weight,
+                       prediction_mode=prediction_mode,
+                       prediction_loss_weight=prediction_loss_weight,
+                       prediction_pos_weight=prediction_pos_weight,
+                       prediction_decision_zone_size=prediction_decision_zone_size,
+                       prediction_decision_zone_weight=prediction_decision_zone_weight,
+                       prediction_diagnostic_batch_size=prediction_diagnostic_batch_size)
     agent.save_weights(directory / "model_final.pth")
+    if prediction_mode is not None:
+        agent.save_prediction_head(directory / "prediction_head_final.pth")
     times = np.asarray([row["environment_steps"] for row in curve])
     values = np.asarray([row["conflict_safe_success"] for row in curve])
     auc = float(np.sum(np.diff(times) * (values[:-1] + values[1:]) / 2) / stage["max_steps"])
     total_samples = run["demo_samples"] + run["online_samples"]
     effective_fraction = (run["demo_samples"] / total_samples
                           if total_samples else d / (d + o))
-    write_json({**checkpoint["metadata"], "status": "complete", "fraction": fraction,
+    result = {**checkpoint["metadata"], **(branch_provenance or {}),
+                 "status": "validation_complete" if defer_test else "complete", "fraction": fraction,
                  "replay_schedule": replay_schedule or "fixed",
                  "safe_sample_count": safe_sample_count,
                  "risk_sample_count": risk_sample_count,
                 "action_margin": action_margin,
                 "action_margin_loss_weight": action_margin_loss_weight,
+                "prediction_mode": prediction_mode,
+                "prediction_loss_weight": prediction_loss_weight if prediction_mode else 0.0,
+                "prediction_pos_weight": prediction_pos_weight if prediction_mode else None,
+                "prediction_decision_zone_size": prediction_decision_zone_size if prediction_mode else None,
+                "prediction_decision_zone_weight": (
+                    prediction_decision_zone_weight
+                    if prediction_mode == "decision_weighted_prediction" else 1.0
+                    if prediction_mode == "global_prediction" else None
+                ),
                 "effective_fraction": effective_fraction, "fork_sha256": digest,
                 "adaptation_run": run, "gradient_updates_since_fork": agent.update_steps - initial_updates,
                 "validation_conflict_auc": auc, "threshold_confirmation_step": first_threshold,
-                "threshold_right_censored": first_threshold is None, "test": summary,
+                "threshold_right_censored": first_threshold is None,
                 "interpretation": (
                     "training-only action-risk ranking effect; replay allocation and action execution unchanged"
                     if replay_schedule in {"demo_action_margin", "all_action_margin"}
+                    else "training-only dynamic-prediction auxiliary effect; policy action rule unchanged"
+                    if prediction_mode is not None
                     else "total replay-allocation effect; not isolated gradient interference"
-                )},
-               directory / "result.json")
+                )}
+    if not defer_test:
+        # Fixed-budget final model only. Test never drives stopping or model selection.
+        summary, test_rows, trajectories = evaluate(
+            agent, problem, config, flatten_pairs(scenarios["test"])
+        )
+        write_records_csv(test_rows, directory / "test_evaluation.csv")
+        write_json(trajectories, directory / "test_trajectories.json")
+        result["test"] = summary
+    write_json(result, directory / "result.json")

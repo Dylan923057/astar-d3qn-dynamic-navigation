@@ -547,6 +547,8 @@ def build_map01_three_obstacle_specs(
 
 
 class DynamicGridNavigationEnv:
+    current_dynamic_channel = 1
+
     """Local-observation grid environment with deterministic moving obstacles.
 
     Spatial channels are static occupancy, current dynamic occupancy, and the two

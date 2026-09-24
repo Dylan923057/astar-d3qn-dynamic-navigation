@@ -34,7 +34,8 @@ from astar_d3qn.replay.demo import (
 from astar_d3qn.replay.transition import Transition
 from astar_d3qn.training.replay_adaptation import (
     make_agent, collect_demos, snapshot, restore, state_digest, seed_everything,
-    action_risk_margin_masks, evaluate, flatten_pairs, train_steps, train_branch,
+    action_risk_margin_masks, evaluate, flatten_pairs, prediction_weight_map,
+    train_steps, train_branch,
 )
 
 
@@ -85,6 +86,45 @@ class ActionRiskMarginTests(unittest.TestCase):
         )
 
         self.assertEqual(masks, (None, None))
+
+    def test_prediction_weighting_changes_only_center_five_by_five(self):
+        global_weights = prediction_weight_map((15, 15), mode="global_prediction")
+        decision_weights = prediction_weight_map(
+            (15, 15),
+            mode="decision_weighted_prediction",
+            decision_zone_size=5,
+            decision_zone_weight=3.0,
+        )
+
+        self.assertTrue(np.all(global_weights == 1.0))
+        self.assertEqual(int(np.sum(decision_weights == 3.0)), 25)
+        self.assertEqual(int(np.sum(decision_weights == 1.0)), 200)
+
+    def test_next_dynamic_channel_uses_next_agent_centered_coordinates(self):
+        problem = tiny_problem()
+        obstacle = DynamicObstacleSpec(
+            route=((1, 4), (2, 4), (3, 4), (4, 4), (5, 4)),
+            start_index=0,
+            direction=1,
+        )
+        env = DynamicGridNavigationEnv(
+            problem,
+            [obstacle],
+            max_steps=10,
+            window_size=5,
+        )
+        env.reset()
+        result = env.step(3)
+        target = result.observation.spatial[env.current_dynamic_channel]
+        expected = np.zeros((5, 5), dtype=np.float32)
+        radius = 2
+        for row, column in env.dynamic_positions:
+            local_row = row - env.position[0] + radius
+            local_column = column - env.position[1] + radius
+            if 0 <= local_row < 5 and 0 <= local_column < 5:
+                expected[local_row, local_column] = 1.0
+
+        np.testing.assert_array_equal(target, expected)
 
 
 class DynamicsAuditTests(unittest.TestCase):
@@ -236,7 +276,7 @@ class ForkTests(unittest.TestCase):
         intervals = []
         stage = dict(max_steps=13, evaluation_interval=5, epsilon_start=.5, epsilon_end=.1, epsilon_decay_steps=13)
         result = train_steps(agent, replay, self.problem, self.config, stage, [], 42,
-                             lambda step, records: intervals.append(step))
+                             lambda step, records, metrics: intervals.append(step))
         self.assertEqual(result["steps"], 13)
         self.assertEqual(agent.update_steps - initial_updates, 13)
         self.assertEqual(intervals, [5, 10, 13])

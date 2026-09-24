@@ -13,7 +13,7 @@ from torch import nn
 from astar_d3qn.replay.transition import Transition
 from astar_d3qn.envs.types import Observation
 
-from .networks import DuelingQNetwork
+from .networks import DuelingQNetwork, DynamicOccupancyPredictionHead
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +108,7 @@ class D3QNAgent:
         self.optimizer = torch.optim.Adam(
             self.policy_network.parameters(), lr=config.learning_rate
         )
+        self.prediction_head: DynamicOccupancyPredictionHead | None = None
         self._rng = random.Random(config.seed)
         self.update_steps = 0
         self.sync_target()
@@ -119,6 +120,32 @@ class D3QNAgent:
 
     def sync_target(self) -> None:
         self.target_network.load_state_dict(self.policy_network.state_dict())
+
+    def enable_dynamic_prediction(
+        self,
+        output_shape: tuple[int, int],
+        *,
+        hidden_dim: int = 128,
+    ) -> None:
+        if self.prediction_head is not None:
+            raise ValueError("Dynamic prediction is already enabled.")
+        self.prediction_head = DynamicOccupancyPredictionHead(
+            self.policy_network.spatial_feature_dim,
+            self.action_dim,
+            output_shape,
+            hidden_dim=hidden_dim,
+        ).to(self.device)
+        self.optimizer.add_param_group({"params": self.prediction_head.parameters()})
+
+    def predict_dynamic_occupancy(
+        self,
+        spatial_states: torch.Tensor,
+        actions: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.prediction_head is None:
+            raise ValueError("Dynamic prediction is not enabled.")
+        features = self.policy_network.encode_spatial(spatial_states)
+        return self.prediction_head(features, actions)
 
     def select_action(
         self,
@@ -157,6 +184,11 @@ class D3QNAgent:
         safe_guidance_loss_weight: float = 0.0,
         conflict_margin: float = 0.0,
         conflict_margin_loss_weight: float = 0.0,
+        prediction_loss_weight: float = 0.0,
+        prediction_pos_weight: float = 1.0,
+        prediction_target_channel: int = 1,
+        prediction_spatial_weights: np.ndarray | None = None,
+        prediction_mask: Sequence[bool] | None = None,
     ) -> dict[str, Any]:
         if not batch:
             raise ValueError("Cannot train on an empty batch.")
@@ -172,6 +204,10 @@ class D3QNAgent:
             raise ValueError("Safe-guidance margin settings cannot be negative.")
         if conflict_margin < 0.0 or conflict_margin_loss_weight < 0.0:
             raise ValueError("Conflict-margin settings cannot be negative.")
+        if prediction_loss_weight < 0.0 or prediction_pos_weight <= 0.0:
+            raise ValueError("Prediction-loss settings are invalid.")
+        if prediction_mask is not None and len(prediction_mask) != len(batch):
+            raise ValueError("prediction_mask must match the batch length.")
         spatial_states = torch.as_tensor(
             np.stack([item.state.spatial for item in batch]),
             dtype=torch.float32,
@@ -337,19 +373,67 @@ class D3QNAgent:
                     - safe_q[conflict_mask]
                 ).mean()
                 conflict_margin_batch_count = int(conflict_mask.sum().item())
+        prediction_loss = torch.zeros((), dtype=torch.float32, device=self.device)
+        prediction_batch_count = 0
+        if prediction_loss_weight > 0.0:
+            if self.prediction_head is None:
+                raise ValueError("Prediction loss requires an enabled prediction head.")
+            if not 0 <= prediction_target_channel < next_spatial_states.shape[1]:
+                raise ValueError("prediction_target_channel exceeds the spatial channels.")
+            active = torch.ones(len(batch), dtype=torch.bool, device=self.device)
+            if prediction_mask is not None:
+                active = torch.as_tensor(
+                    prediction_mask, dtype=torch.bool, device=self.device
+                )
+            if active.any():
+                prediction_logits = self.predict_dynamic_occupancy(
+                    spatial_states[active], actions[active]
+                )
+                prediction_targets = next_spatial_states[
+                    active, prediction_target_channel
+                ]
+                if prediction_logits.shape != prediction_targets.shape:
+                    raise ValueError(
+                        "Prediction output must match the next-state dynamic target."
+                    )
+                cell_losses = functional.binary_cross_entropy_with_logits(
+                    prediction_logits,
+                    prediction_targets,
+                    pos_weight=torch.as_tensor(
+                        prediction_pos_weight,
+                        dtype=torch.float32,
+                        device=self.device,
+                    ),
+                    reduction="none",
+                )
+                if prediction_spatial_weights is not None:
+                    weights = torch.as_tensor(
+                        prediction_spatial_weights,
+                        dtype=torch.float32,
+                        device=self.device,
+                    )
+                    if tuple(weights.shape) != tuple(prediction_targets.shape[1:]):
+                        raise ValueError(
+                            "Prediction spatial weights must match the target grid."
+                        )
+                    cell_losses = cell_losses * weights.unsqueeze(0)
+                prediction_loss = cell_losses.mean()
+                prediction_batch_count = int(active.sum().item())
         loss = (
             td_loss
             + float(demo_loss_weight) * demo_loss
             + float(safe_guidance_loss_weight) * safe_guidance_loss
             + float(conflict_margin_loss_weight) * conflict_margin_loss
+            + float(prediction_loss_weight) * prediction_loss
         )
         self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
         gradient_norm = 0.0
         if self.config.gradient_clip_norm > 0.0:
-            norm = nn.utils.clip_grad_norm_(
-                self.policy_network.parameters(), self.config.gradient_clip_norm
-            )
+            parameters = list(self.policy_network.parameters())
+            if self.prediction_head is not None:
+                parameters.extend(self.prediction_head.parameters())
+            norm = nn.utils.clip_grad_norm_(parameters, self.config.gradient_clip_norm)
             gradient_norm = float(norm.item())
         self.optimizer.step()
 
@@ -358,7 +442,9 @@ class D3QNAgent:
             self.sync_target()
         return {
             "loss": float(loss.item()),
+            "td_loss": float(td_loss.detach().item()),
             "q_mean": float(predicted_q.detach().mean().item()),
+            "q_abs_max": float(policy_q_values.detach().abs().max().item()),
             "target_mean": float(targets.mean().item()),
             "td_abs_mean": float(td_errors.abs().mean().item()),
             "gradient_norm_before_clip": gradient_norm,
@@ -372,7 +458,60 @@ class D3QNAgent:
             ),
             "conflict_margin_loss": float(conflict_margin_loss.detach().item()),
             "conflict_margin_batch_count": conflict_margin_batch_count,
+            "prediction_loss": float(prediction_loss.detach().item()),
+            "prediction_batch_count": prediction_batch_count,
         }
+
+    def dynamic_prediction_metrics(
+        self,
+        batch: list[Transition],
+        *,
+        target_channel: int,
+        decision_zone_size: int = 5,
+    ) -> dict[str, float]:
+        if not batch or self.prediction_head is None:
+            return {}
+        spatial = torch.as_tensor(
+            np.stack([item.state.spatial for item in batch]),
+            dtype=torch.float32,
+            device=self.device,
+        )
+        actions = torch.as_tensor(
+            [item.action for item in batch], dtype=torch.long, device=self.device
+        )
+        targets = torch.as_tensor(
+            np.stack([item.next_state.spatial[target_channel] for item in batch]),
+            dtype=torch.bool,
+            device=self.device,
+        )
+        with torch.no_grad():
+            predictions = self.predict_dynamic_occupancy(spatial, actions) >= 0.0
+
+        def metrics(predicted: torch.Tensor, actual: torch.Tensor, prefix: str):
+            true_positive = torch.logical_and(predicted, actual).sum().item()
+            false_positive = torch.logical_and(predicted, ~actual).sum().item()
+            false_negative = torch.logical_and(~predicted, actual).sum().item()
+            precision = true_positive / max(1, true_positive + false_positive)
+            recall = true_positive / max(1, true_positive + false_negative)
+            f1 = 2.0 * precision * recall / max(1e-12, precision + recall)
+            return {
+                f"{prefix}_precision": precision,
+                f"{prefix}_recall": recall,
+                f"{prefix}_f1": f1,
+            }
+
+        result = metrics(predictions, targets, "prediction_positive")
+        height, width = targets.shape[1:]
+        if decision_zone_size <= 0 or decision_zone_size % 2 == 0:
+            raise ValueError("decision_zone_size must be a positive odd integer.")
+        radius = decision_zone_size // 2
+        center_row, center_column = height // 2, width // 2
+        zone = (
+            slice(center_row - radius, center_row + radius + 1),
+            slice(center_column - radius, center_column + radius + 1),
+        )
+        result.update(metrics(predictions[:, zone[0], zone[1]], targets[:, zone[0], zone[1]], "decision_zone"))
+        return result
 
     def _next_action_mask(self, batch: list[Transition]) -> torch.Tensor:
         masks = []
@@ -392,6 +531,13 @@ class D3QNAgent:
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.policy_network.state_dict(), target)
+
+    def save_prediction_head(self, path: str | Path) -> None:
+        if self.prediction_head is None:
+            raise ValueError("Dynamic prediction is not enabled.")
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(self.prediction_head.state_dict(), target)
 
     def load_weights(self, path: str | Path) -> None:
         state = torch.load(path, map_location=self.device, weights_only=True)

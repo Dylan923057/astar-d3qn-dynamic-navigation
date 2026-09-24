@@ -201,6 +201,74 @@ class D3QNAgentTests(unittest.TestCase):
         ):
             torch.testing.assert_close(plain, labeled, rtol=0.0, atol=0.0)
 
+    def test_prediction_head_explicitly_uses_executed_action(self) -> None:
+        agent = self.make_agent()
+        agent.enable_dynamic_prediction((7, 7), hidden_dim=16)
+        spatial = torch.zeros((2, 1, 7, 7), dtype=torch.float32)
+
+        logits = agent.predict_dynamic_occupancy(
+            spatial,
+            torch.as_tensor([0, 1], dtype=torch.long),
+        )
+
+        self.assertEqual(tuple(logits.shape), (2, 7, 7))
+        self.assertFalse(torch.equal(logits[0], logits[1]))
+
+    def test_prediction_target_is_next_state_dynamic_channel(self) -> None:
+        agent = self.make_agent()
+        agent.enable_dynamic_prediction((7, 7), hidden_dim=16)
+        assert agent.prediction_head is not None
+        for parameter in agent.prediction_head.parameters():
+            parameter.data.zero_()
+        batch = self.make_batch()
+        next_spatial = batch[0].next_state.spatial.copy()
+        next_spatial[0] = 0.0
+        next_spatial[0, 3, 3] = 1.0
+        batch[0] = replace(
+            batch[0],
+            state=Observation(
+                spatial=np.zeros((1, 7, 7), dtype=np.float32),
+                scalars=batch[0].state.scalars,
+            ),
+            next_state=Observation(
+                spatial=next_spatial,
+                scalars=batch[0].next_state.scalars,
+            ),
+        )
+
+        stats = agent.train_batch(
+            batch,
+            prediction_loss_weight=0.1,
+            prediction_pos_weight=2.0,
+            prediction_target_channel=0,
+            prediction_mask=[True, False, False, False],
+        )
+
+        expected = (48 * np.log(2.0) + 2 * np.log(2.0)) / 49
+        self.assertAlmostEqual(stats["prediction_loss"], expected, places=5)
+        self.assertEqual(stats["prediction_batch_count"], 1)
+
+    def test_zero_prediction_weight_is_exactly_equivalent_to_td_only(self) -> None:
+        reference = self.make_agent()
+        treatment = self.make_agent()
+        treatment.load_training_state_dict(copy.deepcopy(reference.training_state_dict()))
+        treatment.enable_dynamic_prediction((7, 7), hidden_dim=16)
+
+        plain_stats = reference.train_batch(self.make_batch())
+        treatment_stats = treatment.train_batch(
+            self.make_batch(),
+            prediction_loss_weight=0.0,
+            prediction_mask=[True] * 4,
+        )
+
+        self.assertEqual(plain_stats["loss"], treatment_stats["loss"])
+        self.assertEqual(treatment_stats["prediction_batch_count"], 0)
+        for plain, predicted in zip(
+            reference.policy_network.parameters(),
+            treatment.policy_network.parameters(),
+        ):
+            torch.testing.assert_close(plain, predicted, rtol=0.0, atol=0.0)
+
     def test_greedy_action_respects_valid_action_subset(self) -> None:
         agent = self.make_agent()
         state = Observation(

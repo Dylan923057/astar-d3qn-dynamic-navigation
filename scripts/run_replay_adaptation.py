@@ -36,12 +36,20 @@ def main():
         choices=(
             "fixed", "decay", "risk_handover", "safe_intervention",
             "risk_sampling", "demo_action_margin", "all_action_margin",
+            "global_prediction", "decision_weighted_prediction",
         ),
         default="fixed",
         help="Select the replay schedule or one training-only action-ranking treatment",
     )
     parser.add_argument("--action-margin", type=float, default=0.8)
     parser.add_argument("--action-margin-loss-weight", type=float, default=1.0)
+    parser.add_argument("--prediction-loss-weight", type=float, default=0.1)
+    parser.add_argument("--prediction-pos-weight", type=float, default=20.0)
+    parser.add_argument("--prediction-head-hidden-dim", type=int, default=128)
+    parser.add_argument("--prediction-decision-zone-size", type=int, default=5)
+    parser.add_argument("--prediction-decision-zone-weight", type=float, default=3.0)
+    parser.add_argument("--prediction-diagnostic-batch-size", type=int, default=256)
+    parser.add_argument("--prediction-smoke-steps", type=int, default=3000)
     parser.add_argument(
         "--safe-samples",
         nargs="+",
@@ -57,6 +65,10 @@ def main():
     parser.add_argument("--stage", choices=("foundation", "adapt", "all"), default="all")
     parser.add_argument("--device", default="auto")
     parser.add_argument("--output-root", help="Separate run namespace; never overwrites an existing experiment")
+    parser.add_argument(
+        "--foundation-source-root",
+        help="Reuse foundations from this output root while writing branches to output-root",
+    )
     parser.add_argument("--reuse-foundation", action="store_true",
                         help="Reuse an existing qualified foundation when only the adaptation code changed")
     parser.add_argument("--threads", type=int, default=1)
@@ -65,8 +77,20 @@ def main():
     args = parser.parse_args()
     if args.action_margin < 0.0 or args.action_margin_loss_weight < 0.0:
         raise SystemExit("Action-margin settings cannot be negative.")
+    if (
+        args.prediction_loss_weight < 0.0
+        or args.prediction_pos_weight <= 0.0
+        or args.prediction_head_hidden_dim <= 0
+        or args.prediction_decision_zone_size <= 0
+        or args.prediction_decision_zone_size % 2 == 0
+        or args.prediction_decision_zone_weight < 1.0
+        or args.prediction_diagnostic_batch_size <= 0
+        or args.prediction_smoke_steps <= 0
+    ):
+        raise SystemExit("Prediction settings are invalid.")
     torch.set_num_threads(args.threads)
     config = yaml.safe_load((ROOT / args.config).read_text(encoding="utf-8"))
+    registered_output_root = config["output_root"]
     if args.output_root:
         config["output_root"] = args.output_root
     manifest_path = ROOT / config["dataset"]
@@ -117,10 +141,32 @@ def main():
             config[stage]["max_steps"] = 16
             config[stage]["evaluation_interval"] = 8
             config[stage]["epsilon_decay_steps"] = 16
+        if args.schedule in {"global_prediction", "decision_weighted_prediction"}:
+            config["adaptation"]["max_steps"] = args.prediction_smoke_steps
+            config["adaptation"]["evaluation_interval"] = min(
+                500, args.prediction_smoke_steps
+            )
+            config["adaptation"]["epsilon_decay_steps"] = args.prediction_smoke_steps
         scenarios = {key: value[:1] for key, value in scenarios.items()}
     device = ("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else args.device
     code_files = sorted((ROOT / "src/astar_d3qn").rglob("*.py")) + [Path(__file__)]
     code_hash = state_digest({str(p.relative_to(ROOT)): sha_file(p) for p in code_files})
+    foundation_config = copy.deepcopy(config)
+    foundation_config["output_root"] = registered_output_root
+    if args.smoke and args.schedule in {
+        "global_prediction", "decision_weighted_prediction"
+    }:
+        foundation_config["adaptation"]["max_steps"] = 16
+        foundation_config["adaptation"]["evaluation_interval"] = 8
+        foundation_config["adaptation"]["epsilon_decay_steps"] = 16
+    foundation_provenance = {
+        "config_sha256": state_digest(foundation_config),
+        "manifest_sha256": sha_file(manifest_path),
+        "code_sha256": code_hash,
+        "torch_version": str(torch.__version__),
+        "map_id": problem.map_id,
+        "grid_sha256": problem.grid_sha256,
+    }
     provenance = {"config_sha256": state_digest(config), "manifest_sha256": sha_file(manifest_path),
                   "code_sha256": code_hash, "torch_version": str(torch.__version__),
                   "map_id": problem.map_id, "grid_sha256": problem.grid_sha256}
@@ -131,6 +177,9 @@ def main():
                       "risk_samples": risk_samples if args.schedule == "risk_sampling" else None,
                       "action_margin": args.action_margin if args.schedule.endswith("action_margin") else None,
                       "action_margin_loss_weight": args.action_margin_loss_weight if args.schedule.endswith("action_margin") else None,
+                      "prediction_loss_weight": args.prediction_loss_weight if args.schedule.endswith("prediction") else None,
+                      "prediction_pos_weight": args.prediction_pos_weight if args.schedule.endswith("prediction") else None,
+                      "defer_test": args.schedule.endswith("prediction"),
                       "static_steps_max": config["foundation"]["max_steps"],
                       "adaptation_steps_per_branch": config["adaptation"]["max_steps"],
                       "device": device, "smoke": args.smoke,
@@ -140,17 +189,32 @@ def main():
         return
     for seed in seeds:
         root = destination / f"seed_{seed}"
-        foundation_dir = root / "foundation"
+        foundation_output_root = args.foundation_source_root or registered_output_root
+        foundation_dir = (
+            ROOT / foundation_output_root
+            / ("smoke" if args.smoke else "formal")
+            / problem.map_id
+            / f"seed_{seed}"
+            / "foundation"
+        )
         checkpoint_path = foundation_dir / "foundation.pt"
         if not checkpoint_path.exists():
             if args.stage == "adapt":
                 raise SystemExit(f"Missing foundation: {checkpoint_path}")
             foundation_dir.mkdir(parents=True, exist_ok=False)
-            write_json(config, foundation_dir / "effective_config.json")
-            train_foundation(problem, config, seed, device, foundation_dir, provenance, smoke=args.smoke)
+            write_json(foundation_config, foundation_dir / "effective_config.json")
+            train_foundation(
+                problem,
+                foundation_config,
+                seed,
+                device,
+                foundation_dir,
+                foundation_provenance,
+                smoke=args.smoke,
+            )
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         # Only locally generated trusted checkpoints are loaded (contain replay dataclasses).
-        for key, value in provenance.items():
+        for key, value in foundation_provenance.items():
             if checkpoint["metadata"].get(key) != value:
                 if args.reuse_foundation and key == "code_sha256":
                     continue
@@ -191,6 +255,16 @@ def main():
             runs = [(None, "demo_action_margin", "demo_action_margin", 0, 0)]
         elif args.schedule == "all_action_margin":
             runs = [(None, "all_action_margin", "all_action_margin", 0, 0)]
+        elif args.schedule == "global_prediction":
+            runs = [(None, "global_prediction", "global_prediction", 0, 0)]
+        elif args.schedule == "decision_weighted_prediction":
+            runs = [(
+                None,
+                "decision_weighted_prediction",
+                "decision_weighted_prediction",
+                0,
+                0,
+            )]
         for fraction, schedule, branch_name, safe_sample_count, risk_sample_count in runs:
             branch = root / branch_name
             result_path = branch / "result.json"
@@ -205,7 +279,19 @@ def main():
                         and result.get("action_margin", 0.8) == args.action_margin
                         and result.get("action_margin_loss_weight", 1.0) == args.action_margin_loss_weight
                         and result.get("smoke") == args.smoke
-                        and result.get("status") == "complete"):
+                        and result.get("prediction_loss_weight", 0.0) == (
+                            args.prediction_loss_weight
+                            if schedule in {"global_prediction", "decision_weighted_prediction"}
+                            else 0.0
+                        )
+                        and result.get("prediction_pos_weight") == (
+                            args.prediction_pos_weight
+                            if schedule in {"global_prediction", "decision_weighted_prediction"}
+                            else result.get("prediction_pos_weight")
+                        )
+                        and result.get("status") in {
+                            "complete", "validation_complete"
+                        }):
                     print(f"Already complete: {branch}", flush=True)
                     continue
                 raise SystemExit(f"Existing branch provenance differs: {branch}")
@@ -216,7 +302,17 @@ def main():
                          safe_sample_count=safe_sample_count,
                          risk_sample_count=risk_sample_count,
                          action_margin=args.action_margin,
-                         action_margin_loss_weight=args.action_margin_loss_weight)
+                         action_margin_loss_weight=args.action_margin_loss_weight,
+                         prediction_loss_weight=args.prediction_loss_weight,
+                         prediction_pos_weight=args.prediction_pos_weight,
+                         prediction_head_hidden_dim=args.prediction_head_hidden_dim,
+                         prediction_decision_zone_size=args.prediction_decision_zone_size,
+                         prediction_decision_zone_weight=args.prediction_decision_zone_weight,
+                         prediction_diagnostic_batch_size=args.prediction_diagnostic_batch_size,
+                         defer_test=schedule in {
+                             "global_prediction", "decision_weighted_prediction"
+                         },
+                         branch_provenance=provenance)
 
 
 if __name__ == "__main__":

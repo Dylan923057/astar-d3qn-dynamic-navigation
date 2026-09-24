@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from math import prod
 
 import torch
+import torch.nn.functional as functional
 from torch import nn
 
 
@@ -42,7 +43,8 @@ class DuelingQNetwork(nn.Module):
         )
         with torch.no_grad():
             encoded = self.encoder(torch.zeros(1, *shape))
-        encoded_dim = prod(encoded.shape[1:]) + self.scalar_dim
+        self.spatial_feature_dim = prod(encoded.shape[1:])
+        encoded_dim = self.spatial_feature_dim + self.scalar_dim
         self.value_stream = nn.Sequential(
             nn.Linear(encoded_dim, hidden_dim),
             nn.ReLU(),
@@ -63,10 +65,56 @@ class DuelingQNetwork(nn.Module):
             raise ValueError("Spatial input must have shape (batch, channels, height, width).")
         if scalars.ndim != 2 or scalars.shape != (spatial.shape[0], self.scalar_dim):
             raise ValueError("Scalar input must have shape (batch, scalar_dim).")
-        encoded = self.encoder(spatial).flatten(start_dim=1)
+        encoded = self.encode_spatial(spatial)
         features = torch.cat((encoded, scalars), dim=1)
         return self.value_stream(features), self.advantage_stream(features)
+
+    def encode_spatial(self, spatial: torch.Tensor) -> torch.Tensor:
+        if spatial.ndim != 4 or tuple(spatial.shape[1:]) != self.spatial_shape:
+            raise ValueError(
+                "Spatial input must have shape (batch, channels, height, width)."
+            )
+        return self.encoder(spatial).flatten(start_dim=1)
 
     def forward(self, spatial: torch.Tensor, scalars: torch.Tensor) -> torch.Tensor:
         value, advantage = self.streams(spatial, scalars)
         return value + advantage - advantage.mean(dim=1, keepdim=True)
+
+
+class DynamicOccupancyPredictionHead(nn.Module):
+    """Predict next local dynamic occupancy from shared features and action."""
+
+    def __init__(
+        self,
+        feature_dim: int,
+        action_dim: int,
+        output_shape: Sequence[int],
+        hidden_dim: int = 128,
+    ) -> None:
+        super().__init__()
+        shape = tuple(int(value) for value in output_shape)
+        if len(shape) != 2 or min(shape) <= 0:
+            raise ValueError("output_shape must contain positive height and width.")
+        if feature_dim <= 0 or action_dim <= 1 or hidden_dim <= 0:
+            raise ValueError("Prediction-head dimensions must be positive.")
+        self.feature_dim = int(feature_dim)
+        self.action_dim = int(action_dim)
+        self.output_shape = shape
+        self.layers = nn.Sequential(
+            nn.Linear(self.feature_dim + self.action_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, prod(shape)),
+        )
+
+    def forward(self, features: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[1] != self.feature_dim:
+            raise ValueError("Prediction features have the wrong shape.")
+        if actions.ndim != 1 or actions.shape[0] != features.shape[0]:
+            raise ValueError("Prediction actions must match the feature batch.")
+        if (actions < 0).any() or (actions >= self.action_dim).any():
+            raise ValueError("Prediction actions exceed the action space.")
+        one_hot = functional.one_hot(
+            actions.long(), num_classes=self.action_dim
+        ).to(dtype=features.dtype)
+        logits = self.layers(torch.cat((features, one_hot), dim=1))
+        return logits.reshape(features.shape[0], *self.output_shape)
