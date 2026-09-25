@@ -1,4 +1,4 @@
-"""Freeze the validation-only A/B decision on the second map."""
+"""Freeze a validation-only A/B dynamic-prediction generalization decision."""
 
 from __future__ import annotations
 
@@ -60,7 +60,24 @@ def main():
         "--output",
         default="outputs/dynamic_prediction_generalization_v1/analysis_validation",
     )
+    parser.add_argument(
+        "--safety-regression-tolerance",
+        type=float,
+        default=0.0,
+        help="Maximum allowed per-seed increase in final collision or timeout rate",
+    )
+    parser.add_argument(
+        "--late-stability-gate",
+        choices=("required", "report_only"),
+        default="required",
+    )
+    parser.add_argument(
+        "--next-step-on-pass",
+        default="expand_to_5_seeds",
+    )
     args = parser.parse_args()
+    if args.safety_regression_tolerance < 0.0:
+        raise SystemExit("Safety regression tolerance cannot be negative.")
 
     config = yaml.safe_load((ROOT / args.config).read_text(encoding="utf-8"))
     manifest = json.loads((ROOT / config["dataset"]).read_text(encoding="utf-8"))
@@ -110,6 +127,15 @@ def main():
 
             curve = read_csv(curve_path)
             final = curve[-1]
+            threshold_step = next(
+                (
+                    int(row["environment_steps"])
+                    for row in curve
+                    if int(float(row["threshold_consecutive_passes"]))
+                    >= int(config["adaptation"]["consecutive_passes"])
+                ),
+                None,
+            )
             late = [
                 float(row["conflict_safe_success"])
                 for row in curve
@@ -119,6 +145,8 @@ def main():
                 "method": method,
                 "seed": seed,
                 "validation_conflict_auc": validation_auc(curve, budget),
+                "threshold_confirmation_step": threshold_step,
+                "threshold_right_censored": int(threshold_step is None),
                 "final_conflict_safe_success": value(final, "conflict_safe_success"),
                 "final_conflict_dynamic_collision": value(final, "conflict_dynamic_collision"),
                 "final_conflict_timeout": value(final, "conflict_timeout"),
@@ -151,8 +179,10 @@ def main():
     no_final_safety_regression = all(
         indexed[("B_global_prediction", seed)]["final_conflict_dynamic_collision"]
         <= indexed[("A_time_decay", seed)]["final_conflict_dynamic_collision"]
+        + args.safety_regression_tolerance
         and indexed[("B_global_prediction", seed)]["final_conflict_timeout"]
         <= indexed[("A_time_decay", seed)]["final_conflict_timeout"]
+        + args.safety_regression_tolerance
         for seed in args.seeds
     )
     late_stability = {
@@ -171,7 +201,10 @@ def main():
         b_minus_a > 0.0
         and b_better_seed_count >= 2
         and no_final_safety_regression
-        and late_stability_not_worse
+        and (
+            args.late_stability_gate == "report_only"
+            or late_stability_not_worse
+        )
     )
     decision = {
         "validation_only": True,
@@ -181,11 +214,13 @@ def main():
         "mean_validation_auc": means,
         "B_minus_A": b_minus_a,
         "B_better_than_A_seed_count": b_better_seed_count,
+        "safety_regression_tolerance": args.safety_regression_tolerance,
         "no_final_collision_or_timeout_regression": no_final_safety_regression,
         "mean_last_50k_conflict_safe_std": late_stability,
         "late_stability_not_worse": late_stability_not_worse,
+        "late_stability_gate": args.late_stability_gate,
         "generalizes": generalizes,
-        "next_step": "expand_to_5_seeds" if generalizes else "stop_and_diagnose",
+        "next_step": args.next_step_on_pass if generalizes else "stop_and_diagnose",
     }
     destination = ROOT / args.output / map_id
     if destination.exists():
@@ -201,8 +236,10 @@ def main():
         f"- Map: {map_id}",
         f"- B - A mean validation AUC: {b_minus_a:.4f}",
         f"- B better than A seeds: {b_better_seed_count}/{len(args.seeds)}",
+        f"- Safety regression tolerance: {args.safety_regression_tolerance:.4f}",
         f"- No final collision/timeout regression: {no_final_safety_regression}",
         f"- Late stability not worse: {late_stability_not_worse}",
+        f"- Late stability gate: {args.late_stability_gate}",
         f"- Generalizes: {generalizes}",
         f"- Next step: {decision['next_step']}",
     ]
