@@ -21,6 +21,13 @@ from astar_d3qn.training.replay_adaptation import train_foundation, train_branch
 from astar_d3qn.utils.io import write_json
 
 
+PREDICTION_SCHEDULES = {"global_prediction", "decision_weighted_prediction"}
+
+
+def should_defer_test(schedule, requested):
+    return requested or schedule in PREDICTION_SCHEDULES
+
+
 def sha_file(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -71,6 +78,11 @@ def main():
     )
     parser.add_argument("--reuse-foundation", action="store_true",
                         help="Reuse an existing qualified foundation when only the adaptation code changed")
+    parser.add_argument(
+        "--defer-test",
+        action="store_true",
+        help="Stop after frozen validation and do not generate or read test results",
+    )
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -179,7 +191,7 @@ def main():
                       "action_margin_loss_weight": args.action_margin_loss_weight if args.schedule.endswith("action_margin") else None,
                       "prediction_loss_weight": args.prediction_loss_weight if args.schedule.endswith("prediction") else None,
                       "prediction_pos_weight": args.prediction_pos_weight if args.schedule.endswith("prediction") else None,
-                      "defer_test": args.schedule.endswith("prediction"),
+                      "defer_test": should_defer_test(args.schedule, args.defer_test),
                       "static_steps_max": config["foundation"]["max_steps"],
                       "adaptation_steps_per_branch": config["adaptation"]["max_steps"],
                       "device": device, "smoke": args.smoke,
@@ -268,6 +280,8 @@ def main():
         for fraction, schedule, branch_name, safe_sample_count, risk_sample_count in runs:
             branch = root / branch_name
             result_path = branch / "result.json"
+            defer_test = should_defer_test(schedule, args.defer_test)
+            expected_status = "validation_complete" if defer_test else "complete"
             if result_path.exists():
                 result = json.loads(result_path.read_text(encoding="utf-8"))
                 if (all(result.get(k) == v for k, v in provenance.items())
@@ -289,9 +303,8 @@ def main():
                             if schedule in {"global_prediction", "decision_weighted_prediction"}
                             else result.get("prediction_pos_weight")
                         )
-                        and result.get("status") in {
-                            "complete", "validation_complete"
-                        }):
+                        and result.get("status") == expected_status
+                        and result.get("test_deferred", False) == defer_test):
                     print(f"Already complete: {branch}", flush=True)
                     continue
                 raise SystemExit(f"Existing branch provenance differs: {branch}")
@@ -309,9 +322,7 @@ def main():
                          prediction_decision_zone_size=args.prediction_decision_zone_size,
                          prediction_decision_zone_weight=args.prediction_decision_zone_weight,
                          prediction_diagnostic_batch_size=args.prediction_diagnostic_batch_size,
-                         defer_test=schedule in {
-                             "global_prediction", "decision_weighted_prediction"
-                         },
+                         defer_test=defer_test,
                          branch_provenance=provenance)
 
 

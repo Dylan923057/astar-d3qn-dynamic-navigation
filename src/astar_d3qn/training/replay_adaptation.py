@@ -888,6 +888,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                     if prediction_mode == "global_prediction" else None
                 ),
                 "prediction_changes_action_execution": False,
+                "test_deferred": defer_test,
                 "branch_provenance": branch_provenance,
                  "online_capacity": replay.online.capacity, "fork_environment": "fresh static start; dynamic clock reset",
                 "epsilon_clock": "steps since fork", "smoke": smoke}, directory / "fork_audit.json")
@@ -936,6 +937,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                           if total_samples else d / (d + o))
     result = {**checkpoint["metadata"], **(branch_provenance or {}),
                  "status": "validation_complete" if defer_test else "complete", "fraction": fraction,
+                 "test_deferred": defer_test,
                  "replay_schedule": replay_schedule or "fixed",
                  "safe_sample_count": safe_sample_count,
                  "risk_sample_count": risk_sample_count,

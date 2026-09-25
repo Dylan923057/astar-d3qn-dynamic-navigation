@@ -450,6 +450,14 @@ class IndexedRiskReplayTests(unittest.TestCase):
 
 
 class SummaryTests(unittest.TestCase):
+    def test_generic_defer_test_keeps_baseline_and_prediction_validation_only(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from run_replay_adaptation import should_defer_test
+
+        self.assertTrue(should_defer_test("decay", True))
+        self.assertFalse(should_defer_test("decay", False))
+        self.assertTrue(should_defer_test("global_prediction", False))
+
     def test_effect_sign_and_single_seed_uncertainty(self):
         sys.path.insert(0, str(ROOT / "scripts"))
         from summarize_replay_adaptation import paired_effect, bootstrap_mean

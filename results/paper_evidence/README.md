@@ -53,7 +53,7 @@
 
 ## 总索引
 
-- `experiment_index.csv`：76 个正式运行的可读索引。
+- `experiment_index.csv`：82 个正式运行的可读索引。
 - `experiment_index.json`：与 CSV 对应的机器可读索引。
 - `provenance_groups.csv`：按代码、配置和数据哈希划分的来源组。
 - `SHA256SUMS.csv`：归档文件大小和 SHA-256，用于上传后核验。
@@ -87,4 +87,11 @@
 - 方法：`global_prediction`、`decision_weighted_prediction`，各 3 个 seed；A 组复用既有 `time_decay`。
 - 结论：全局预测辅助 B 显示值得独立确认的验证增益；决策区加权 C 未增加价值并出现单 seed 退化。
 - 用途：B 可作为后续候选改进，C 作为消融和失败分析；本阶段未解锁测试集。
+
+### 06：2026-09-25，动态占用预测辅助跨地图验证
+
+- 目录：`06_2026-09-25_dynamic_prediction_generalization/`
+- 地图：`irregular_workcell_91702`；方法为 `time_decay` 和 `global_prediction`，各 3 个 seed。
+- 结论：B 平均验证 AUC 提高 0.0319，3/3 seed 提升且安全性、后期稳定性不退化，跨地图门槛全部通过。
+- 用途：支持全局动态预测辅助的初步跨地图有效性；下一步扩展到 5 个 seed，本阶段仍未解锁测试集。
 
