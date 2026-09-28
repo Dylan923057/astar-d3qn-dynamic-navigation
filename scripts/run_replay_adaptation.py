@@ -21,7 +21,11 @@ from astar_d3qn.training.replay_adaptation import train_foundation, train_branch
 from astar_d3qn.utils.io import write_json
 
 
-PREDICTION_SCHEDULES = {"global_prediction", "decision_weighted_prediction"}
+PREDICTION_SCHEDULES = {
+    "global_prediction",
+    "decision_weighted_prediction",
+    "decision_aligned_prediction",
+}
 
 
 def should_defer_test(schedule, requested):
@@ -44,6 +48,7 @@ def main():
             "fixed", "decay", "risk_handover", "safe_intervention",
             "risk_sampling", "demo_action_margin", "all_action_margin",
             "global_prediction", "decision_weighted_prediction",
+            "decision_aligned_prediction",
         ),
         default="fixed",
         help="Select the replay schedule or one training-only action-ranking treatment",
@@ -100,6 +105,18 @@ def main():
         or args.prediction_smoke_steps <= 0
     ):
         raise SystemExit("Prediction settings are invalid.")
+    if args.schedule == "decision_aligned_prediction" and (
+        args.prediction_loss_weight != 0.1
+        or args.prediction_pos_weight != 20.0
+        or args.prediction_head_hidden_dim != 128
+        or args.prediction_decision_zone_size != 5
+        or args.prediction_decision_zone_weight != 3.0
+    ):
+        raise SystemExit(
+            "decision_aligned_prediction uses the frozen prediction settings: "
+            "loss_weight=0.1, pos_weight=20, head_hidden_dim=128, "
+            "decision_zone_size=5, decision_zone_weight=3."
+        )
     torch.set_num_threads(args.threads)
     config = yaml.safe_load((ROOT / args.config).read_text(encoding="utf-8"))
     registered_output_root = config["output_root"]
@@ -153,7 +170,7 @@ def main():
             config[stage]["max_steps"] = 16
             config[stage]["evaluation_interval"] = 8
             config[stage]["epsilon_decay_steps"] = 16
-        if args.schedule in {"global_prediction", "decision_weighted_prediction"}:
+        if args.schedule in PREDICTION_SCHEDULES:
             config["adaptation"]["max_steps"] = args.prediction_smoke_steps
             config["adaptation"]["evaluation_interval"] = min(
                 500, args.prediction_smoke_steps
@@ -165,9 +182,7 @@ def main():
     code_hash = state_digest({str(p.relative_to(ROOT)): sha_file(p) for p in code_files})
     foundation_config = copy.deepcopy(config)
     foundation_config["output_root"] = registered_output_root
-    if args.smoke and args.schedule in {
-        "global_prediction", "decision_weighted_prediction"
-    }:
+    if args.smoke and args.schedule in PREDICTION_SCHEDULES:
         foundation_config["adaptation"]["max_steps"] = 16
         foundation_config["adaptation"]["evaluation_interval"] = 8
         foundation_config["adaptation"]["epsilon_decay_steps"] = 16
@@ -191,6 +206,11 @@ def main():
                       "action_margin_loss_weight": args.action_margin_loss_weight if args.schedule.endswith("action_margin") else None,
                       "prediction_loss_weight": args.prediction_loss_weight if args.schedule.endswith("prediction") else None,
                       "prediction_pos_weight": args.prediction_pos_weight if args.schedule.endswith("prediction") else None,
+                      "prediction_gradient_strategy": (
+                          "project_conflicting"
+                          if args.schedule == "decision_aligned_prediction"
+                          else "none" if args.schedule in PREDICTION_SCHEDULES else None
+                      ),
                       "defer_test": should_defer_test(args.schedule, args.defer_test),
                       "static_steps_max": config["foundation"]["max_steps"],
                       "adaptation_steps_per_branch": config["adaptation"]["max_steps"],
@@ -277,6 +297,14 @@ def main():
                 0,
                 0,
             )]
+        elif args.schedule == "decision_aligned_prediction":
+            runs = [(
+                None,
+                "decision_aligned_prediction",
+                "decision_aligned_prediction",
+                0,
+                0,
+            )]
         for fraction, schedule, branch_name, safe_sample_count, risk_sample_count in runs:
             branch = root / branch_name
             result_path = branch / "result.json"
@@ -295,13 +323,18 @@ def main():
                         and result.get("smoke") == args.smoke
                         and result.get("prediction_loss_weight", 0.0) == (
                             args.prediction_loss_weight
-                            if schedule in {"global_prediction", "decision_weighted_prediction"}
+                            if schedule in PREDICTION_SCHEDULES
                             else 0.0
                         )
                         and result.get("prediction_pos_weight") == (
                             args.prediction_pos_weight
-                            if schedule in {"global_prediction", "decision_weighted_prediction"}
+                            if schedule in PREDICTION_SCHEDULES
                             else result.get("prediction_pos_weight")
+                        )
+                        and result.get("prediction_gradient_strategy", "none") == (
+                            "project_conflicting"
+                            if schedule == "decision_aligned_prediction"
+                            else "none"
                         )
                         and result.get("status") == expected_status
                         and result.get("test_deferred", False) == defer_test):
