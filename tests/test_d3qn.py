@@ -19,6 +19,7 @@ from astar_d3qn.agents.d3qn import (
     D3QNConfig,
     double_dqn_bootstrap,
     double_dqn_targets,
+    project_conflicting_gradients,
 )
 from astar_d3qn.agents.networks import DuelingQNetwork
 from astar_d3qn.envs.types import Observation
@@ -60,6 +61,35 @@ class DoubleDqnTests(unittest.TestCase):
             rewards, terminated, 0.5, policy, target
         )
         torch.testing.assert_close(actual, torch.tensor([2.0, 6.0]))
+
+
+class GradientProjectionTests(unittest.TestCase):
+    def test_conflicting_auxiliary_gradient_is_made_orthogonal(self) -> None:
+        primary = [torch.tensor([1.0, 0.0]), torch.tensor([1.0])]
+        auxiliary = [torch.tensor([-2.0, 3.0]), torch.tensor([-1.0])]
+
+        projected, stats = project_conflicting_gradients(primary, auxiliary)
+
+        dot = sum(
+            torch.sum(left * right) for left, right in zip(primary, projected)
+        )
+        self.assertTrue(stats["conflict"])
+        self.assertTrue(stats["corrected"])
+        self.assertLess(stats["cosine_before"], 0.0)
+        self.assertAlmostEqual(float(dot.item()), 0.0, places=6)
+        self.assertAlmostEqual(stats["cosine_after"], 0.0, places=6)
+        self.assertGreater(stats["removed_norm_ratio"], 0.0)
+
+    def test_nonconflicting_auxiliary_gradient_is_unchanged(self) -> None:
+        primary = [torch.tensor([1.0, 2.0])]
+        auxiliary = [torch.tensor([3.0, 4.0])]
+
+        projected, stats = project_conflicting_gradients(primary, auxiliary)
+
+        torch.testing.assert_close(projected[0], auxiliary[0])
+        self.assertFalse(stats["conflict"])
+        self.assertFalse(stats["corrected"])
+        self.assertEqual(stats["removed_norm_ratio"], 0.0)
 
 
 class D3QNAgentTests(unittest.TestCase):
@@ -268,6 +298,74 @@ class D3QNAgentTests(unittest.TestCase):
             treatment.policy_network.parameters(),
         ):
             torch.testing.assert_close(plain, predicted, rtol=0.0, atol=0.0)
+
+    def test_decision_aligned_prediction_updates_and_reports_mechanism(self) -> None:
+        agent = self.make_agent()
+        agent.enable_dynamic_prediction((7, 7), hidden_dim=16)
+        assert agent.prediction_head is not None
+        policy_before = [
+            parameter.detach().clone()
+            for parameter in agent.policy_network.parameters()
+        ]
+        head_before = [
+            parameter.detach().clone()
+            for parameter in agent.prediction_head.parameters()
+        ]
+
+        stats = agent.train_batch(
+            self.make_batch(),
+            prediction_loss_weight=0.1,
+            prediction_pos_weight=20.0,
+            prediction_target_channel=0,
+            prediction_mask=[True] * 4,
+            prediction_gradient_strategy="project_conflicting",
+        )
+
+        self.assertEqual(stats["gradient_alignment_active"], 1)
+        for key in (
+            "td_prediction_gradient_cosine_before",
+            "td_prediction_gradient_cosine_after",
+            "prediction_gradient_removed_norm_ratio",
+            "td_loss_before_update",
+            "td_loss_after_update",
+            "prediction_loss_before_update",
+            "prediction_loss_after_update",
+        ):
+            self.assertTrue(np.isfinite(stats[key]), key)
+        if stats["prediction_gradient_conflict"]:
+            self.assertGreaterEqual(
+                stats["td_prediction_gradient_cosine_after"], -1e-5
+            )
+            self.assertEqual(stats["prediction_gradient_corrected"], 1)
+        self.assertTrue(
+            any(
+                not torch.equal(before, after)
+                for before, after in zip(
+                    policy_before, agent.policy_network.parameters()
+                )
+            )
+        )
+        self.assertTrue(
+            any(
+                not torch.equal(before, after)
+                for before, after in zip(
+                    head_before, agent.prediction_head.parameters()
+                )
+            )
+        )
+
+    def test_decision_alignment_rejects_additional_auxiliary_losses(self) -> None:
+        agent = self.make_agent()
+        agent.enable_dynamic_prediction((7, 7), hidden_dim=16)
+
+        with self.assertRaisesRegex(ValueError, "isolates TD and prediction"):
+            agent.train_batch(
+                self.make_batch(),
+                demo_loss_weight=1.0,
+                prediction_loss_weight=0.1,
+                prediction_target_channel=0,
+                prediction_gradient_strategy="project_conflicting",
+            )
 
     def test_greedy_action_respects_valid_action_subset(self) -> None:
         agent = self.make_agent()

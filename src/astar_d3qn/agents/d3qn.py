@@ -86,6 +86,72 @@ def double_dqn_targets(
     return rewards + float(gamma) * bootstrap * (1.0 - terminated.float())
 
 
+def project_conflicting_gradients(
+    primary_gradients: Sequence[torch.Tensor],
+    auxiliary_gradients: Sequence[torch.Tensor],
+    *,
+    epsilon: float = 1e-12,
+) -> tuple[list[torch.Tensor], dict[str, float | bool]]:
+    if len(primary_gradients) != len(auxiliary_gradients) or not primary_gradients:
+        raise ValueError("Gradient collections must be non-empty and have equal length.")
+    if epsilon <= 0.0:
+        raise ValueError("epsilon must be positive.")
+    dot = torch.zeros((), device=primary_gradients[0].device)
+    primary_squared_norm = torch.zeros_like(dot)
+    auxiliary_squared_norm = torch.zeros_like(dot)
+    for primary, auxiliary in zip(primary_gradients, auxiliary_gradients):
+        if primary.shape != auxiliary.shape:
+            raise ValueError("Paired gradients must have matching shapes.")
+        dot = dot + torch.sum(primary * auxiliary)
+        primary_squared_norm = primary_squared_norm + torch.sum(primary.square())
+        auxiliary_squared_norm = auxiliary_squared_norm + torch.sum(auxiliary.square())
+    denominator = torch.sqrt(primary_squared_norm * auxiliary_squared_norm)
+    cosine_before = dot / denominator.clamp_min(epsilon)
+    conflict = bool(
+        dot.item() < 0.0
+        and primary_squared_norm.item() > epsilon
+        and auxiliary_squared_norm.item() > epsilon
+    )
+    if conflict:
+        coefficient = dot / primary_squared_norm.clamp_min(epsilon)
+        projected = [
+            auxiliary - coefficient * primary
+            for primary, auxiliary in zip(primary_gradients, auxiliary_gradients)
+        ]
+    else:
+        projected = [gradient.clone() for gradient in auxiliary_gradients]
+    projected_dot = torch.zeros_like(dot)
+    projected_squared_norm = torch.zeros_like(dot)
+    removed_squared_norm = torch.zeros_like(dot)
+    for primary, auxiliary, corrected in zip(
+        primary_gradients, auxiliary_gradients, projected
+    ):
+        projected_dot = projected_dot + torch.sum(primary * corrected)
+        projected_squared_norm = projected_squared_norm + torch.sum(corrected.square())
+        removed_squared_norm = removed_squared_norm + torch.sum(
+            (auxiliary - corrected).square()
+        )
+    cosine_after = projected_dot / torch.sqrt(
+        primary_squared_norm * projected_squared_norm
+    ).clamp_min(epsilon)
+    auxiliary_norm = torch.sqrt(auxiliary_squared_norm)
+    removed_norm_ratio = torch.sqrt(removed_squared_norm) / auxiliary_norm.clamp_min(
+        epsilon
+    )
+    return projected, {
+        "cosine_before": float(cosine_before.detach().item()),
+        "cosine_after": float(cosine_after.detach().item()),
+        "conflict": conflict,
+        "corrected": conflict,
+        "primary_norm": float(torch.sqrt(primary_squared_norm).detach().item()),
+        "auxiliary_norm": float(auxiliary_norm.detach().item()),
+        "projected_auxiliary_norm": float(
+            torch.sqrt(projected_squared_norm).detach().item()
+        ),
+        "removed_norm_ratio": float(removed_norm_ratio.detach().item()),
+    }
+
+
 class D3QNAgent:
     def __init__(self, config: D3QNConfig):
         self.config = config
@@ -189,6 +255,7 @@ class D3QNAgent:
         prediction_target_channel: int = 1,
         prediction_spatial_weights: np.ndarray | None = None,
         prediction_mask: Sequence[bool] | None = None,
+        prediction_gradient_strategy: str = "none",
     ) -> dict[str, Any]:
         if not batch:
             raise ValueError("Cannot train on an empty batch.")
@@ -208,6 +275,22 @@ class D3QNAgent:
             raise ValueError("Prediction-loss settings are invalid.")
         if prediction_mask is not None and len(prediction_mask) != len(batch):
             raise ValueError("prediction_mask must match the batch length.")
+        if prediction_gradient_strategy not in {"none", "project_conflicting"}:
+            raise ValueError("Unsupported prediction gradient strategy.")
+        if prediction_gradient_strategy == "project_conflicting":
+            if prediction_loss_weight <= 0.0:
+                raise ValueError("Gradient alignment requires an active prediction loss.")
+            if any(
+                weight > 0.0
+                for weight in (
+                    demo_loss_weight,
+                    safe_guidance_loss_weight,
+                    conflict_margin_loss_weight,
+                )
+            ):
+                raise ValueError(
+                    "Gradient alignment isolates TD and prediction losses only."
+                )
         spatial_states = torch.as_tensor(
             np.stack([item.state.spatial for item in batch]),
             dtype=torch.float32,
@@ -264,10 +347,10 @@ class D3QNAgent:
             predicted_q, targets, reduction="none"
         )
         if sample_weights is not None:
-            weights = torch.as_tensor(
+            td_weights = torch.as_tensor(
                 sample_weights, dtype=torch.float32, device=self.device
             )
-            td_loss = (td_losses * weights).mean()
+            td_loss = (td_losses * td_weights).mean()
         else:
             td_loss = td_losses.mean()
 
@@ -375,6 +458,9 @@ class D3QNAgent:
                 conflict_margin_batch_count = int(conflict_mask.sum().item())
         prediction_loss = torch.zeros((), dtype=torch.float32, device=self.device)
         prediction_batch_count = 0
+        active = None
+        prediction_targets = None
+        prediction_cell_weights = None
         if prediction_loss_weight > 0.0:
             if self.prediction_head is None:
                 raise ValueError("Prediction loss requires an enabled prediction head.")
@@ -407,16 +493,18 @@ class D3QNAgent:
                     reduction="none",
                 )
                 if prediction_spatial_weights is not None:
-                    weights = torch.as_tensor(
+                    prediction_cell_weights = torch.as_tensor(
                         prediction_spatial_weights,
                         dtype=torch.float32,
                         device=self.device,
                     )
-                    if tuple(weights.shape) != tuple(prediction_targets.shape[1:]):
+                    if tuple(prediction_cell_weights.shape) != tuple(
+                        prediction_targets.shape[1:]
+                    ):
                         raise ValueError(
                             "Prediction spatial weights must match the target grid."
                         )
-                    cell_losses = cell_losses * weights.unsqueeze(0)
+                    cell_losses = cell_losses * prediction_cell_weights.unsqueeze(0)
                 prediction_loss = cell_losses.mean()
                 prediction_batch_count = int(active.sum().item())
         loss = (
@@ -427,7 +515,64 @@ class D3QNAgent:
             + float(prediction_loss_weight) * prediction_loss
         )
         self.optimizer.zero_grad(set_to_none=True)
-        loss.backward()
+        alignment = {
+            "cosine_before": 0.0,
+            "cosine_after": 0.0,
+            "conflict": False,
+            "corrected": False,
+            "primary_norm": 0.0,
+            "auxiliary_norm": 0.0,
+            "projected_auxiliary_norm": 0.0,
+            "removed_norm_ratio": 0.0,
+        }
+        alignment_active = (
+            prediction_gradient_strategy == "project_conflicting"
+            and prediction_batch_count > 0
+        )
+        if alignment_active:
+            assert self.prediction_head is not None
+            shared_parameters = list(self.policy_network.encoder.parameters())
+            q_parameters = list(self.policy_network.value_stream.parameters()) + list(
+                self.policy_network.advantage_stream.parameters()
+            )
+            prediction_parameters = list(self.prediction_head.parameters())
+            td_gradients = torch.autograd.grad(
+                td_loss,
+                shared_parameters + q_parameters,
+                retain_graph=True,
+            )
+            prediction_gradients = torch.autograd.grad(
+                prediction_loss,
+                shared_parameters + prediction_parameters,
+            )
+            shared_count = len(shared_parameters)
+            projected_prediction_gradients, alignment = (
+                project_conflicting_gradients(
+                    td_gradients[:shared_count],
+                    prediction_gradients[:shared_count],
+                )
+            )
+            for parameter, td_gradient, prediction_gradient in zip(
+                shared_parameters,
+                td_gradients[:shared_count],
+                projected_prediction_gradients,
+            ):
+                parameter.grad = (
+                    td_gradient
+                    + float(prediction_loss_weight) * prediction_gradient
+                ).detach()
+            for parameter, gradient in zip(
+                q_parameters, td_gradients[shared_count:]
+            ):
+                parameter.grad = gradient.detach()
+            for parameter, gradient in zip(
+                prediction_parameters, prediction_gradients[shared_count:]
+            ):
+                parameter.grad = (
+                    float(prediction_loss_weight) * gradient
+                ).detach()
+        else:
+            loss.backward()
         gradient_norm = 0.0
         if self.config.gradient_clip_norm > 0.0:
             parameters = list(self.policy_network.parameters())
@@ -436,6 +581,47 @@ class D3QNAgent:
             norm = nn.utils.clip_grad_norm_(parameters, self.config.gradient_clip_norm)
             gradient_norm = float(norm.item())
         self.optimizer.step()
+
+        td_loss_after_update = float(td_loss.detach().item())
+        prediction_loss_after_update = float(prediction_loss.detach().item())
+        if alignment_active:
+            assert active is not None and prediction_targets is not None
+            with torch.no_grad():
+                updated_q = self.policy_network(spatial_states, scalar_states)
+                updated_predicted_q = updated_q.gather(
+                    1, actions.unsqueeze(1)
+                ).squeeze(1)
+                updated_td_losses = functional.smooth_l1_loss(
+                    updated_predicted_q, targets, reduction="none"
+                )
+                if sample_weights is not None:
+                    updated_td_loss = (updated_td_losses * td_weights).mean()
+                else:
+                    updated_td_loss = updated_td_losses.mean()
+                updated_prediction_logits = self.predict_dynamic_occupancy(
+                    spatial_states[active], actions[active]
+                )
+                updated_prediction_losses = (
+                    functional.binary_cross_entropy_with_logits(
+                        updated_prediction_logits,
+                        prediction_targets,
+                        pos_weight=torch.as_tensor(
+                            prediction_pos_weight,
+                            dtype=torch.float32,
+                            device=self.device,
+                        ),
+                        reduction="none",
+                    )
+                )
+                if prediction_cell_weights is not None:
+                    updated_prediction_losses = (
+                        updated_prediction_losses
+                        * prediction_cell_weights.unsqueeze(0)
+                    )
+                td_loss_after_update = float(updated_td_loss.item())
+                prediction_loss_after_update = float(
+                    updated_prediction_losses.mean().item()
+                )
 
         self.update_steps += 1
         if self.update_steps % self.config.target_sync_interval == 0:
@@ -460,6 +646,29 @@ class D3QNAgent:
             "conflict_margin_batch_count": conflict_margin_batch_count,
             "prediction_loss": float(prediction_loss.detach().item()),
             "prediction_batch_count": prediction_batch_count,
+            "gradient_alignment_active": int(alignment_active),
+            "td_prediction_gradient_cosine_before": alignment["cosine_before"],
+            "td_prediction_gradient_cosine_after": alignment["cosine_after"],
+            "prediction_gradient_conflict": int(alignment["conflict"]),
+            "prediction_gradient_corrected": int(alignment["corrected"]),
+            "prediction_gradient_primary_norm": alignment["primary_norm"],
+            "prediction_gradient_raw_norm": alignment["auxiliary_norm"],
+            "prediction_gradient_projected_norm": alignment[
+                "projected_auxiliary_norm"
+            ],
+            "prediction_gradient_removed_norm_ratio": alignment[
+                "removed_norm_ratio"
+            ],
+            "td_loss_before_update": float(td_loss.detach().item()),
+            "td_loss_after_update": td_loss_after_update,
+            "td_loss_update_delta": td_loss_after_update
+            - float(td_loss.detach().item()),
+            "prediction_loss_before_update": float(
+                prediction_loss.detach().item()
+            ),
+            "prediction_loss_after_update": prediction_loss_after_update,
+            "prediction_loss_update_delta": prediction_loss_after_update
+            - float(prediction_loss.detach().item()),
         }
 
     def dynamic_prediction_metrics(

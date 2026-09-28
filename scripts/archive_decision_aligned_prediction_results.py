@@ -21,6 +21,15 @@ RUN_FILES = (
     "training.csv",
     "validation_curve.csv",
     "validation_details.csv",
+    "model_final.pth",
+    "prediction_head_final.pth",
+)
+FOUNDATION_FILES = (
+    "effective_config.json",
+    "foundation.pt",
+    "foundation_evaluation.csv",
+    "foundation_status.json",
+    "training.csv",
 )
 INDEX_FIELDS = (
     "phase",
@@ -94,12 +103,24 @@ def main() -> None:
         ROOT / "configs" / "risk_handover_v1.yaml",
         destination / "config" / "risk_handover_v1.yaml",
     )
+    for name in ("manifest.json", "scenario_audit.csv"):
+        copy_file(
+            ROOT / "data" / "risk_handover_v1" / name,
+            destination / "dataset" / name,
+        )
     copy_file(
         ROOT / "docs" / "DECISION_ALIGNED_PREDICTION_V1.zh-CN.md",
         destination / "protocol" / "DECISION_ALIGNED_PREDICTION_V1.zh-CN.md",
     )
     for name in ("decision.json", "per_seed_metrics.csv", "report.md"):
         copy_file(summary_root / name, destination / "analysis" / name)
+
+    foundation_root = ROOT / "outputs" / "risk_handover_v1" / "formal" / MAP_ID
+    for seed in (0, 1, 2):
+        source = foundation_root / f"seed_{seed}" / "foundation"
+        target = destination / "foundations" / MAP_ID / f"seed_{seed}"
+        for name in FOUNDATION_FILES:
+            copy_file(source / name, target / name)
 
     index_path = EVIDENCE / "experiment_index.json"
     index_rows = json.loads(index_path.read_text(encoding="utf-8-sig"))
@@ -171,7 +192,8 @@ def main() -> None:
 - A：既有 `time_decay`；B：既有 `global_prediction`；D：新增 `decision_aligned_prediction`。
 - D 使用 seed 0/1/2，每次固定训练 20 万步，并复用与 A/B 相同的逐 seed foundation。
 - prediction loss weight 固定为 0.1，pos_weight 固定为 20；没有调整奖励、探索率、回放、网络规模或其他辅助模块。
-- 本阶段只使用 validation，未生成、读取或归档 test 结果，也未归档模型权重。
+- 本阶段只使用 validation，未生成、读取或归档 test 结果。
+- 为保证 GitHub 上可以完整复现，本目录保留三个 foundation checkpoint、三个最终 D3QN 权重和三个 prediction-head 权重，并通过 Git LFS 管理。
 
 ## 主要结果
 
@@ -197,8 +219,10 @@ def main() -> None:
 
 - `analysis/`：A/B/D 冻结判定、逐 seed 指标和报告。
 - `config/`：实验配置快照。
+- `dataset/`：冻结的完整场景 manifest 和审计表。
+- `foundations/`：三个 seed 的完整 foundation checkpoint 与训练记录。
 - `protocol/`：预先冻结的方法、指标和继续条件。
-- `runs/`：D 组三次正式运行的训练与验证证据，不含权重和 test。
+- `runs/`：D 组三次正式运行的训练、验证证据和最终权重，不含 test。
 
 A/B 原始运行已归档在 `07_dynamic_prediction_third_map_validation/`，此处不重复复制。
 """
@@ -281,7 +305,7 @@ A/B 原始运行已归档在 `07_dynamic_prediction_third_map_validation/`，此
         "indexed_runs": len(index_rows),
         "archived_files": sum(1 for path in destination.rglob("*") if path.is_file()),
         "test_files_archived": 0,
-        "weight_files_archived": 0,
+        "weight_files_archived": 9,
         "phase_one_passes": False,
     }, ensure_ascii=False, indent=2))
 

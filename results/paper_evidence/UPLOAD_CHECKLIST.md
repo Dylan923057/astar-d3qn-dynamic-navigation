@@ -13,3 +13,4 @@
 - [ ] 上传前确认仓库可见性；论文完成前建议使用 Private。
 - [ ] Git 提交前运行 `git status`，确认没有 `outputs/`、论文 PDF 或本机临时目录。
 - [ ] 上传后随机核对一个 `result.json` 与 `SHA256SUMS.csv` 中的哈希。
+- [x] 阶段 09 已归档三次 validation-only 梯度对齐运行、完整 foundation 和最终权重；权重由 Git LFS 管理，未包含 test 结果。

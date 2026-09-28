@@ -1,0 +1,95 @@
+{
+  "experiment": "risk_handover_v1",
+  "source_dataset": "data/replay_adaptation_v2/manifest.json",
+  "dataset": "data/risk_handover_v1/manifest.json",
+  "output_root": "outputs/risk_handover_v1",
+  "preview_root": "maps/previews/risk_handover_v1",
+  "map_seeds": [
+    91701,
+    91702,
+    91703
+  ],
+  "map_size": 40,
+  "demo_seed": 7400,
+  "demo_episodes": 20,
+  "pair_counts": {
+    "train": 36,
+    "validation": 12,
+    "test": 48
+  },
+  "scenario_densities": {
+    "train": [
+      3,
+      5
+    ],
+    "validation": [
+      3,
+      5
+    ],
+    "test": [
+      1,
+      3,
+      5,
+      7
+    ]
+  },
+  "causal_obstacles": {
+    "1": 1,
+    "3": 1,
+    "5": 2,
+    "7": 2
+  },
+  "window_size": 15,
+  "max_episode_steps": 300,
+  "replay_capacity": 10000,
+  "batch_size": 64,
+  "learning_rate": 0.0003,
+  "gamma": 0.99,
+  "target_sync_interval": 250,
+  "hidden_dim": 256,
+  "reward": {
+    "step": -0.01,
+    "progress": 0.05,
+    "stay": 0.0,
+    "collision": -1.0,
+    "goal": 10.0
+  },
+  "risk_replay": {
+    "guidance_fraction": 0.25,
+    "capacity": 3000,
+    "coverage_target": 18,
+    "history_steps": 3
+  },
+  "foundation": {
+    "max_steps": 300000,
+    "minimum_steps": 50000,
+    "evaluation_interval": 10000,
+    "consecutive_passes": 3,
+    "maximum_path_ratio": 1.15,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_steps": 200000,
+    "demo_fraction": 0.25
+  },
+  "adaptation": {
+    "max_steps": 200000,
+    "evaluation_interval": 10000,
+    "epsilon_start": 0.3,
+    "epsilon_end": 0.05,
+    "epsilon_decay_steps": 150000,
+    "safe_success_threshold": 0.9,
+    "consecutive_passes": 2
+  },
+  "demo_fractions": [
+    0.0,
+    0.1,
+    0.25
+  ],
+  "training_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ]
+}

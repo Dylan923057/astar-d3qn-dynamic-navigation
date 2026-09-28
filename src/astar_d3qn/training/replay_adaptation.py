@@ -360,7 +360,8 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 prediction_loss_weight=0.1, prediction_pos_weight=20.0,
                 prediction_decision_zone_size=5,
                 prediction_decision_zone_weight=3.0,
-                prediction_diagnostic_batch_size=256):
+                prediction_diagnostic_batch_size=256,
+                prediction_gradient_strategy="none"):
     """Exact step budget, one gradient update per interaction after warm-up.
 
     Scene order is identical by episode across branches; visits and episode
@@ -406,6 +407,16 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
     prediction_q_abs_max = 0.0
     prediction_gradient_norm_total = 0.0
     prediction_gradient_norm_max = 0.0
+    alignment_update_count = 0
+    alignment_conflict_count = 0
+    alignment_corrected_count = 0
+    alignment_cosine_before_total = 0.0
+    alignment_cosine_after_total = 0.0
+    alignment_removed_norm_ratio_total = 0.0
+    alignment_td_loss_before_total = 0.0
+    alignment_td_loss_after_total = 0.0
+    alignment_prediction_loss_before_total = 0.0
+    alignment_prediction_loss_after_total = 0.0
     prediction_diagnostic_batch = []
     teacher_cache = {}
     risk_history = deque(maxlen=int(config.get("risk_replay", {}).get("history_steps", 3)) + 1)
@@ -424,6 +435,50 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
         if prediction_mode is not None
         else None
     )
+    def alignment_summary():
+        count = alignment_update_count
+        return {
+            "gradient_alignment_update_count": count,
+            "td_prediction_gradient_cosine_before_mean": (
+                alignment_cosine_before_total / count if count else 0.0
+            ),
+            "td_prediction_gradient_cosine_after_mean": (
+                alignment_cosine_after_total / count if count else 0.0
+            ),
+            "prediction_gradient_conflict_count": alignment_conflict_count,
+            "prediction_gradient_conflict_ratio": (
+                alignment_conflict_count / count if count else 0.0
+            ),
+            "prediction_gradient_corrected_count": alignment_corrected_count,
+            "prediction_gradient_corrected_ratio": (
+                alignment_corrected_count / count if count else 0.0
+            ),
+            "prediction_gradient_removed_norm_ratio_mean": (
+                alignment_removed_norm_ratio_total / count if count else 0.0
+            ),
+            "aligned_td_loss_before_update_mean": (
+                alignment_td_loss_before_total / count if count else 0.0
+            ),
+            "aligned_td_loss_after_update_mean": (
+                alignment_td_loss_after_total / count if count else 0.0
+            ),
+            "aligned_td_loss_update_delta_mean": (
+                (alignment_td_loss_after_total - alignment_td_loss_before_total)
+                / count if count else 0.0
+            ),
+            "aligned_prediction_loss_before_update_mean": (
+                alignment_prediction_loss_before_total / count if count else 0.0
+            ),
+            "aligned_prediction_loss_after_update_mean": (
+                alignment_prediction_loss_after_total / count if count else 0.0
+            ),
+            "aligned_prediction_loss_update_delta_mean": (
+                (
+                    alignment_prediction_loss_after_total
+                    - alignment_prediction_loss_before_total
+                ) / count if count else 0.0
+            ),
+        }
     demonstration_ids = {id(item) for item in replay.demonstration_snapshot()}
     start_time = perf_counter()
     for step in range(1, stage["max_steps"] + 1):
@@ -431,6 +486,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
             "decay", "safe_intervention", "risk_sampling",
             "demo_action_margin", "all_action_margin",
             "global_prediction", "decision_weighted_prediction",
+            "decision_aligned_prediction",
         }:
             replay.set_demo_fraction(decay_demo_fraction(step))
         epsilon = epsilon_at(stage, step - 1)
@@ -570,10 +626,15 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 prediction_mask=[
                     id(item) not in demonstration_ids for item in batch
                 ],
+                prediction_gradient_strategy=prediction_gradient_strategy,
             )
             finite_keys = (
                 "loss", "td_loss", "prediction_loss", "q_abs_max",
                 "gradient_norm_before_clip",
+                "td_prediction_gradient_cosine_before",
+                "td_prediction_gradient_cosine_after",
+                "td_loss_after_update",
+                "prediction_loss_after_update",
             )
             if not all(np.isfinite(update[key]) for key in finite_keys):
                 raise RuntimeError(f"Non-finite training statistic: {update}")
@@ -589,6 +650,27 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 prediction_gradient_norm_max,
                 update["gradient_norm_before_clip"],
             )
+            if update["gradient_alignment_active"]:
+                alignment_update_count += 1
+                alignment_conflict_count += update["prediction_gradient_conflict"]
+                alignment_corrected_count += update["prediction_gradient_corrected"]
+                alignment_cosine_before_total += update[
+                    "td_prediction_gradient_cosine_before"
+                ]
+                alignment_cosine_after_total += update[
+                    "td_prediction_gradient_cosine_after"
+                ]
+                alignment_removed_norm_ratio_total += update[
+                    "prediction_gradient_removed_norm_ratio"
+                ]
+                alignment_td_loss_before_total += update["td_loss_before_update"]
+                alignment_td_loss_after_total += update["td_loss_after_update"]
+                alignment_prediction_loss_before_total += update[
+                    "prediction_loss_before_update"
+                ]
+                alignment_prediction_loss_after_total += update[
+                    "prediction_loss_after_update"
+                ]
             d, o = replay.sample_counts(config["batch_size"])
             demo_samples += d
             online_samples += o
@@ -646,6 +728,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                                 if prediction_update_count else 0.0
                             ),
                             "prediction_gradient_norm_max": prediction_gradient_norm_max,
+                            **alignment_summary(),
                             "prediction_diagnostic_batch_size": len(prediction_diagnostic_batch),
                             "safe_samples_cumulative": safe_samples,
                             "safe_buffer_size": getattr(replay, "safe_size", 0),
@@ -698,6 +781,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                             if prediction_update_count else 0.0
                         ),
                         "prediction_gradient_norm_max": prediction_gradient_norm_max,
+                        **alignment_summary(),
                         "prediction_diagnostic_batch_size": len(prediction_diagnostic_batch),
                         "prediction_metrics": prediction_metrics,
                         "safe_samples": safe_samples,
@@ -748,6 +832,7 @@ def train_steps(agent, replay, problem, config, stage, scenes, seed, on_evaluati
                 if prediction_update_count else 0.0
             ),
             "prediction_gradient_norm_max": prediction_gradient_norm_max,
+            **alignment_summary(),
             "prediction_diagnostic_batch_size": len(prediction_diagnostic_batch),
             "prediction_metrics": (
                 agent.dynamic_prediction_metrics(
@@ -819,6 +904,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
         "decay", "risk_handover", "safe_intervention", "risk_sampling",
         "demo_action_margin", "all_action_margin",
         "global_prediction", "decision_weighted_prediction",
+        "decision_aligned_prediction",
     } else fraction
     agent, replay = restore(
         config,
@@ -833,10 +919,15 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
     digest = state_digest(snapshot(agent, replay))
     if digest != checkpoint["metadata"]["snapshot_sha256"]:
         raise RuntimeError("Fork did not restore identical model/optimizer/replay/RNG state.")
-    prediction_mode = (
-        replay_schedule
-        if replay_schedule in {"global_prediction", "decision_weighted_prediction"}
-        else None
+    prediction_mode = {
+        "global_prediction": "global_prediction",
+        "decision_weighted_prediction": "decision_weighted_prediction",
+        "decision_aligned_prediction": "global_prediction",
+    }.get(replay_schedule)
+    prediction_gradient_strategy = (
+        "project_conflicting"
+        if replay_schedule == "decision_aligned_prediction"
+        else "none"
     )
     prediction_head_initial_sha256 = None
     prediction_head_parameter_count = 0
@@ -887,8 +978,16 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                     if prediction_mode == "decision_weighted_prediction" else 1.0
                     if prediction_mode == "global_prediction" else None
                 ),
-                "prediction_changes_action_execution": False,
-                "test_deferred": defer_test,
+                 "prediction_changes_action_execution": False,
+                 "prediction_gradient_strategy": prediction_gradient_strategy,
+                 "prediction_gradient_shared_scope": (
+                     "policy_network.encoder" if prediction_mode else None
+                 ),
+                 "prediction_gradient_conflict_rule": (
+                     "project_prediction_orthogonal_to_td_when_dot_product_is_negative"
+                     if prediction_gradient_strategy == "project_conflicting" else None
+                 ),
+                 "test_deferred": defer_test,
                 "branch_provenance": branch_provenance,
                  "online_capacity": replay.online.capacity, "fork_environment": "fresh static start; dynamic clock reset",
                 "epsilon_clock": "steps since fork", "smoke": smoke}, directory / "fork_audit.json")
@@ -923,9 +1022,10 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                        prediction_mode=prediction_mode,
                        prediction_loss_weight=prediction_loss_weight,
                        prediction_pos_weight=prediction_pos_weight,
-                       prediction_decision_zone_size=prediction_decision_zone_size,
-                       prediction_decision_zone_weight=prediction_decision_zone_weight,
-                       prediction_diagnostic_batch_size=prediction_diagnostic_batch_size)
+                        prediction_decision_zone_size=prediction_decision_zone_size,
+                        prediction_decision_zone_weight=prediction_decision_zone_weight,
+                        prediction_diagnostic_batch_size=prediction_diagnostic_batch_size,
+                        prediction_gradient_strategy=prediction_gradient_strategy)
     agent.save_weights(directory / "model_final.pth")
     if prediction_mode is not None:
         agent.save_prediction_head(directory / "prediction_head_final.pth")
@@ -947,18 +1047,24 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
                 "prediction_loss_weight": prediction_loss_weight if prediction_mode else 0.0,
                 "prediction_pos_weight": prediction_pos_weight if prediction_mode else None,
                 "prediction_decision_zone_size": prediction_decision_zone_size if prediction_mode else None,
-                "prediction_decision_zone_weight": (
+                 "prediction_decision_zone_weight": (
                     prediction_decision_zone_weight
                     if prediction_mode == "decision_weighted_prediction" else 1.0
                     if prediction_mode == "global_prediction" else None
-                ),
-                "effective_fraction": effective_fraction, "fork_sha256": digest,
+                 ),
+                 "prediction_gradient_strategy": prediction_gradient_strategy,
+                 "prediction_gradient_shared_scope": (
+                     "policy_network.encoder" if prediction_mode else None
+                 ),
+                 "effective_fraction": effective_fraction, "fork_sha256": digest,
                 "adaptation_run": run, "gradient_updates_since_fork": agent.update_steps - initial_updates,
                 "validation_conflict_auc": auc, "threshold_confirmation_step": first_threshold,
                 "threshold_right_censored": first_threshold is None,
                 "interpretation": (
                     "training-only action-risk ranking effect; replay allocation and action execution unchanged"
                     if replay_schedule in {"demo_action_margin", "all_action_margin"}
+                    else "training-only conflict-projected dynamic-prediction gradient; TD gradient is primary and policy action rule is unchanged"
+                    if replay_schedule == "decision_aligned_prediction"
                     else "training-only dynamic-prediction auxiliary effect; policy action rule unchanged"
                     if prediction_mode is not None
                     else "total replay-allocation effect; not isolated gradient interference"

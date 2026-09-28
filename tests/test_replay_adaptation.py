@@ -457,6 +457,7 @@ class SummaryTests(unittest.TestCase):
         self.assertTrue(should_defer_test("decay", True))
         self.assertFalse(should_defer_test("decay", False))
         self.assertTrue(should_defer_test("global_prediction", False))
+        self.assertTrue(should_defer_test("decision_aligned_prediction", False))
 
     def test_effect_sign_and_single_seed_uncertainty(self):
         sys.path.insert(0, str(ROOT / "scripts"))

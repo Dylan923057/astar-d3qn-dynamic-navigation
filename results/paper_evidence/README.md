@@ -53,7 +53,7 @@
 
 ## 总索引
 
-- `experiment_index.csv`：88 个正式运行的可读索引。
+- `experiment_index.csv`：91 个正式运行的可读索引。
 - `experiment_index.json`：与 CSV 对应的机器可读索引。
 - `provenance_groups.csv`：按代码、配置和数据哈希划分的来源组。
 - `SHA256SUMS.csv`：归档文件大小和 SHA-256，用于上传后核验。
@@ -109,3 +109,10 @@
 - 结论：三图关键动态复杂度变量被配平；map03 预测质量不低但导航收益为负，说明预测到控制的收益转化具有地图依赖性。
 - 用途：论文机制解释、适用边界与局限性，不作为新实验或普适泛化证据。
 
+
+### 09：Decision-Aligned Prediction 梯度冲突消融
+
+- 目录：`09_2026-09-28_decision_aligned_prediction/`
+- 地图：`irregular_workcell_91703`；新增方法为 `decision_aligned_prediction`，共 3 个 seed。
+- 结论：平均 AUC 高于原始 prediction 和基线，但后 50k 性能与稳定性未达到冻结门槛。
+- 用途：梯度冲突机制证据及正式消融；不支持进入新地图、扩 seed 或解锁 test。
