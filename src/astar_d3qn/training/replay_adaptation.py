@@ -997,7 +997,7 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
     initial_updates = agent.update_steps
     def check(step, training, prediction_metrics):
         nonlocal streak, first_threshold
-        summary, rows, _ = evaluate(agent, problem, config, validation)
+        summary, rows, trajectories = evaluate(agent, problem, config, validation)
         passed = summary["conflict_safe_success"] >= stage["safe_success_threshold"]
         streak = streak + 1 if passed else 0
         if streak >= stage["consecutive_passes"] and first_threshold is None:
@@ -1008,6 +1008,10 @@ def train_branch(problem, config, scenarios, seed, device, directory, checkpoint
         details.extend({"environment_steps": step, **row} for row in rows)
         write_records_csv(curve, directory / "validation_curve.csv")
         write_records_csv(details, directory / "validation_details.csv")
+        write_json(
+            {"environment_steps": step, "trajectories": trajectories},
+            directory / "validation_trajectories.json",
+        )
         write_records_csv(training, directory / "training.csv")
         label = replay_schedule or f"fraction={fraction:.2f}"
         print(f"{label} seed={seed} step={step} "

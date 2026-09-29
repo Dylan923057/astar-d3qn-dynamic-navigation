@@ -53,7 +53,7 @@
 
 ## 总索引
 
-- `experiment_index.csv`：91 个正式运行的可读索引。
+- `experiment_index.csv`：121 个正式运行的可读索引。
 - `experiment_index.json`：与 CSV 对应的机器可读索引。
 - `provenance_groups.csv`：按代码、配置和数据哈希划分的来源组。
 - `SHA256SUMS.csv`：归档文件大小和 SHA-256，用于上传后核验。
@@ -116,3 +116,10 @@
 - 地图：`irregular_workcell_91703`；新增方法为 `decision_aligned_prediction`，共 3 个 seed。
 - 结论：平均 AUC 高于原始 prediction 和基线，但后 50k 性能与稳定性未达到冻结门槛。
 - 用途：梯度冲突机制证据及正式消融；不支持进入新地图、扩 seed 或解锁 test。
+
+### 10：三地图 A/B 严格 5-seed validation
+
+- 目录：`10_ab_five_seed_strict_validation/`
+- 当前同一代码版本下重新训练三个地图、A/B 各 5 个 seed，共 30 次 validation-only 运行。
+- 目录内包含原始结果、PNG/PDF 图、CSV/XLSX/Markdown/LaTeX 表格和统计报告。
+- 未生成、读取或归档 test 结果；结论不用于结果驱动调参。
