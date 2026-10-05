@@ -1,6 +1,15 @@
 # Astar-D3QN-Workshop
 
-Current independent protocol: [持续回放与动态适应代价实验 v2（交互位置均衡）](docs/REPLAY_ADAPTATION_V2.zh-CN.md).
+最新完成实验：全图路线池、每回合3–5个动态障碍，比较运行时A*路线输入与无引导D3QN。
+seed0–4共10组，每组200000环境步；两组均从随机网络开始，不使用示范经验。
+最终平均安全成功率为无引导94.4%、有引导95.6%，引导的学习速度收益随seed变化，不能宣称稳定优势。
+方法与命令见[路线引导说明](docs/RUNTIME_PATH_GUIDANCE_V1.zh-CN.md)，
+完整曲线、失败诊断和核对记录见[五seed分析](results/whole_map_91701_runtime_path_v1/analysis_20261005_094812_262464/REPORT.md)。
+
+GitHub同步范围与本地权重说明见[同步说明](docs/GITHUB_SYNC.zh-CN.md)。
+以下为之前的实验协议与基础实现介绍。
+
+Earlier independent protocol: [持续回放与动态适应代价实验 v2（交互位置均衡）](docs/REPLAY_ADAPTATION_V2.zh-CN.md).
 Irregular workcell maps, phase-paired single-obstacle scenarios, and matched
 foundation checkpoints compare continued demo replay at 0%, 10%, and 25%.
 Prepare with `python scripts/prepare_replay_adaptation.py`; this does not train.

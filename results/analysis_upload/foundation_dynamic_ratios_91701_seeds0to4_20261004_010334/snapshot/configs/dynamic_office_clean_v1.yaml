@@ -1,0 +1,87 @@
+# Clean fixed-Office study of static A* replay under dynamic-obstacle conflict.
+# The static topology is deliberately fixed; dynamic route geometries, phases,
+# scenario ids, and complete scenarios are disjoint across train/validation/test.
+inherits: dynamic_spatial_generalization_office_behavior_v9_balanced_dataset_v1.yaml
+
+experiment:
+  name: dynamic_office_clean_v1
+  output_root: outputs/dynamic_office_clean_v1
+  run_name_prefix: office_clean_v1
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_clean_v1.json
+  evaluation_design: held_out_dynamic_route_geometries_same_static_office_map
+  shuffle_training_scenarios: true
+  training_schedule_seed_offset: 100000
+  split_isolation:
+    enabled: true
+    require_distinct_sources: true
+    level: route_geometry
+  route_pool_preview: maps/previews/office_40x40_clean_v1_route_pools.png
+  dataset_summary_preview: maps/previews/office_40x40_clean_v1_dataset_summary.png
+  training_preview: maps/previews/office_40x40_clean_v1_training_scenarios.png
+  validation_preview: maps/previews/office_40x40_clean_v1_validation_scenarios.png
+  test_preview: maps/previews/office_40x40_clean_v1_test_scenarios.png
+  scenario_design:
+    # Shared absolute targets make difficulty labels comparable across splits;
+    # they were calibrated from the deterministic pre-training candidate audit,
+    # without consulting any learned policy or evaluation result.
+    difficulty_score_targets:
+      wait: {easy: 57.0, medium: 58.0, hard: 59.0}
+      avoidance: {easy: 38.0, medium: 44.0, hard: 50.0}
+      reroute: {easy: 52.0, medium: 56.0, hard: 60.0}
+    normal_reference_demo_collision_target: 8
+    maximum_cross_split_mean_difficulty_gap: 6.0
+    # Wait is already globally strict: every no-STAY plan must be longer than
+    # the safe oracle. Requiring one particular gate to be uniquely optimal is
+    # unrelated and makes valid wait cases infeasible on this topology.
+    minimum_wait_gate_margin_steps: 0
+    # The Office map has equal-length alternate gates. Avoidance therefore means
+    # that a no-wait local deviation through the nominal gate is globally optimal;
+    # behavior-match is descriptive when another gate ties, while safety and
+    # excess steps versus the safe oracle remain the confirmatory outcomes.
+    minimum_avoidance_gate_margin_steps: 0
+
+demonstrations:
+  episodes: 20
+  seed: 7400
+  collection_environment: static_nominal
+  environment_id: static_nominal_zero_dynamic_channels
+  use_frozen_dataset: true
+  file: data/demonstrations/office_40x40_clean_v1.npz
+
+environment:
+  mask_static_invalid_actions: true
+  terminate_on_collision: true
+
+reward:
+  stay: 0.0
+
+training:
+  seeds: [0, 1, 2, 3, 4]
+  max_environment_steps: 400000
+  epsilon_decay_environment_steps: 340000
+  validation_interval_environment_steps: 25000
+  demo_fraction: 0.25
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: observable_primary_1
+        start_environment_step: 60000
+        obstacle_count: 1
+        obstacle_indices: [0]
+        allowed_difficulties: [control, easy]
+      - name: primary_plus_context_3
+        start_environment_step: 140000
+        obstacle_count: 3
+        obstacle_indices: [0, 1, 2]
+        allowed_difficulties: [control, easy, medium]
+      - name: full_scenario_5
+        start_environment_step: 240000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]
+        allowed_difficulties: [control, easy, medium, hard]

@@ -1,0 +1,2 @@
+"""Capability-adaptive training implementation."""
+

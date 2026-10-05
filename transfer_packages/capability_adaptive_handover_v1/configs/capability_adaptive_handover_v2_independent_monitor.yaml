@@ -1,0 +1,46 @@
+experiment: capability_adaptive_handover_v2_independent_monitor
+dataset: data/risk_handover_v1/manifest.json
+output_root: results/capability_adaptive_handover_v2_independent_monitor
+map_seeds: [91701, 91702, 91703]
+map_size: 40
+demo_seed: 7400
+demo_episodes: 20
+pair_counts: {train: 36, validation: 12, test: 48}
+window_size: 15
+max_episode_steps: 300
+replay_capacity: 10000
+batch_size: 64
+learning_rate: 0.0003
+gamma: 0.99
+target_sync_interval: 250
+hidden_dim: 256
+reward: {step: -0.01, progress: 0.05, stay: 0.0, collision: -1.0, goal: 10.0}
+adaptation:
+  max_steps: 200000
+  evaluation_interval: 10000
+  epsilon_start: 0.30
+  epsilon_end: 0.05
+  epsilon_decay_steps: 150000
+  safe_success_threshold: 0.90
+  consecutive_passes: 2
+capability_adaptive_handover:
+  monitor_scene_count: 24
+  rho_max: 0.25
+  beta: 0.3
+  tau: 0.90
+  consecutive_confirmations: 2
+  initial_competence: 0.0
+train_monitor:
+  generation_seed: 521001
+  source_split: train
+  independent_scene_count: 24
+  densities: {3: 12, 5: 12}
+  causal_obstacles: {3: 1, 5: 2}
+  epsilon: 0.0
+validation_recording:
+  split: validation
+  evaluation_interval: 10000
+  epsilon: 0.0
+  controls_training: false
+  evaluate_step_zero: true
+training_seeds: [0, 1, 2, 3, 4]

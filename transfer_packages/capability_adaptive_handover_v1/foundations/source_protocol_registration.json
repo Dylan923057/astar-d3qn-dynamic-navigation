@@ -1,0 +1,46 @@
+{
+  "protocol": "ab_five_seed_strict_v1",
+  "validation_only": true,
+  "test_generation_forbidden": true,
+  "maps": [
+    "irregular_workcell_91701",
+    "irregular_workcell_91702",
+    "irregular_workcell_91703"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "methods": {
+    "A": "time_decay",
+    "B": "global_prediction"
+  },
+  "foundation_steps": 300000,
+  "adaptation_steps": 200000,
+  "evaluation_interval": 10000,
+  "time_decay_boundaries": {
+    "steps_1_to_50000": 0.25,
+    "steps_50001_to_100000": 0.1,
+    "steps_100001_to_200000": 0.0
+  },
+  "prediction_loss_weight": 0.1,
+  "prediction_pos_weight": 20.0,
+  "global_prediction_spatial_weight": 1.0,
+  "prediction_head_hidden_dim": 128,
+  "config_path": "configs\\risk_handover_v1.yaml",
+  "config_file_sha256": "33649b723a2d644c9033c385165c330dcc149f61749096f1c1f1d5faa82b4395",
+  "manifest_sha256": "34e62ae1f01f0d6d7f53aaf8db663f4d7cf3fd49a5d074eb693f7bbff00e55b3",
+  "training_code_sha256": "fe03046e5f27506f68a34eff1741c74601483a952a94ed9ca7dedbc29cb37fd4",
+  "orchestrator_sha256": "f9e58678b964e04a0e543bad3fdbc52d5f5ef44ad63cd44b29f1a71595f3d3ed",
+  "output_root": "outputs/ab_five_seed_strict_v1",
+  "raw_files_required": [
+    "training.csv",
+    "validation_curve.csv",
+    "validation_details.csv",
+    "validation_trajectories.json",
+    "result.json"
+  ]
+}

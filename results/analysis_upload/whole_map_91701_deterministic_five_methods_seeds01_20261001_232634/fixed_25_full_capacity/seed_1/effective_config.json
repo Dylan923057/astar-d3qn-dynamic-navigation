@@ -1,0 +1,99 @@
+{
+  "experiment": {
+    "name": "whole_map_route_pool_91701_fixed_25_full_capacity_v1",
+    "output_root": "outputs\\whole_map_91701_deterministic_five_methods_seeds01_20261001_232634",
+    "run_name_prefix": "whole_map_pool_91701_7obs_time_decay",
+    "comparison_baseline_config": "configs/whole_map_route_pool_91701_pilot_v1.yaml",
+    "protocol": "four_method_training_window_v1",
+    "record_replay_diagnostics": true,
+    "method": "fixed_25_full_capacity"
+  },
+  "dataset": {
+    "source_manifest": "data/risk_handover_v1/manifest.json",
+    "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+    "route_pool_protocol": "dynamic_route_pool_v2",
+    "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+    "map_id": "irregular_workcell_91701"
+  },
+  "dynamic_route_pool": {
+    "composition": {
+      "high_interaction": 2,
+      "alternative_branch": 2,
+      "background": 1
+    },
+    "move_every": 1,
+    "sampling_trials_per_episode": 1000,
+    "training_sampling_seed_offset": 91701000,
+    "validation_sampling_seed": 91701999,
+    "validation_episodes": 50,
+    "obstacle_counts": [
+      3,
+      4,
+      5
+    ]
+  },
+  "environment": {
+    "window_size": 15,
+    "spatial_channels": 4,
+    "action_count": 5,
+    "max_steps": 300,
+    "terminate_on_collision": true,
+    "mask_static_invalid_actions": true
+  },
+  "reward": {
+    "step": -0.01,
+    "progress": 0.05,
+    "stay": 0.0,
+    "collision": -1.0,
+    "goal": 10.0
+  },
+  "agent": {
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "target_sync_interval": 250,
+    "gradient_clip_norm": 10.0,
+    "hidden_dim": 256,
+    "device": "auto"
+  },
+  "demonstration": {
+    "source": "static_randomized_tie_astar",
+    "episodes": 20,
+    "seed": 7400,
+    "schedule": {
+      "steps_1_to_50000": 0.25,
+      "steps_50001_to_100000": 0.1,
+      "steps_100001_to_200000": 0.0
+    }
+  },
+  "training": {
+    "seeds": [
+      0,
+      1
+    ],
+    "replay_strategy": "persistent_demo",
+    "episodes": 1000000,
+    "max_environment_steps": 200000,
+    "replay_capacity": 11320,
+    "batch_size": 64,
+    "learning_starts": 500,
+    "updates_per_step": 1,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_episodes": 1000000,
+    "epsilon_decay_environment_steps": 150000,
+    "validation_interval_environment_steps": 10000
+  },
+  "adaptive": {
+    "interval_environment_steps": 10000,
+    "minimum_conflict_episodes": 5,
+    "ema_alpha": 0.3,
+    "lower": 0.6,
+    "upper": 0.95,
+    "rho_max": 0.25,
+    "source": "training_interaction"
+  },
+  "diagnostic": {
+    "kind": "fixed_25_full_capacity",
+    "paired_baseline_root": "outputs/whole_map_91701_3to5_capacity_controlled_20261001_142502"
+  }
+}

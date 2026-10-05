@@ -1,0 +1,13 @@
+# Mechanism control: retain the 25% A* replay fraction through the early and
+# middle curriculum, then remove it linearly on an environment-step clock.
+inherits: dynamic_office_controlled_behavior_v1.yaml
+
+experiment:
+  name: dynamic_office_scheduled_decay_v2
+  output_root: outputs/dynamic_office_scheduled_decay_v2
+  run_name_prefix: office_scheduled_decay_v2
+
+training:
+  demo_fraction_final: 0.0
+  demo_fraction_decay_start_environment_step: 200000
+  demo_fraction_decay_end_environment_step: 340000

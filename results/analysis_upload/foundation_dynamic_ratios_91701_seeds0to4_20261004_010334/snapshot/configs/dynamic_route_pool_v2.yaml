@@ -1,0 +1,55 @@
+experiment: dynamic_route_pool_v2
+source_manifest: data/risk_handover_v1/manifest.json
+dataset: data/dynamic_route_pool_v2/manifest.json
+audit_csv: data/dynamic_route_pool_v2/coverage_audit.csv
+preview_root: maps/previews/dynamic_route_pool_v2
+
+# Design and offline audit only. No trainer references this configuration.
+map_ids:
+  - irregular_workcell_91701
+  - irregular_workcell_91702
+  - irregular_workcell_91703
+
+path_ensemble:
+  seed_offset: 260930
+  sample_count: 240
+  candidate_attempts: 6000
+  detour_budget_steps: 12
+
+route_pool_counts:
+  high_interaction: 20
+  alternative_branch: 18
+  background: 10
+
+classification:
+  high_interaction_progress_edges: [0.08, 0.30, 0.50, 0.72, 0.92]
+  high_interaction_min_path_fraction: 0.28
+  high_interaction_min_mean_cell_support: 0.065
+  alternative_progress_edges: [0.12, 0.38, 0.65, 0.90]
+  alternative_min_path_fraction: 0.12
+  alternative_min_mean_cell_support: 0.02
+  alternative_min_branch_entropy: 0.50
+  alternative_min_distance_from_nominal: 2
+  alternative_min_edge_clearance: 4
+  background_min_path_fraction: 0.02
+  background_max_path_fraction: 0.06
+  background_min_edge_clearance: 2
+
+scene_acceptance:
+  examples_per_density: 5
+  sampling_trials_per_scene: 6000
+  offline_audit_scenes_per_density: 500
+  sampling_trials_per_audit_scene: 500
+  minimum_spatial_regions: 3
+  spatial_region_size: 10
+  minimum_center_manhattan_gap: 4
+  minimum_spatial_span: 16
+  minimum_far_from_nominal_routes: 2
+  far_from_nominal_distance: 2
+  high_support_path_fraction: 0.40
+  minimum_scene_path_coverage: 0.55
+  move_every: 1
+
+density_schemes:
+  "5": {high_interaction: 2, alternative_branch: 2, background: 1}
+  "7": {high_interaction: 3, alternative_branch: 3, background: 1}

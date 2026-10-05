@@ -1,0 +1,16 @@
+inherits: dynamic_spatial_generalization_office_balanced_v4.yaml
+
+# Single-map mechanism experiment.  The frozen Office v4 scenarios are reused
+# only as a stable training distribution; the primary endpoint is the separate
+# controlled critical-blockage probe, not cross-map generalization.
+experiment:
+  name: dynamic_office_local_conflict_demo_v1
+  output_root: outputs/dynamic_office_local_conflict_demo_v1
+  run_name_prefix: office_local_conflict_v1
+
+training:
+  # Keep the same 25% persistent demonstration quota as the fixed baseline.
+  # Only recently unsafe (position, action) demonstrations are downweighted.
+  local_conflict_suppression_steps: 2500
+  local_conflict_min_sampling_weight: 0.05
+  local_conflict_predict_next: true

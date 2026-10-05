@@ -1,0 +1,17 @@
+{
+  "all_four_runs_complete": true,
+  "same_initial_states_per_seed": true,
+  "same_registered_config": true,
+  "same_fixed_validation_sequence": true,
+  "aggregate_detail_and_trace_counts_match": true,
+  "training_started_by_analysis": false,
+  "test_data_used": false,
+  "failure_pattern_definitions": {
+    "waiting_dominated": "STAY actions at least half of episode steps",
+    "repeated_movement": "at least 20 movements; at least half arrive at a previously visited cell",
+    "periodic_tail": "last 60 positions repeat exactly with a period of 2..12 and include multiple cells",
+    "categories_overlap": true,
+    "closest_static_remaining_steps": "BFS distance to final goal, ignoring dynamic obstacles; a diagnostic, not a safe dynamic path length"
+  },
+  "aulc_definition": "Trapezoidal integral at actual sparse evaluation steps, normalized by 50000; not continuously observed performance."
+}

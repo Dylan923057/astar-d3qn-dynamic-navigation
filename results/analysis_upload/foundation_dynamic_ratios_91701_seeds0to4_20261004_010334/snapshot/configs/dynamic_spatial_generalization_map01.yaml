@@ -1,0 +1,86 @@
+experiment:
+  name: dynamic_spatial_generalization_map01_v1
+  output_root: outputs/dynamic_spatial_generalization_map01
+
+map:
+  scene: calibration_40x40_map_01
+  size: 40
+  start: [1, 1]
+  goal: [39, 39]
+
+map_sets:
+  train:
+    count: 5
+    file: maps/structured_calibration_40x40/maps.json
+
+environment:
+  kind: dynamic
+  observation: local_static_dynamic_history_goal_vector
+  spatial_channels: 4
+  window_size: 15
+  max_steps: 600
+  action_count: 5
+  terminate_on_collision: false
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/map01_spatial_generalization_manifest.json
+  generation_seed: 20260800
+  route_length: 5
+  reference_path_count: 500
+  separation_radius: 1
+  move_every: 1
+  obstacle_count: 5
+  corridor_per_scenario: 3
+  background_per_scenario: 2
+  route_pool_counts:
+    train: {corridor: 25, background: 7}
+    validation: {corridor: 10, background: 4}
+    test: {corridor: 15, background: 6}
+  scenario_counts:
+    train: 100
+    validation: 20
+    test: 50
+  route_pool_preview: maps/previews/map01_spatial_generalization_route_pools.png
+  validation_preview: maps/previews/map01_spatial_generalization_validation_scenarios.png
+  static_retention_evaluation: true
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: -0.05
+  collision: -1.0
+  goal: 10.0
+
+demonstrations:
+  episodes: 20
+  seed: 7400
+  collection_environment: static_nominal
+
+agent:
+  learning_rate: 0.0003
+  gamma: 0.99
+  target_sync_interval: 250
+  gradient_clip_norm: 10.0
+  hidden_dim: 256
+  device: auto
+
+training:
+  seeds: [0, 1, 2, 3, 4]
+  episodes: 1500
+  replay_capacity: 10000
+  batch_size: 64
+  learning_starts: 64
+  updates_per_step: 1
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 1200
+  replay_strategy: persistent_demo
+  demo_fraction: 0.25
+  validation_interval: 100
+  diagnostic_interval: 0
+  per_alpha: 0.6
+  per_beta_start: 0.4
+  per_beta_end: 1.0
+  per_priority_epsilon: 1.0e-6
+  demo_margin: 0.8
+  demo_loss_weight: 1.0

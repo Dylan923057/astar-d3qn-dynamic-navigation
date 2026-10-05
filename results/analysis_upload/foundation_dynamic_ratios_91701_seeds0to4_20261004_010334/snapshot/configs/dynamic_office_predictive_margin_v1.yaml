@@ -1,0 +1,14 @@
+# Keep the persistent A* quota and directly rank predicted-safe actions above
+# the locally blocked A* action. No counterexample replay or demo decay is used.
+inherits: dynamic_office_controlled_behavior_v1.yaml
+
+experiment:
+  name: dynamic_office_predictive_margin_v1
+  output_root: outputs/dynamic_office_predictive_margin_v1
+  run_name_prefix: office_predictive_margin_v1
+
+training:
+  demo_fraction: 0.25
+  conflict_margin: 0.8
+  conflict_margin_loss_weight: 1.0
+  conflict_margin_predict_next: true

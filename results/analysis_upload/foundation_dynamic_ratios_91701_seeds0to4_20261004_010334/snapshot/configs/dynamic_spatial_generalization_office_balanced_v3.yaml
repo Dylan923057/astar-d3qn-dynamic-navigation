@@ -1,0 +1,33 @@
+inherits: dynamic_spatial_generalization_map01_checkpoint_v2.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_balanced_v3
+  output_root: outputs/dynamic_spatial_generalization_office_balanced_v3
+  run_name_prefix: dynamic_spatial_generalization_office
+
+map:
+  scene: office_40x40
+  start: [2, 2]
+  goal: [37, 37]
+
+map_sets:
+  train:
+    count: 3
+    file: maps/structured_main/maps.json
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_balanced_v3.json
+  generation_seed: 20260911
+  route_pool_preview: maps/previews/office_40x40_balanced_v3_route_pools.png
+  validation_preview: maps/previews/office_40x40_balanced_v3_validation_scenarios.png
+  route_pool_counts:
+    train: {corridor: 9, background: 7}
+    validation: {corridor: 5, background: 4}
+    test: {corridor: 5, background: 6}
+  conflict_balance:
+    direct_route_fraction: 0.42
+    minimum_direct_routes_per_split: 2
+    maximum_scenarios_per_route_combination: 2
+    scenario_strata: {low: 0.40, medium: 0.30, high: 0.30}
+    direct_routes_per_scenario: {low: 0, medium: 1, high: 2}
+    temporal_window: 2

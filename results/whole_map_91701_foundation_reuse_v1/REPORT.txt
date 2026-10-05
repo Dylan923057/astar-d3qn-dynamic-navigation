@@ -1,0 +1,124 @@
+seed0、1 已有模型评估及旧 foundation 复用接入检查
+日期：2026-10-02
+
+结论
+指定的最新四方法实验中，一部分最终模型在无动态障碍时仍无法到达，失败实质是等待或循环移动。
+旧 foundation 两个 seed 都能在静态原地图中以 66 步安全到达；直接进入最新动态验证场景时，
+安全成功率只有 48% / 42%，失败均为动态碰撞。因此，静态导航基础和动态避障能力应分别衡量。
+这些评估揭示了训练起点值得控制，但不能单凭本次结果证明训练起点造成了新旧实验结果差异。
+已准备同 foundation 三分支实验，尚未启动任何 200000 步正式训练，也未重新训练 foundation。
+
+评估来源与协议
+说明文件：results/analysis_upload/whole_map_91701_3to5_four_methods_20261001_002044/ANALYSIS_CONTEXT.txt
+最新模型取自该说明对应的原始 outputs，而不是后续 deterministic 或 capacity-controlled 实验。
+最新权重路径（method=pure/prefill/time_decay/adaptive，seed=0/1）：
+D:\Asatr-D3QN-Workshop\outputs\whole_map_91701_3to5_four_methods_20261001_002044\{method}\seed_{seed}\model_final.pth
+旧 foundation 完整快照路径：
+D:\Asatr-D3QN-Workshop\outputs\replay_adaptation_v2\formal\irregular_workcell_91701\seed_0\foundation\foundation.pt
+D:\Asatr-D3QN-Workshop\outputs\replay_adaptation_v2\formal\irregular_workcell_91701\seed_1\foundation\foundation.pt
+同时核对 outputs/risk_handover_v1/formal/irregular_workcell_91701/seed_{seed}/foundation/foundation.pt，
+两个 seed 的完整内容状态摘要均与上述来源相同，所以不存在选用两份不同旧 foundation 的歧义。
+所有上述所需权重均存在；缺失权重清单为空。未生成替代 foundation。
+
+epsilon=0；原固定起点 (3,3)，终点 (36,36)；每回合最多 300 步。
+观测为 float32 (4,15,15)：静态占用（含地图外边界）、当前动态占用、前一帧、前两帧动态占用；
+标量为以 size-1 归一化的目标行列偏移。五动作包含等待。
+只屏蔽静态非法动作，不添加动态动作屏蔽。奖励沿用 step=-0.01, progress=0.05,
+stay=0, collision=-1, goal=10。动态碰撞保持旧环境对旧占用、下一占用等规则，碰撞终止。
+地图 grid_sha256：789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff
+路线池 design_sha256：d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be
+
+所有动态复评均直接读取同一份原实验 fixed_validation_scenarios.json 的 50 个固定场景。
+另逐场重建路线池采样，核对障碍路线、初始相位、方向和场景 ID 完全一致。
+无 test 评估、无 test 驱动选择，采用最终模型，不选择最佳中间 checkpoint。
+静态原地图仅有一个确定性任务，每模型执行一次；其 0%/100% 描述该任务，不是多地图泛化估计。
+复评最新四方法的动态安全成功率及动态碰撞率与原 final_validation_summary.json 精确一致。
+
+静态原地图结果（安全成功率 / 动态碰撞率 / 超时率，百分比）
+方法             seed0             seed1
+Pure             0 / 0 / 100       100 / 0 / 0
+Prefill          0 / 0 / 100       100 / 0 / 0
+Time-decay       100 / 0 / 0       0 / 0 / 100
+Adaptive         0 / 0 / 100       100 / 0 / 0
+旧 foundation    100 / 0 / 0       100 / 0 / 0
+安全到达者均为 66 步，失败者均在 300 步超时；所有静态碰撞率为 0。
+
+最新固定动态验证结果（各 50 场，安全成功率 / 动态碰撞率 / 超时率，百分比）
+方法             seed0             seed1
+Pure             0 / 0 / 100       100 / 0 / 0
+Prefill          34 / 6 / 60        100 / 0 / 0
+Time-decay       92 / 0 / 8         24 / 0 / 76
+Adaptive         40 / 0 / 60        98 / 0 / 2
+旧 foundation    48 / 52 / 0        42 / 58 / 0
+旧 foundation seed0：24 场安全成功、26 场动态碰撞、0 场超时。
+旧 foundation seed1：21 场安全成功、29 场动态碰撞、0 场超时。
+所有动态复评的静态碰撞率为 0。50 个共享固定场景不是 50 个独立训练 seed。
+
+失败轨迹证据
+静态 Pure seed0：300 步全部移动，280 次移动重访，末段重复
+(10,13) -> (10,12) -> (11,12) -> (11,13) -> (10,13) 的四格循环。
+静态 Adaptive seed0：300 步全部移动，260 次移动重访，末段在 (36,9)/(37,9) 往返。
+静态 Prefill seed0：移动 56 步后停在 (35,25)，连续等待 244 步，最终超时。
+静态 Time-decay seed1：移动 26 步后停在 (6,26)，连续等待 274 步，最终超时。
+这些等待发生在没有动态障碍时，因此不能解释为必须等待移动障碍。
+
+动态失败分类（碰撞 / 等待超时 / 反复移动超时 / 其余未到达超时；单位：场）
+Pure seed0：          0 / 0 / 50 / 0
+Prefill seed0：       3 / 10 / 20 / 0
+Time-decay seed0：    0 / 4 / 0 / 0
+Adaptive seed0：      0 / 0 / 30 / 0
+Pure seed1：          0 / 0 / 0 / 0
+Prefill seed1：       0 / 0 / 0 / 0
+Time-decay seed1：    0 / 34 / 4 / 0
+Adaptive seed1：      0 / 0 / 1 / 0
+旧 foundation seed0：26 / 0 / 0 / 0
+旧 foundation seed1：29 / 0 / 0 / 0
+
+分类先区分终止碰撞，再检查等待（最后 50 个动作静止且存在至少 50 步连续等待），
+其次检查移动重访比例至少 50%，其余标为未到达超时。分类不等于网络内部因果解释；
+完整动作、位置和每步动态障碍位置均已保存，CSV 同时保留等待数、最长等待、移动重访、
+立即折返、最后位置、离目标距离，不将碰撞时位置不变误算为等待动作。
+例如场景 000001：旧 foundation seed0 第 40 步在 (21,24) 尝试进入 (21,25) 时碰撞；
+seed1 第 41 步在 (22,24) 尝试进入 (22,25) 时碰撞。对应动作轨迹没有等待或重访。
+动态 Time-decay seed0 的 4 场失败均为长等待；seed1 则有 34 场长等待和 4 场重复移动。
+
+复用入口及保持条件
+配置：configs/whole_map_91701_foundation_reuse_v1.yaml
+入口：scripts/run_foundation_whole_map.py（缺省模式为 preflight，不会自动训练）
+同 seed 三个方法：foundation_no_demo、foundation_fixed_25、foundation_time_decay。
+每个分支从相同旧快照恢复 policy、target、Adam optimizer、update_steps、在线回放内容和 RNG、
+不可变示范、示范 RNG、agent RNG、Python/NumPy/Torch/CUDA RNG。
+六次恢复的 snapshot 内容摘要均与来源一致；风险回放、模仿损失、预测辅助和 Adaptive 均未启用。
+foundation_no_demo 保留原示范分区供状态核对，但动态阶段示范采样数为 0，不能称为从零 Pure。
+三组在线容量均为 8680，示范分区为 1320；0% 组不扩容，不清空在线静态经验。
+固定 25% 组每批 16 示范 + 48 在线；Time-decay 在 1..50000 步 25%，
+50001..100000 步 10%，之后 0%。沿用原批次取整：名义 10% 为 6/64，即实际 9.375%。
+200000 环境步；epsilon 0.30 -> 0.05，按动态分叉后的环境步计时，150000 步衰减。
+batch_size=64，每环境步一更新，复用旧的 train_steps 和饱和在线池，未引入最新从零循环的
+learning_starts=500 冷启动。学习率、gamma、target 同步、梯度裁剪等沿用旧设置。
+仅通过可选 scene_sampler 将每回合场景换成最新 whole-map pool v2，均匀采样 3/4/5 障碍；
+同 seed 各组按回合索引共享采样序列，回合长短随策略不同，不能称为同环境步遇到相同场景。
+每 10000 步在固定 50 场验证，初始 step0 也验证，正式阶段不早停、不选 test 模型。
+
+新输出：outputs/whole_map_91701_foundation_reuse_v1/formal/seed_{seed}/{method}/
+目录已存在会报错，旧实验目录和权重未改写。缺失/未合格/不兼容 foundation 会直接报错，
+入口不包含自动重新训练 foundation 的路径。
+legacy replay_adaptation.py 仅增加缺省为 None 的 scene_sampler 参数；旧调用保留原行为。
+
+接入验证
+preflight：六分支完整状态恢复一致；两份旧来源状态相同；地图/观测/权重兼容。
+单元回归：4 个新检查、27 个旧 replay_adaptation 检查、9 个 Time-decay 检查，共 40 个通过。
+场景适配测试比较直接路线池环境与旧环境的观测、标量、奖励、动作屏蔽、障碍时钟和终止条件。
+每 seed 每分支仅执行 8 环境步/8 更新的接入检查，共 48 环境步；全部写入 integration 子目录。
+0% 组每 seed 示范采样总数为 0；固定 25% 和 Time-decay 组均为 128（8*16）。
+这些微量更新只验证接入，不用于比较训练效果，正式训练将再次从原 foundation 恢复。
+formal 目录未创建，未启动 200000 步正式训练。
+
+可直接复制的 PowerShell 命令（在 D:\Asatr-D3QN-Workshop 下手动运行；每行运行该 seed 三组）
+python .\scripts\run_foundation_whole_map.py --config .\configs\whole_map_91701_foundation_reuse_v1.yaml --mode train --seeds 0 --device cuda --threads 1
+python .\scripts\run_foundation_whole_map.py --config .\configs\whole_map_91701_foundation_reuse_v1.yaml --mode train --seeds 1 --device cuda --threads 1
+
+评估汇总：evaluation_summary.json / evaluation_summary.csv
+逐场结果与完整轨迹：evaluation/{method}/seed_{seed}/{static,fixed_dynamic_validation}_{episodes.csv,trajectories.json}
+完整恢复审计：preflight.json
+8 步接入检查：outputs/whole_map_91701_foundation_reuse_v1/integration/seed_{seed}/{method}/
