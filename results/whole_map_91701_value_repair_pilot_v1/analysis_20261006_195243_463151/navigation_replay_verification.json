@@ -1,0 +1,60 @@
+{
+  "source": "D:\\Asatr-D3QN-Workshop\\outputs\\whole_map_91701_value_repair_pilot_v1",
+  "evaluation_epsilon": 0,
+  "ordinary_d3qn_only": true,
+  "test_data_used": false,
+  "training_started": false,
+  "counterfactual": "Zero only the three observed dynamic channels at the same real state; retain static channels, goal scalars and static action mask.",
+  "collision_oracle": "Used after action selection solely to diagnose the two candidate actions; never given to the policy or used to select an executed action.",
+  "limitation": "These are one-step action counterfactuals, not closed-loop rollouts with missing observations or proof of generalization.",
+  "runs": [
+    {
+      "method": "advice_margin",
+      "seed": 0,
+      "safe_success_rate": 0.9,
+      "dynamic_collision_rate": 0.02,
+      "timeout_rate": 0.08,
+      "total_wait_steps": 43,
+      "dynamic_sensitive_action_steps": 561,
+      "avoided_one_step_collision_steps": 86,
+      "ordinary_d3qn_matches_all_original_50_scene_outcomes": true,
+      "source_weights_sha256": "bdec0ffb54fcd224281de3f5b0179c1702ad56a9c4d525bcd486ee45f4884b1b"
+    },
+    {
+      "method": "advice_bound_margin",
+      "seed": 0,
+      "safe_success_rate": 0.98,
+      "dynamic_collision_rate": 0.02,
+      "timeout_rate": 0.0,
+      "total_wait_steps": 3,
+      "dynamic_sensitive_action_steps": 16,
+      "avoided_one_step_collision_steps": 3,
+      "ordinary_d3qn_matches_all_original_50_scene_outcomes": true,
+      "source_weights_sha256": "e31fe0d516f509a51d5dfc8bcd43a7d3a753e7ef62a7e99c38e30e53517c9263"
+    },
+    {
+      "method": "advice_margin",
+      "seed": 1,
+      "safe_success_rate": 0.86,
+      "dynamic_collision_rate": 0.0,
+      "timeout_rate": 0.14,
+      "total_wait_steps": 8,
+      "dynamic_sensitive_action_steps": 1003,
+      "avoided_one_step_collision_steps": 381,
+      "ordinary_d3qn_matches_all_original_50_scene_outcomes": true,
+      "source_weights_sha256": "9023f36caa64a84b715b96b8af0ae0be5bd20e6373c99478ba3f8fe01a36b494"
+    },
+    {
+      "method": "advice_bound_margin",
+      "seed": 1,
+      "safe_success_rate": 1.0,
+      "dynamic_collision_rate": 0.0,
+      "timeout_rate": 0.0,
+      "total_wait_steps": 9,
+      "dynamic_sensitive_action_steps": 36,
+      "avoided_one_step_collision_steps": 8,
+      "ordinary_d3qn_matches_all_original_50_scene_outcomes": true,
+      "source_weights_sha256": "f8d9e56be77fe30683461d444b6233ca3e86ff1e5dca972940aadcab845e5173"
+    }
+  ]
+}

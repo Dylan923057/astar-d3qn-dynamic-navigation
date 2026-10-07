@@ -83,19 +83,29 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seeds", nargs="+", type=int, choices=entry.REGISTERED_SEEDS,
                         default=list(entry.REGISTERED_SEEDS))
+    parser.add_argument("--config", default=str(entry.CONFIG),
+                        help="Registered dense or no-progress formal protocol; analysis never trains.")
     args = parser.parse_args(argv)
     if len(set(args.seeds)) != len(args.seeds):
         parser.error("Use unique seeds.")
     seeds = tuple(sorted(args.seeds))
+    requested_config = entry.load_config(entry._resolve(args.config))
+    if requested_config["experiment"]["protocol"] not in {
+        "runtime_path_observation_v1", "runtime_path_observation_no_progress_v1",
+    }:
+        parser.error("Analysis requires a registered 200000-step formal protocol.")
+    source = entry._resolve(requested_config["experiment"]["output_root"])
     torch.set_num_threads(1)
-    output = ROOT / "results/whole_map_91701_runtime_path_v1" / f"analysis_{datetime.now():%Y%m%d_%H%M%S_%f}"
+    output = entry._resolve(requested_config["experiment"]["check_root"]) / f"analysis_{datetime.now():%Y%m%d_%H%M%S_%f}"
     output.mkdir(parents=True, exist_ok=False)
     summaries, curves_out, behaviors, static_rows, final_failures = [], [], [], [], []
     runs, common_scenes, config, common_initial_frames = {}, None, None, None
     for method in entry.METHODS:
         for seed in seeds:
-            directory = SOURCE / method / f"seed_{seed}"
+            directory = source / method / f"seed_{seed}"
             result, curves, details, scenes = audit_run(directory)
+            if result["config"] != requested_config:
+                raise ValueError("Stored run configuration differs from the requested analysis protocol.")
             if config is None:
                 config = result["config"]
                 inputs = entry.validate_config(config)
@@ -119,6 +129,12 @@ def main(argv=None):
                        "final_safe_success_rate": final["safe_success_rate"],
                        "final_dynamic_collision_rate": final["dynamic_collision_rate"],
                        "final_timeout_rate": final["timeout_rate"], **learning_metrics(curves)}
+            training = helpers.load_csv(directory / "training.csv")
+            successful_training = [r for r in training if float(r["safe_success"]) > 0]
+            summary.update(training_episode_records=len(training),
+                           successful_training_episodes=len(successful_training),
+                           successful_training_environment_steps=";".join(r["environment_steps_total"] for r in successful_training),
+                           training_successes_last_10k=sum(int(r["environment_steps_total"]) > 190000 for r in successful_training))
             for curve in curves:
                 step = int(curve["environment_steps_total"])
                 traces = json.loads((directory / f"validation_failures_{step:06d}.json").read_text(encoding="utf-8"))
@@ -180,6 +196,7 @@ def main(argv=None):
     write_records_csv(static_rows, output / "static_diagnostics.csv")
     write_json(final_failures, output / "final_failure_examples.json")
     write_json({"all_runs_complete": True, "run_count": len(summaries), "seeds": seeds,
+                "source_root": str(source.relative_to(ROOT)), "reward": config["reward"],
                 "validation_checkpoint_count": len(curves_out), "same_initial_states_per_seed": True,
                 "same_registered_config_and_effective_parameters_per_seed": True,
                 "same_fixed_validation_sequence_and_initial_obstacle_states": True,
@@ -190,7 +207,7 @@ def main(argv=None):
                 "threshold_definition": "First observed checkpoint reaching threshold; later checkpoints may fall below it. Remaining-check threshold is retrospective, not a continuous guarantee.",
                 "failure_categories_overlap": True}, output / "verification.json")
     plot(curves_out, output)
-    report(summaries, final_failures, output)
+    report(summaries, final_failures, output, config=config)
     print(f"Analysis output: {output}", flush=True)
 
 
@@ -241,13 +258,15 @@ def plot(rows, output):
     plt.close(figure)
 
 
-def report(summaries, failures, output):
+def report(summaries, failures, output, config=None):
     seeds = sorted({row["seed"] for row in summaries})
     lines = ["# 全图动态场景：运行时A*路线输入，20万步结果", "",
              f"seed {seeds}，{len(summaries)}组均完成200000环境步、199501次更新。每组21次验证，包含完整训练曲线。无A*示范经验、无旧foundation加载。",
              "同seed的初始网络、优化器和随机数状态一致；配置一致；验证使用相同50个固定场景，epsilon=0。未使用test、未启动训练。", "",
              "| 方法 | seed | 最终安全成功 | 动态碰撞 | 超时 | 首次≥90%步数 | 安全成功曲线面积/200000 | 静态终局 |", 
              "|---|---:|---:|---:|---:|---:|---:|---|"]
+    if config is not None:
+        lines[2:2] = [f"协议：{config['experiment']['protocol']}。奖励：{config['reward']}。", ""]
     for row in summaries:
         label = "无引导" if row["method"] == "unguided" else "A*路线输入"
         lines.append(f"| {label} | {row['seed']} | {row['final_safe_success_rate']:.0%} | {row['final_dynamic_collision_rate']:.0%} | {row['final_timeout_rate']:.0%} | {row['first_observed_ge90_step']} | {row['safe_success_aulc_0to200k']:.4f} | {row['static_termination_reason']}，{row['static_steps']}步 |")
@@ -278,11 +297,15 @@ def report(summaries, failures, output):
         lines.append(f"- seed{value['seed']}：无引导首次达到90%为{value['unguided_first_ge90_step']}步，引导为{value['guided_first_ge90_step']}步；引导减去无引导的全程曲线面积差{value['guided_minus_unguided_aulc']:+.4f}，最终安全成功率差{value['guided_minus_unguided_final_safe_success']:+.1%}。")
     final_wins = sum(value["guided_minus_unguided_final_safe_success"] > 1e-9 for value in paired)
     curve_wins = sum(value["guided_minus_unguided_aulc"] > 1e-9 for value in paired)
-    lines += ["", f"引导组最终成功率在{final_wins}/{len(seeds)}个seed更高，全程曲线面积在{curve_wins}/{len(seeds)}个seed更高。收益方向随seed改变；均值优势不等于稳定或统计显著的优势。",
+    lines += ["", f"引导组最终成功率在{final_wins}/{len(seeds)}个seed更高，全程曲线面积在{curve_wins}/{len(seeds)}个seed更高。均值优势不等于稳定或统计显著的优势；单seed结果不能代表其他seed。",
               "最终成功率和全程学习速度必须分别比较，不能根据最终98%推断前期是否学得更快。",
               "", "最终模型的静态诊断："]
     for row in summaries:
         lines.append(f"- {row['method']} seed{row['seed']}：{row['static_termination_reason']}，{row['static_steps']}步，安全成功{row['static_original_task_safe_success']:.0%}。")
+    if all("training_episode_records" in row for row in summaries):
+        lines += ["", "训练时带探索的成功记录（与epsilon=0验证不同）："]
+        for row in summaries:
+            lines.append(f"- {row['method']} seed{row['seed']}：{row['training_episode_records']}条回合记录，成功{row['successful_training_episodes']}回合；成功时的累计环境步{row['successful_training_environment_steps']}；最后1万步成功{row['training_successes_last_10k']}回合。")
     lines += ["", "首次达到阈值仅为稀疏检查点结果，不能称为稳定收敛。均值按训练seed计算，重复使用同一批50场景不增加独立训练seed数量。",
               "这次比较同时加入路线通道和前方引导点，不能单独归因于其中某一项。训练起点、探索和回放与旧foundation复用实验不同，不能把两批差异单独归因于引导形式。",
               "没有保存中间权重，不能把曲线中的最好检查点当作可加载的最好模型，也不能在分析时选最好检查点替代预先固定的终局比较。", "", "最终失败轨迹："]
@@ -290,7 +313,7 @@ def report(summaries, failures, output):
         end = value["terminal_transition"]
         lines.append(f"- {value['method']} seed{value['seed']} / {value['scenario_id']}: {value['termination_reason']}；等待{value['wait_steps']}步，移动{value['movement_steps']}步，重复移动{value['repeat_move_count']}次，末段周期{value['tail_period']}；终局位置{value['final_position']}，静态剩余距离{value['final_static_remaining_steps']}。碰撞类型{end['collision_type']}，碰撞目标位置{end['collision_position']}；最后动作{end['action']}，动作前位置{end['before']['position']}，动作后位置{end['position']}；动态障碍动作前{end['before']['dynamic_positions']}，动作后{end['dynamic_positions']}。")
     lines += ["", "证据边界：静态剩余距离忽略动态障碍，只用于轨迹诊断。等待和反复移动分类可重叠。所有终局失败完整轨迹、曲线、静态诊断、核对记录均保存于本目录。",
-              "这批五seed实验已足够用于描述当前设置的收益是否一致，不为了得到优势继续挑seed。若做机制消融，分别比较仅路线、仅引导点、两者同时输入，并预先固定预算和评价标准。未自动启动这些实验。"]
+              f"本次只分析已完成的seed {seeds}，不修改训练参数，不为了得到优势选择性保留seed。未自动启动训练。"]
     (output / "REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

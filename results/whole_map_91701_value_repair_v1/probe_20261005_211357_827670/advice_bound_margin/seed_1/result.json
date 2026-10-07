@@ -1,0 +1,1986 @@
+{
+  "config": {
+    "experiment": {
+      "name": "whole_map_91701_value_repair_v1",
+      "output_root": "outputs/whole_map_91701_value_repair_v1",
+      "run_name_prefix": "whole_map_pool_91701_7obs",
+      "protocol": "value_bound_teacher_margin_v1",
+      "check_root": "results/whole_map_91701_value_repair_v1",
+      "initialization": "paired_random"
+    },
+    "dataset": {
+      "source_manifest": "data/risk_handover_v1/manifest.json",
+      "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+      "route_pool_protocol": "dynamic_route_pool_v2",
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "map_id": "irregular_workcell_91701",
+      "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+      "validation_reference": "outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json"
+    },
+    "dynamic_route_pool": {
+      "composition": {
+        "high_interaction": 2,
+        "alternative_branch": 2,
+        "background": 1
+      },
+      "move_every": 1,
+      "sampling_trials_per_episode": 1000,
+      "training_sampling_seed_offset": 91701000,
+      "validation_sampling_seed": 91701999,
+      "validation_episodes": 50,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ]
+    },
+    "environment": {
+      "window_size": 15,
+      "spatial_channels": 4,
+      "action_count": 5,
+      "max_steps": 300,
+      "terminate_on_collision": true,
+      "mask_static_invalid_actions": true
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto"
+    },
+    "training": {
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "replay_strategy": "uniform",
+      "episodes": 1000000,
+      "max_environment_steps": 200000,
+      "replay_capacity": 10000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 1000000,
+      "epsilon_decay_environment_steps": 150000,
+      "validation_interval_environment_steps": 10000,
+      "demo_fraction": 0.0
+    },
+    "guidance": {
+      "methods": [
+        "unguided",
+        "path_guided"
+      ],
+      "lookahead_steps": 4,
+      "projection": "nearest_manhattan_earliest_tie",
+      "path_source": "frozen_nominal_static_astar",
+      "added_spatial_channels": 1,
+      "added_scalar_dim": 2,
+      "control": "zero_added_inputs_same_network"
+    },
+    "rule_baseline": {
+      "method": "astar_replan_wait",
+      "information": "known_static_map_and_current_local_dynamic_frame"
+    },
+    "integration": {
+      "steps_per_branch": 8,
+      "batch_size": 4,
+      "learning_starts": 4,
+      "device": "cpu"
+    },
+    "training_advice": {
+      "methods": [
+        "unguided",
+        "astar_fixed",
+        "astar_decay",
+        "astar_risk_decay",
+        "astar_budget_matched"
+      ],
+      "probability": 0.8,
+      "decay_environment_steps": 100000,
+      "risk_radius": 1,
+      "rng_seed_offset": 730000,
+      "teacher": "static_astar_replan_from_current_position",
+      "risk_information": "current_and_two_previous_observed_dynamic_frames",
+      "evaluation_advice": false,
+      "observation_guidance": false
+    },
+    "value_repair": {
+      "methods": [
+        "unguided_bound",
+        "advice_raw",
+        "advice_bound",
+        "advice_margin",
+        "advice_bound_margin"
+      ],
+      "target_lower": -6.0,
+      "target_upper": 10.0,
+      "margin": 0.8,
+      "margin_weight": 1.0,
+      "margin_decay_environment_steps": 100000,
+      "labels": "matching_executed_astar_action_observed_risk_clear_noncollision",
+      "competitor_mask": "static_valid_only",
+      "evaluation_advice": false,
+      "probe_environment_steps": 2000,
+      "probe_device": "cpu",
+      "probe_epsilon_decay_environment_steps": 150000
+    }
+  },
+  "method": "advice_bound_margin",
+  "seed": 1,
+  "training_mode": "probe",
+  "effective_training": {
+    "episodes": 1000000,
+    "max_environment_steps": 2000,
+    "max_steps": 300,
+    "replay_capacity": 10000,
+    "batch_size": 64,
+    "learning_starts": 500,
+    "updates_per_step": 1,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_episodes": 1000000,
+    "epsilon_decay_environment_steps": 150000,
+    "allow_partial_epsilon_schedule": true,
+    "terminate_on_collision": true,
+    "mask_static_invalid_actions": true,
+    "replay_strategy": "uniform",
+    "demo_fraction": 0.0,
+    "demo_fraction_final": null,
+    "demo_fraction_decay_start_episode": 0,
+    "demo_fraction_decay_end_episode": 0,
+    "demo_fraction_decay_start_environment_step": null,
+    "demo_fraction_decay_end_environment_step": null,
+    "window_size": 15,
+    "progress_interval": 0,
+    "progress_interval_environment_steps": null,
+    "diagnostic_interval": 0,
+    "per_alpha": 0.6,
+    "per_beta_start": 0.4,
+    "per_beta_end": 1.0,
+    "per_priority_epsilon": 1e-06,
+    "demo_margin": 0.8,
+    "demo_loss_weight": 1.0,
+    "conflict_demo_fraction_min": 0.0,
+    "conflict_ema_alpha": 0.2,
+    "conflict_recovery_alpha": null,
+    "conflict_sensitivity": 1.0,
+    "conflict_event_binary": false,
+    "conflict_predict_next": true,
+    "local_conflict_suppression_steps": 2500,
+    "local_conflict_min_sampling_weight": 0.05,
+    "local_conflict_predict_next": true,
+    "local_counterexample_capacity": 2000,
+    "local_counterexample_fraction": 0.25,
+    "conflict_margin": 0.8,
+    "conflict_margin_loss_weight": 1.0,
+    "conflict_margin_predict_next": true,
+    "safe_guidance_margin": 0.8,
+    "safe_guidance_loss_weight": 1.0,
+    "safe_guidance_predict_next": true,
+    "seed": 1,
+    "replay_diagnostics": false
+  },
+  "initial_state_sha256": "e8eae4157f268e7dbd0b1b1a8bcdbf816a7103a157033f846c122e47a313abcd",
+  "source_sha256": {
+    "scripts\\run_value_repair.py": "e05b6a29ba1ad55f236e87b6ed3b3ad69f69ba02a5ae2e1376e5a7f84419b154",
+    "configs\\whole_map_91701_value_repair_v1.yaml": "aab42e97eba39f8726f378ca376c86c8b905fc1dac973a175d40124532d146bf",
+    "src\\astar_d3qn\\agents\\astar_value_repair.py": "becc90fa4dd65faf769663854ca7114d07fde1c2d37f323a414efe8166950392",
+    "src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f"
+  },
+  "test_data_used": false,
+  "evaluation_advice": false,
+  "environment_steps": 2000,
+  "gradient_updates": 1501,
+  "map": {
+    "map_id": "irregular_workcell_91701",
+    "seed": 91701,
+    "size": 40,
+    "start": [
+      3,
+      3
+    ],
+    "goal": [
+      36,
+      36
+    ],
+    "obstacle_count": 368,
+    "density": 0.23,
+    "astar_steps": 66,
+    "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+    "design": "synthetic irregular equipment islands",
+    "generation_attempt": 0,
+    "islands": [
+      {
+        "shape": "T",
+        "cells": [
+          [
+            24,
+            28
+          ],
+          [
+            24,
+            29
+          ],
+          [
+            24,
+            30
+          ],
+          [
+            24,
+            31
+          ],
+          [
+            24,
+            32
+          ],
+          [
+            24,
+            33
+          ],
+          [
+            25,
+            28
+          ],
+          [
+            25,
+            29
+          ],
+          [
+            25,
+            30
+          ],
+          [
+            25,
+            31
+          ],
+          [
+            25,
+            32
+          ],
+          [
+            25,
+            33
+          ],
+          [
+            26,
+            31
+          ],
+          [
+            27,
+            31
+          ],
+          [
+            28,
+            31
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            13,
+            6
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            14,
+            5
+          ],
+          [
+            14,
+            6
+          ],
+          [
+            14,
+            7
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            1,
+            22
+          ],
+          [
+            1,
+            23
+          ],
+          [
+            1,
+            24
+          ],
+          [
+            1,
+            25
+          ],
+          [
+            1,
+            26
+          ],
+          [
+            1,
+            27
+          ],
+          [
+            2,
+            22
+          ],
+          [
+            2,
+            23
+          ],
+          [
+            2,
+            24
+          ],
+          [
+            2,
+            25
+          ],
+          [
+            2,
+            26
+          ],
+          [
+            2,
+            27
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            32,
+            17
+          ],
+          [
+            32,
+            18
+          ],
+          [
+            32,
+            19
+          ],
+          [
+            33,
+            17
+          ],
+          [
+            33,
+            18
+          ],
+          [
+            33,
+            19
+          ],
+          [
+            34,
+            17
+          ],
+          [
+            34,
+            18
+          ],
+          [
+            34,
+            19
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            24,
+            36
+          ],
+          [
+            24,
+            37
+          ],
+          [
+            24,
+            38
+          ],
+          [
+            25,
+            36
+          ],
+          [
+            25,
+            37
+          ],
+          [
+            25,
+            38
+          ]
+        ]
+      },
+      {
+        "shape": "L",
+        "cells": [
+          [
+            17,
+            17
+          ],
+          [
+            17,
+            18
+          ],
+          [
+            18,
+            17
+          ],
+          [
+            18,
+            18
+          ],
+          [
+            19,
+            17
+          ],
+          [
+            19,
+            18
+          ],
+          [
+            20,
+            17
+          ],
+          [
+            20,
+            18
+          ],
+          [
+            20,
+            19
+          ],
+          [
+            20,
+            20
+          ],
+          [
+            21,
+            17
+          ],
+          [
+            21,
+            18
+          ],
+          [
+            21,
+            19
+          ],
+          [
+            21,
+            20
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            22,
+            9
+          ],
+          [
+            22,
+            10
+          ],
+          [
+            22,
+            11
+          ],
+          [
+            22,
+            12
+          ],
+          [
+            22,
+            13
+          ],
+          [
+            22,
+            14
+          ],
+          [
+            23,
+            9
+          ],
+          [
+            23,
+            10
+          ],
+          [
+            23,
+            11
+          ],
+          [
+            23,
+            12
+          ],
+          [
+            23,
+            13
+          ],
+          [
+            23,
+            14
+          ],
+          [
+            24,
+            9
+          ],
+          [
+            24,
+            10
+          ],
+          [
+            24,
+            11
+          ],
+          [
+            24,
+            12
+          ],
+          [
+            24,
+            13
+          ],
+          [
+            24,
+            14
+          ],
+          [
+            25,
+            9
+          ],
+          [
+            25,
+            10
+          ],
+          [
+            25,
+            11
+          ],
+          [
+            25,
+            12
+          ],
+          [
+            25,
+            13
+          ],
+          [
+            25,
+            14
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            21,
+            2
+          ],
+          [
+            21,
+            3
+          ],
+          [
+            21,
+            4
+          ],
+          [
+            22,
+            2
+          ],
+          [
+            22,
+            3
+          ],
+          [
+            22,
+            4
+          ],
+          [
+            23,
+            3
+          ],
+          [
+            24,
+            3
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            17,
+            25
+          ],
+          [
+            17,
+            26
+          ],
+          [
+            17,
+            27
+          ],
+          [
+            17,
+            28
+          ],
+          [
+            18,
+            25
+          ],
+          [
+            18,
+            26
+          ],
+          [
+            18,
+            27
+          ],
+          [
+            18,
+            28
+          ],
+          [
+            19,
+            25
+          ],
+          [
+            19,
+            26
+          ],
+          [
+            19,
+            27
+          ],
+          [
+            19,
+            28
+          ],
+          [
+            20,
+            25
+          ],
+          [
+            20,
+            26
+          ],
+          [
+            20,
+            27
+          ],
+          [
+            20,
+            28
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            7,
+            9
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            9,
+            33
+          ],
+          [
+            9,
+            34
+          ],
+          [
+            9,
+            35
+          ],
+          [
+            9,
+            36
+          ],
+          [
+            9,
+            37
+          ],
+          [
+            10,
+            33
+          ],
+          [
+            10,
+            34
+          ],
+          [
+            10,
+            35
+          ],
+          [
+            10,
+            36
+          ],
+          [
+            10,
+            37
+          ],
+          [
+            11,
+            33
+          ],
+          [
+            11,
+            34
+          ],
+          [
+            11,
+            35
+          ],
+          [
+            11,
+            36
+          ],
+          [
+            11,
+            37
+          ],
+          [
+            12,
+            33
+          ],
+          [
+            12,
+            34
+          ],
+          [
+            12,
+            35
+          ],
+          [
+            12,
+            36
+          ],
+          [
+            12,
+            37
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            26,
+            22
+          ],
+          [
+            26,
+            23
+          ],
+          [
+            26,
+            24
+          ],
+          [
+            26,
+            25
+          ],
+          [
+            27,
+            22
+          ],
+          [
+            27,
+            23
+          ],
+          [
+            27,
+            24
+          ],
+          [
+            27,
+            25
+          ],
+          [
+            28,
+            24
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            18,
+            11
+          ],
+          [
+            18,
+            12
+          ],
+          [
+            18,
+            13
+          ],
+          [
+            18,
+            14
+          ],
+          [
+            18,
+            15
+          ],
+          [
+            19,
+            11
+          ],
+          [
+            19,
+            12
+          ],
+          [
+            19,
+            13
+          ],
+          [
+            19,
+            14
+          ],
+          [
+            19,
+            15
+          ],
+          [
+            20,
+            13
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            11,
+            19
+          ],
+          [
+            11,
+            20
+          ],
+          [
+            11,
+            21
+          ],
+          [
+            11,
+            22
+          ],
+          [
+            11,
+            23
+          ],
+          [
+            12,
+            19
+          ],
+          [
+            12,
+            20
+          ],
+          [
+            12,
+            21
+          ],
+          [
+            12,
+            22
+          ],
+          [
+            12,
+            23
+          ],
+          [
+            13,
+            21
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            5,
+            12
+          ],
+          [
+            5,
+            13
+          ],
+          [
+            5,
+            14
+          ],
+          [
+            5,
+            15
+          ],
+          [
+            5,
+            16
+          ],
+          [
+            5,
+            17
+          ],
+          [
+            6,
+            12
+          ],
+          [
+            6,
+            13
+          ],
+          [
+            6,
+            14
+          ],
+          [
+            6,
+            15
+          ],
+          [
+            6,
+            16
+          ],
+          [
+            6,
+            17
+          ],
+          [
+            7,
+            12
+          ],
+          [
+            7,
+            13
+          ],
+          [
+            7,
+            14
+          ],
+          [
+            7,
+            15
+          ],
+          [
+            7,
+            16
+          ],
+          [
+            7,
+            17
+          ],
+          [
+            8,
+            12
+          ],
+          [
+            8,
+            13
+          ],
+          [
+            8,
+            14
+          ],
+          [
+            8,
+            15
+          ],
+          [
+            8,
+            16
+          ],
+          [
+            8,
+            17
+          ],
+          [
+            9,
+            12
+          ],
+          [
+            9,
+            13
+          ],
+          [
+            9,
+            14
+          ],
+          [
+            9,
+            15
+          ],
+          [
+            9,
+            16
+          ],
+          [
+            9,
+            17
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            30,
+            29
+          ],
+          [
+            30,
+            30
+          ],
+          [
+            30,
+            31
+          ],
+          [
+            30,
+            32
+          ],
+          [
+            30,
+            33
+          ],
+          [
+            31,
+            29
+          ],
+          [
+            31,
+            30
+          ],
+          [
+            31,
+            31
+          ],
+          [
+            31,
+            32
+          ],
+          [
+            31,
+            33
+          ],
+          [
+            32,
+            31
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            6,
+            27
+          ],
+          [
+            6,
+            28
+          ],
+          [
+            6,
+            29
+          ],
+          [
+            7,
+            27
+          ],
+          [
+            7,
+            28
+          ],
+          [
+            7,
+            29
+          ]
+        ]
+      },
+      {
+        "shape": "L",
+        "cells": [
+          [
+            27,
+            6
+          ],
+          [
+            27,
+            7
+          ],
+          [
+            27,
+            8
+          ],
+          [
+            27,
+            9
+          ],
+          [
+            27,
+            10
+          ],
+          [
+            28,
+            6
+          ],
+          [
+            28,
+            7
+          ],
+          [
+            28,
+            8
+          ],
+          [
+            28,
+            9
+          ],
+          [
+            28,
+            10
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            16,
+            3
+          ],
+          [
+            16,
+            4
+          ],
+          [
+            17,
+            3
+          ],
+          [
+            17,
+            4
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            33,
+            2
+          ],
+          [
+            33,
+            3
+          ],
+          [
+            33,
+            4
+          ],
+          [
+            33,
+            5
+          ],
+          [
+            33,
+            6
+          ],
+          [
+            33,
+            7
+          ],
+          [
+            34,
+            2
+          ],
+          [
+            34,
+            3
+          ],
+          [
+            34,
+            4
+          ],
+          [
+            34,
+            5
+          ],
+          [
+            34,
+            6
+          ],
+          [
+            34,
+            7
+          ]
+        ]
+      },
+      {
+        "shape": "L",
+        "cells": [
+          [
+            28,
+            19
+          ],
+          [
+            28,
+            20
+          ],
+          [
+            29,
+            19
+          ],
+          [
+            29,
+            20
+          ],
+          [
+            29,
+            21
+          ],
+          [
+            30,
+            19
+          ],
+          [
+            30,
+            20
+          ],
+          [
+            30,
+            21
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            17,
+            33
+          ],
+          [
+            17,
+            34
+          ],
+          [
+            17,
+            35
+          ],
+          [
+            17,
+            36
+          ],
+          [
+            17,
+            37
+          ],
+          [
+            18,
+            33
+          ],
+          [
+            18,
+            34
+          ],
+          [
+            18,
+            35
+          ],
+          [
+            18,
+            36
+          ],
+          [
+            18,
+            37
+          ],
+          [
+            19,
+            33
+          ],
+          [
+            19,
+            34
+          ],
+          [
+            19,
+            35
+          ],
+          [
+            19,
+            36
+          ],
+          [
+            19,
+            37
+          ],
+          [
+            20,
+            33
+          ],
+          [
+            20,
+            34
+          ],
+          [
+            20,
+            35
+          ],
+          [
+            20,
+            36
+          ],
+          [
+            20,
+            37
+          ]
+        ]
+      },
+      {
+        "shape": "L",
+        "cells": [
+          [
+            36,
+            18
+          ],
+          [
+            36,
+            19
+          ],
+          [
+            37,
+            18
+          ],
+          [
+            37,
+            19
+          ],
+          [
+            37,
+            20
+          ],
+          [
+            37,
+            21
+          ],
+          [
+            37,
+            22
+          ],
+          [
+            38,
+            18
+          ],
+          [
+            38,
+            19
+          ],
+          [
+            38,
+            20
+          ],
+          [
+            38,
+            21
+          ],
+          [
+            38,
+            22
+          ]
+        ]
+      },
+      {
+        "shape": "L",
+        "cells": [
+          [
+            13,
+            30
+          ],
+          [
+            13,
+            31
+          ],
+          [
+            14,
+            30
+          ],
+          [
+            14,
+            31
+          ],
+          [
+            14,
+            32
+          ],
+          [
+            15,
+            30
+          ],
+          [
+            15,
+            31
+          ],
+          [
+            15,
+            32
+          ]
+        ]
+      },
+      {
+        "shape": "L",
+        "cells": [
+          [
+            31,
+            23
+          ],
+          [
+            31,
+            24
+          ],
+          [
+            32,
+            23
+          ],
+          [
+            32,
+            24
+          ],
+          [
+            33,
+            23
+          ],
+          [
+            33,
+            24
+          ],
+          [
+            33,
+            25
+          ],
+          [
+            33,
+            26
+          ],
+          [
+            33,
+            27
+          ],
+          [
+            34,
+            23
+          ],
+          [
+            34,
+            24
+          ],
+          [
+            34,
+            25
+          ],
+          [
+            34,
+            26
+          ],
+          [
+            34,
+            27
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            9,
+            25
+          ],
+          [
+            9,
+            26
+          ],
+          [
+            9,
+            27
+          ],
+          [
+            9,
+            28
+          ],
+          [
+            10,
+            25
+          ],
+          [
+            10,
+            26
+          ],
+          [
+            10,
+            27
+          ],
+          [
+            10,
+            28
+          ],
+          [
+            11,
+            25
+          ],
+          [
+            11,
+            26
+          ],
+          [
+            11,
+            27
+          ],
+          [
+            11,
+            28
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            2,
+            31
+          ],
+          [
+            2,
+            32
+          ],
+          [
+            2,
+            33
+          ],
+          [
+            2,
+            34
+          ],
+          [
+            3,
+            31
+          ],
+          [
+            3,
+            32
+          ],
+          [
+            3,
+            33
+          ],
+          [
+            3,
+            34
+          ],
+          [
+            4,
+            31
+          ],
+          [
+            4,
+            32
+          ],
+          [
+            4,
+            33
+          ],
+          [
+            4,
+            34
+          ]
+        ]
+      },
+      {
+        "shape": "rectangle",
+        "cells": [
+          [
+            27,
+            2
+          ],
+          [
+            27,
+            3
+          ],
+          [
+            27,
+            4
+          ],
+          [
+            28,
+            2
+          ],
+          [
+            28,
+            3
+          ],
+          [
+            28,
+            4
+          ],
+          [
+            29,
+            2
+          ],
+          [
+            29,
+            3
+          ],
+          [
+            29,
+            4
+          ],
+          [
+            30,
+            2
+          ],
+          [
+            30,
+            3
+          ],
+          [
+            30,
+            4
+          ],
+          [
+            31,
+            2
+          ],
+          [
+            31,
+            3
+          ],
+          [
+            31,
+            4
+          ]
+        ]
+      },
+      {
+        "shape": "T",
+        "cells": [
+          [
+            29,
+            36
+          ],
+          [
+            29,
+            37
+          ],
+          [
+            29,
+            38
+          ],
+          [
+            30,
+            36
+          ],
+          [
+            30,
+            37
+          ],
+          [
+            30,
+            38
+          ],
+          [
+            31,
+            37
+          ]
+        ]
+      }
+    ],
+    "manhattan_steps": 66,
+    "static_detour_steps": 0,
+    "physical_scale": "abstract grid; no real-robot clearance claim"
+  },
+  "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+  "formal_training_started": false,
+  "integration_only": true,
+  "demo_transition_count": 0,
+  "online_replay_capacity": 10000,
+  "advice_budget": [
+    {
+      "bin_start_step": 1,
+      "bin_end_step": 2000,
+      "steps": 2000,
+      "requested": 1609,
+      "applied": 1572,
+      "risk_veto": 37,
+      "unavailable": 0,
+      "advice_changes_action": 1209,
+      "observed_risk_steps": 55,
+      "probability_sum": 1583.9920000000006,
+      "application_rate": 0.786,
+      "mean_requested_probability": 0.7919960000000004
+    }
+  ],
+  "value_learning": [
+    {
+      "bin_start_step": 1,
+      "bin_end_step": 1000,
+      "updates": 501,
+      "q_abs_max": 10.017287254333496,
+      "raw_target_max": 10.0,
+      "teacher_label_samples": 26649,
+      "q_mean_mean": 0.16369541593085596,
+      "target_mean_mean": 0.21833773864435027,
+      "raw_target_mean_mean": 0.21833773864435027,
+      "raw_target_outside_fraction_mean": 0.0,
+      "target_clip_fraction_mean": 0.0,
+      "td_loss_mean": 0.1125931069296701,
+      "demo_margin_loss_mean": 0.0630256000929226,
+      "teacher_margin_weight_mean": 0.9924999999999995
+    },
+    {
+      "bin_start_step": 1001,
+      "bin_end_step": 2000,
+      "updates": 1000,
+      "q_abs_max": 11.248191833496094,
+      "raw_target_max": 10.270600318908691,
+      "teacher_label_samples": 53413,
+      "q_mean_mean": 1.0064598912596703,
+      "target_mean_mean": 1.0307372442781926,
+      "raw_target_mean_mean": 1.0318279392421246,
+      "raw_target_outside_fraction_mean": 0.01175,
+      "target_clip_fraction_mean": 0.01175,
+      "td_loss_mean": 0.08771340034902096,
+      "demo_margin_loss_mean": 0.004610910014626853,
+      "teacher_margin_weight_mean": 0.9849949999999991
+    }
+  ],
+  "final_validation": {
+    "environment_steps_total": 2000,
+    "maps": 50,
+    "success_rate": 0.92,
+    "collision_rate": 0.08,
+    "mean_collision_count": 0.08,
+    "static_collision_rate": 0.0,
+    "mean_static_collision_count": 0.0,
+    "dynamic_collision_rate": 0.08,
+    "encounter_rate": 0.3626269035532995,
+    "conflict_opportunity_rate": 0.015862944162436547,
+    "encounter_episode_rate": 1.0,
+    "conflict_opportunity_episode_rate": 0.46,
+    "mean_dynamic_collision_count": 0.08,
+    "safe_success_rate": 0.92,
+    "collision_success_rate": 0.0,
+    "static_collision_success_rate": 0.0,
+    "dynamic_collision_success_rate": 0.0,
+    "dynamic_collision_free_success_rate": 0.92,
+    "mean_steps": 63.04,
+    "mean_wait_steps": 0.0,
+    "mean_wait_event_count": 0.0,
+    "mean_max_wait_streak": 0.0,
+    "mean_movement_steps": 62.96,
+    "mean_turn_count": 6.7,
+    "mean_turn_rate": 0.10869659853331254,
+    "mean_revisit_count": 0.0,
+    "mean_reward": 11.601600000000001,
+    "mean_path_efficiency": 1.0,
+    "mean_first_static_collision_step": null,
+    "mean_first_dynamic_collision_step": 29.0,
+    "mean_action_latency_ms": 0.3628485730014798,
+    "timeout_rate": 0.0
+  },
+  "final_static": {
+    "map_id": "irregular_workcell_91701",
+    "map_seed": 91701,
+    "scenario_id": "static_original_task",
+    "required_behavior": null,
+    "difficulty_stratum": null,
+    "trajectory_key": "irregular_workcell_91701",
+    "dynamic_obstacle_count": 0,
+    "dynamic_route_ids": "",
+    "dynamic_route_categories": "",
+    "encounter_steps": 0,
+    "encounter_rate": 0.0,
+    "conflict_opportunity_steps": 0,
+    "conflict_opportunity_rate": 0.0,
+    "success": 1.0,
+    "collision": 0.0,
+    "collision_count": 0,
+    "static_collision": 0.0,
+    "static_collision_count": 0,
+    "dynamic_collision": 0.0,
+    "dynamic_collision_count": 0,
+    "first_static_collision_step": null,
+    "first_dynamic_collision_step": null,
+    "dynamic_obstacle_contact_count": 0,
+    "unique_dynamic_obstacles_hit": 0,
+    "dynamic_obstacle_indices_hit": "",
+    "revisit_count": 0,
+    "wait_steps": 0,
+    "wait_event_count": 0,
+    "max_wait_streak": 0,
+    "wait_ratio": 0.0,
+    "steps": 66,
+    "movement_steps": 66,
+    "turn_count": 7,
+    "turn_rate": 0.1076923076923077,
+    "reward": 12.600000000000001,
+    "safe_success": 1.0,
+    "collision_success": 0.0,
+    "static_collision_success": 0.0,
+    "dynamic_collision_success": 0.0,
+    "dynamic_collision_free_success": 1.0,
+    "path_efficiency": 1.0,
+    "termination_reason": "goal",
+    "action_selection_seconds": 0.022659799840766937,
+    "mean_action_latency_ms": 0.3433303006176809
+  }
+}

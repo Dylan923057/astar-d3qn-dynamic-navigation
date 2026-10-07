@@ -207,6 +207,75 @@ class RuntimePathGuidanceTests(unittest.TestCase):
             self.assertEqual(result.gradient_updates, 5)
             self.assertEqual(result.episode_records[-1]["demo_retained_count"], 0)
 
+    def test_no_progress_protocol_removes_only_distance_reward(self):
+        config = load_config(entry.NO_PROGRESS_CONFIG)
+        entry.validate_config(config)
+        dense = load_config(entry.CONFIG)
+        expected = dict(dense["reward"], progress=0.0)
+        self.assertEqual(config["reward"], expected)
+        for section in ("environment", "agent", "dataset", "dynamic_route_pool", "guidance"):
+            self.assertEqual(config[section], dense[section])
+        self.assertEqual({k: v for k, v in config["training"].items() if k != "seeds"},
+                         {k: v for k, v in dense["training"].items() if k != "seeds"})
+        self.assertEqual(config["training"]["seeds"], list(entry.REGISTERED_SEEDS))
+        reward = entry._reward_config(config)
+        for enabled in (False, True):
+            env = PathGuidanceEnvironment(DynamicGridNavigationEnv(problem(), window_size=5,
+                                           max_steps=30, reward_config=reward), enabled=enabled, lookahead_steps=2)
+            # Approach, move away and wait all have the same step cost, while goal direction remains visible.
+            for action in (Action.RIGHT, Action.UP, Action.STAY):
+                state = env.reset()
+                self.assertTrue(np.any(state.scalars[:2]))
+                result = env.step(int(action))
+                self.assertAlmostEqual(result.reward, -0.01)
+                self.assertEqual(result.info["reward_progress"], 0.0)
+            env.reset()
+            for _ in range(6):
+                arrived = env.step(int(Action.RIGHT))
+            self.assertTrue(arrived.terminated)
+            self.assertEqual(arrived.reward, 10.0)
+            specs = (DynamicObstacleSpec(((2, 1), (3, 1)), 0, 1, move_every=1),)
+            collision_env = PathGuidanceEnvironment(DynamicGridNavigationEnv(problem(), specs,
+                                                   window_size=5, reward_config=reward,
+                                                   terminate_on_collision=True), enabled=enabled)
+            collision_env.reset()
+            collision = collision_env.step(int(Action.RIGHT))
+            self.assertTrue(collision.terminated)
+            self.assertEqual(collision.reward, -1.0)
+        for section, key, value in (("reward", "progress", 0.05), ("reward", "collision", -2.0),
+                                    ("agent", "learning_rate", 0.001),
+                                    ("experiment", "output_root", dense["experiment"]["output_root"])):
+            changed = load_config(entry.NO_PROGRESS_CONFIG)
+            changed[section][key] = value
+            with self.assertRaises(ValueError):
+                entry.validate_config(changed)
+
+    def test_no_progress_cli_and_optimizer_integration(self):
+        config = load_config(entry.NO_PROGRESS_CONFIG)
+        with patch.object(entry, "validate_config", return_value=(None, None, None)), \
+             patch.object(entry, "run_training", return_value=Path("unused")) as train:
+            entry.main(["--train", "--config", str(entry.NO_PROGRESS_CONFIG),
+                        "--seeds", "0", "1", "2", "3", "4", "--methods", "unguided", "path_guided"])
+            self.assertEqual(train.call_args.args[0], config)
+            self.assertEqual(train.call_args.args[2], list(entry.REGISTERED_SEEDS))
+            self.assertEqual(train.call_args.args[3], list(entry.METHODS))
+            self.assertFalse(train.call_args.kwargs["smoke"])
+        torch.set_num_threads(1)
+        inputs = entry.validate_config(config)
+        for method in entry.METHODS:
+            agent = entry.make_agent(config, 0, "cpu")
+            training = replace(entry._training_config(config, 0), max_environment_steps=8,
+                               batch_size=4, learning_starts=4, epsilon_decay_environment_steps=8,
+                               progress_interval_environment_steps=None)
+            result = train_d3qn([inputs[0]], agent, training,
+                               environment_factory=entry.make_factory(config, *inputs, method=method, seed=0),
+                               reward_config=entry._reward_config(config))
+            self.assertEqual(result.environment_steps, 8)
+            self.assertEqual(result.gradient_updates, 5)
+            self.assertEqual(result.episode_records[-1]["demo_retained_count"], 0)
+        with self.assertRaises(SystemExit):
+            entry.main(["--pilot", "--config", str(entry.NO_PROGRESS_CONFIG)])
+
     def test_default_cli_checks_only_and_train_requires_explicit_flag(self):
         with patch.object(entry, "validate_config", return_value=(None, None, None)), \
              patch.object(entry, "unique_check_dir", return_value=Path("unused")), \

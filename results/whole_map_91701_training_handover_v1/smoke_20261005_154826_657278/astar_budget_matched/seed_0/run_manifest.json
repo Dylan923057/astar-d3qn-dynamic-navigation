@@ -1,0 +1,198 @@
+{
+  "config": {
+    "experiment": {
+      "name": "whole_map_91701_training_handover_v1",
+      "output_root": "outputs/whole_map_91701_training_handover_v1",
+      "run_name_prefix": "whole_map_pool_91701_7obs",
+      "protocol": "training_action_handover_v1",
+      "check_root": "results/whole_map_91701_training_handover_v1",
+      "initialization": "paired_random"
+    },
+    "dataset": {
+      "source_manifest": "data/risk_handover_v1/manifest.json",
+      "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+      "route_pool_protocol": "dynamic_route_pool_v2",
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "map_id": "irregular_workcell_91701",
+      "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+      "validation_reference": "outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json"
+    },
+    "dynamic_route_pool": {
+      "composition": {
+        "high_interaction": 2,
+        "alternative_branch": 2,
+        "background": 1
+      },
+      "move_every": 1,
+      "sampling_trials_per_episode": 1000,
+      "training_sampling_seed_offset": 91701000,
+      "validation_sampling_seed": 91701999,
+      "validation_episodes": 50,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ]
+    },
+    "environment": {
+      "window_size": 15,
+      "spatial_channels": 4,
+      "action_count": 5,
+      "max_steps": 300,
+      "terminate_on_collision": true,
+      "mask_static_invalid_actions": true
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto"
+    },
+    "training": {
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "replay_strategy": "uniform",
+      "episodes": 1000000,
+      "max_environment_steps": 200000,
+      "replay_capacity": 10000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 1000000,
+      "epsilon_decay_environment_steps": 150000,
+      "validation_interval_environment_steps": 10000,
+      "demo_fraction": 0.0
+    },
+    "guidance": {
+      "methods": [
+        "unguided",
+        "path_guided"
+      ],
+      "lookahead_steps": 4,
+      "projection": "nearest_manhattan_earliest_tie",
+      "path_source": "frozen_nominal_static_astar",
+      "added_spatial_channels": 1,
+      "added_scalar_dim": 2,
+      "control": "zero_added_inputs_same_network"
+    },
+    "rule_baseline": {
+      "method": "astar_replan_wait",
+      "information": "known_static_map_and_current_local_dynamic_frame"
+    },
+    "integration": {
+      "steps_per_branch": 8,
+      "batch_size": 4,
+      "learning_starts": 4,
+      "device": "cpu"
+    },
+    "training_advice": {
+      "methods": [
+        "unguided",
+        "astar_fixed",
+        "astar_decay",
+        "astar_risk_decay",
+        "astar_budget_matched"
+      ],
+      "probability": 0.8,
+      "decay_environment_steps": 100000,
+      "risk_radius": 1,
+      "rng_seed_offset": 730000,
+      "teacher": "static_astar_replan_from_current_position",
+      "risk_information": "current_and_two_previous_observed_dynamic_frames",
+      "evaluation_advice": false,
+      "observation_guidance": false
+    }
+  },
+  "method": "astar_budget_matched",
+  "seed": 0,
+  "initial_state_sha256": "9b1b274b5f7e8aa29c791e165e57df722d1ed4b05066e6c8d1d900e2831499e0",
+  "effective_training": {
+    "episodes": 1000000,
+    "max_environment_steps": 8,
+    "max_steps": 300,
+    "replay_capacity": 10000,
+    "batch_size": 4,
+    "learning_starts": 4,
+    "updates_per_step": 1,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_episodes": 1000000,
+    "epsilon_decay_environment_steps": 8,
+    "terminate_on_collision": true,
+    "mask_static_invalid_actions": true,
+    "replay_strategy": "uniform",
+    "demo_fraction": 0.0,
+    "demo_fraction_final": null,
+    "demo_fraction_decay_start_episode": 0,
+    "demo_fraction_decay_end_episode": 0,
+    "demo_fraction_decay_start_environment_step": null,
+    "demo_fraction_decay_end_environment_step": null,
+    "window_size": 15,
+    "progress_interval": 0,
+    "progress_interval_environment_steps": null,
+    "diagnostic_interval": 0,
+    "per_alpha": 0.6,
+    "per_beta_start": 0.4,
+    "per_beta_end": 1.0,
+    "per_priority_epsilon": 1e-06,
+    "demo_margin": 0.8,
+    "demo_loss_weight": 1.0,
+    "conflict_demo_fraction_min": 0.0,
+    "conflict_ema_alpha": 0.2,
+    "conflict_recovery_alpha": null,
+    "conflict_sensitivity": 1.0,
+    "conflict_event_binary": false,
+    "conflict_predict_next": true,
+    "local_conflict_suppression_steps": 2500,
+    "local_conflict_min_sampling_weight": 0.05,
+    "local_conflict_predict_next": true,
+    "local_counterexample_capacity": 2000,
+    "local_counterexample_fraction": 0.25,
+    "conflict_margin": 0.8,
+    "conflict_margin_loss_weight": 1.0,
+    "conflict_margin_predict_next": true,
+    "safe_guidance_margin": 0.8,
+    "safe_guidance_loss_weight": 1.0,
+    "safe_guidance_predict_next": true,
+    "seed": 0,
+    "replay_diagnostics": false
+  },
+  "matching_advice_quota": [
+    10000,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}

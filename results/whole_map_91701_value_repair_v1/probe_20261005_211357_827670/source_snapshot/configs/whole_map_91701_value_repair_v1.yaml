@@ -1,0 +1,21 @@
+inherits: whole_map_91701_training_handover_v1.yaml
+
+experiment:
+  name: whole_map_91701_value_repair_v1
+  protocol: value_bound_teacher_margin_v1
+  output_root: outputs/whole_map_91701_value_repair_v1
+  check_root: results/whole_map_91701_value_repair_v1
+
+value_repair:
+  methods: [unguided_bound, advice_raw, advice_bound, advice_margin, advice_bound_margin]
+  target_lower: -6.0
+  target_upper: 10.0
+  margin: 0.8
+  margin_weight: 1.0
+  margin_decay_environment_steps: 100000
+  labels: matching_executed_astar_action_observed_risk_clear_noncollision
+  competitor_mask: static_valid_only
+  evaluation_advice: false
+  probe_environment_steps: 2000
+  probe_device: cpu
+  probe_epsilon_decay_environment_steps: 150000

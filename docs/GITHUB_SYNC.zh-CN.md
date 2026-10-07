@@ -3,9 +3,12 @@
 本次同步目标：`origin/main`，仓库 `Dylan923057/astar-d3qn-dynamic-navigation`。
 
 保留代码、配置、测试、地图、动态路线池、独立实验包中的代码与说明、实验报告、CSV指标、图表和选取的失败轨迹。
-README已列出最新五seed路线引导实验及完整分析入口。
+README已列出最新六组×seed0、1的20万步正式价值修正结果、GPT分析包及此前五seed路线引导结果。
+
+最新供GPT阅读的入口：[结果包README](../results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/README.md)，以及[可复制分析请求](../results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/GPT_ANALYSIS_PROMPT.md)。包内含12次运行的全部验证逐场景明细、训练日志、价值日志、曲线、实现指纹和15条精选完整轨迹；README说明评价协议及结论限制。
 
 不新增上传本地训练权重和原始outputs、缓存、临时PDF解析依赖、文献PDF、重复ZIP，以及分析上传包中的大段`failure_trajectories.json`副本。
+新增加忽略旧交接实验`final_failures_*.json`和价值修正分析的批量`navigation_examples_*.json`副本；原文件继续留在本地。新分析包的`trajectories/`保留有明确选择理由的完整示例，全部失败行为分类仍可读取。
 `results/paper_evidence`内原本纳入版本控制的精选权重继续使用已有Git LFS规则；不改变这些历史实验的存档策略。
 
 以下文件是当前训练入口的必要输入，单独保留：

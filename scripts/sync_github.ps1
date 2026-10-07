@@ -1,6 +1,6 @@
 param(
     [switch]$Preview,
-    [string]$Message = 'Update dynamic navigation experiments and five-seed path guidance analysis'
+    [string]$Message = 'Add six-method value repair results and GPT analysis package'
 )
 
 $ErrorActionPreference = 'Stop'

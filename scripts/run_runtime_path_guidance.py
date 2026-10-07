@@ -32,6 +32,7 @@ from train_whole_map_route_pool_pilot import _factory, _load_inputs, _resolve, _
 
 CONFIG = ROOT / "configs/whole_map_91701_runtime_path_v1.yaml"
 PILOT_CONFIG = ROOT / "configs/whole_map_91701_runtime_path_pilot_v1.yaml"
+NO_PROGRESS_CONFIG = ROOT / "configs/whole_map_91701_runtime_path_no_progress_v1.yaml"
 METHODS = ("unguided", "path_guided")
 REGISTERED_SEEDS = (0, 1, 2, 3, 4)
 
@@ -39,15 +40,28 @@ REGISTERED_SEEDS = (0, 1, 2, 3, 4)
 def validate_config(config):
     baseline = load_config(ROOT / "configs/whole_map_route_pool_91701_pilot_v1.yaml")
     protocol = config["experiment"]["protocol"]
-    if protocol not in {"runtime_path_observation_v1", "runtime_path_observation_pilot_v1"}:
+    output_names = {
+        "runtime_path_observation_v1": "whole_map_91701_runtime_path_v1",
+        "runtime_path_observation_pilot_v1": "whole_map_91701_runtime_path_pilot_v1",
+        "runtime_path_observation_no_progress_v1": "whole_map_91701_runtime_path_no_progress_v1",
+    }
+    if protocol not in output_names:
         raise ValueError("Unexpected runtime guidance protocol.")
     pilot = protocol == "runtime_path_observation_pilot_v1"
+    no_progress = protocol == "runtime_path_observation_no_progress_v1"
     if config["experiment"]["initialization"] != "paired_random":
         raise ValueError("This entry does not load legacy foundation weights or replay.")
-    for section in ("environment", "reward", "agent"):
+    for section in ("environment", "agent"):
         if config[section] != baseline[section]:
             raise ValueError(f"Registered {section} changed.")
+    expected_reward = dict(baseline["reward"])
+    if no_progress:
+        expected_reward["progress"] = 0.0
+    if config["reward"] != expected_reward:
+        raise ValueError("Registered reward changed; the no-progress protocol only removes the progress term.")
     for key, value in baseline["training"].items():
+        if no_progress and key == "seeds":
+            value = list(REGISTERED_SEEDS)
         if pilot and key in {"max_environment_steps", "epsilon_decay_environment_steps"}:
             value = {"max_environment_steps": 50000, "epsilon_decay_environment_steps": 37500}[key]
         if config["training"].get(key) != value:
@@ -78,7 +92,7 @@ def validate_config(config):
     }:
         raise ValueError("Rule baseline information contract changed.")
     for key, directory in (("output_root", "outputs"), ("check_root", "results")):
-        expected = ROOT / directory / ("whole_map_91701_runtime_path_pilot_v1" if pilot else "whole_map_91701_runtime_path_v1")
+        expected = ROOT / directory / output_names[protocol]
         if _resolve(config["experiment"][key]).resolve() != expected.resolve():
             raise ValueError("Runtime guidance must use its own registered output directories.")
     problem, entry, pool = _load_inputs(config)
@@ -235,7 +249,11 @@ def check(config, inputs, seeds):
         "existing_validation_reference": str(reference_file.relative_to(ROOT)),
         "existing_validation_file_sha256": hashlib.sha256(reference_file.read_bytes()).hexdigest(),
         "matches_existing_fixed_50_validation_scenes": True,
-        "original_dynamics_reward_and_masks_preserved": True,
+        "original_dynamics_reward_and_masks_preserved": config["experiment"]["protocol"] != "runtime_path_observation_no_progress_v1",
+        "original_dynamics_and_masks_preserved": True,
+        "configured_rewards_identical_between_methods": True,
+        "reward": config["reward"],
+        "only_progress_reward_removed": config["experiment"]["protocol"] == "runtime_path_observation_no_progress_v1",
         "legacy_weight_compatible": False,
         "scope": "Fixed original map/start/goal integration; no multi-goal or generalization claim.",
     }, scenes
