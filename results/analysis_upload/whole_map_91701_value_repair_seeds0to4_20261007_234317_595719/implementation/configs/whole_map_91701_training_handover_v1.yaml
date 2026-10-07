@@ -1,0 +1,21 @@
+inherits: whole_map_91701_runtime_path_v1.yaml
+
+experiment:
+  name: whole_map_91701_training_handover_v1
+  protocol: training_action_handover_v1
+  output_root: outputs/whole_map_91701_training_handover_v1
+  check_root: results/whole_map_91701_training_handover_v1
+
+training:
+  seeds: [0, 1, 2, 3, 4]
+
+training_advice:
+  methods: [unguided, astar_fixed, astar_decay, astar_risk_decay, astar_budget_matched]
+  probability: 0.8
+  decay_environment_steps: 100000
+  risk_radius: 1
+  rng_seed_offset: 730000
+  teacher: static_astar_replan_from_current_position
+  risk_information: current_and_two_previous_observed_dynamic_frames
+  evaluation_advice: false
+  observation_guidance: false

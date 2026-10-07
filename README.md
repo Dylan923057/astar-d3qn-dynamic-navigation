@@ -1,9 +1,11 @@
 # Astar-D3QN-Workshop
 
-最新完成正式实验：[A*探索、动作学习与TD目标限制，六组×seed0、1，各200000步](results/whole_map_91701_value_repair_v1/analysis_20261007_110936_677575/REPORT.md)。
-组合组和“A*探索＋目标限制”组最终两个seed均100%安全成功；组合组学习更早，但10万步撤出附近曾降到70%/62%，随后恢复。
-单独A*探索及缺少目标限制的动作学习均出现seed差异或长期退化。所有检查点epsilon=0，关闭A*，不使用test。
-供GPT直接阅读的[完整分析包](results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/README.md)包含设置、全部曲线和逐场景指标、价值日志、核验及精选轨迹；[可复制的分析请求](results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/GPT_ANALYSIS_PROMPT.md)。
+最新完成正式实验：[A*探索、动作学习与TD目标限制，六组×seed0–4，各200000步](results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/REPORT.md)。
+组合组最终安全成功率[100%,100%,100%,92%,100%]，均值98.4%；“A*探索＋目标限制”组五seed最终均100%。
+组合组全程AULC为91.37%±1.05%，相对后者五seed均提高，平均差+30.93个百分点；优势主要是早期效率，不是最终全面胜出。退出附近曾降至58%后恢复，seed3最终仍有四次迎面碰撞。
+所有630次检查点epsilon=0，关闭A*，共用50个固定验证场景，不使用test。见[均值与退出期曲线](results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/mean_validation_curves.png)。
+完整五seed的[GitHub分析包](results/analysis_upload/whole_map_91701_value_repair_seeds0to4_20261007_234317_595719/README.md)包含30次运行日志、全部验证明细、代码快照和失败轨迹；可复制[GPT分析请求](results/analysis_upload/whole_map_91701_value_repair_seeds0to4_20261007_234317_595719/GPT_ANALYSIS_PROMPT.md)。
+此前seed0、1的[正式分析](results/whole_map_91701_value_repair_v1/analysis_20261007_110936_677575/REPORT.md)和[GPT分析包](results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/README.md)继续保留，它们不包含新增seed2–4；[原分析请求](results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/GPT_ANALYSIS_PROMPT.md)。
 
 此前[六组各20000步的独立pilot](results/whole_map_91701_value_repair_pilot_v1/analysis_20261006_195243_463151/REPORT.md)未覆盖10万步引导退出；其结果与正式实验分开保存。
 
@@ -25,7 +27,7 @@ GitHub同步范围与本地权重说明见[同步说明](docs/GITHUB_SYNC.zh-CN.
 
 2000步短诊断：seed0、1的动作监督组与组合修正组均92%安全成功、8%动态碰撞、0%超时，
 静态任务均66步到达；同样的四个冲突场景仍沿静态路线撞上障碍。见[短诊断分析](results/whole_map_91701_value_repair_v1/analysis_20261005_213205_512226/REPORT.md)。
-六组各20000步试验和200000步正式实验均已完成seed0、1。已完成目录拒绝覆盖；没有自动启动其他seed或额外训练。
+六组各20000步试验完成seed0、1，200000步正式实验已完成seed0–4。已完成目录拒绝覆盖；没有自动启动额外训练。
 
 以下为之前的实验协议与基础实现介绍。
 

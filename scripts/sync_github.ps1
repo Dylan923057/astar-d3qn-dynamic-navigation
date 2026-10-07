@@ -1,6 +1,8 @@
 param(
     [switch]$Preview,
-    [string]$Message = 'Add six-method value repair results and GPT analysis package'
+    [switch]$ValueRepairOnly,
+    [string]$ProxyUrl,
+    [string]$Message = 'Add five-seed value repair results and GPT analysis package'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,9 +13,20 @@ $gitExecutable = if ($gitCommand) { $gitCommand.Source } else { 'D:\softwares\An
 if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
     throw 'Git executable was not found.'
 }
+$gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
+if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
+$scope = @('.')
+if ($ValueRepairOnly) {
+    $scope = @('README.md', '.gitattributes', 'docs/VALUE_REPAIR_V1.zh-CN.md', 'docs/GITHUB_SYNC.zh-CN.md',
+               'scripts/analyze_value_repair.py', 'scripts/inspect_value_repair_navigation.py',
+               'scripts/package_value_repair_analysis.py', 'scripts/sync_github.ps1',
+               'scripts/run_value_repair.py', 'configs/whole_map_91701_value_repair_v1.yaml',
+               'configs/whole_map_91701_value_repair_pilot_v1.yaml', 'src/astar_d3qn',
+               'results/whole_map_91701_value_repair_v1', 'results/analysis_upload')
+}
 
 function Invoke-ProjectGit {
-    & $gitExecutable -c "safe.directory=$gitSafeRoot" -c core.quotePath=false --literal-pathspecs @args
+    & $gitExecutable @gitOptions --literal-pathspecs @args
     if ($LASTEXITCODE -ne 0) {
         throw "Git command failed: $($args[0]) (exit $LASTEXITCODE)."
     }
@@ -30,17 +43,27 @@ try {
     }
     if ($Preview) {
         Write-Output 'Tracked files to stop tracking (local files will remain):'
-        Invoke-ProjectGit ls-files -ci --exclude-standard
-        Write-Output 'Current project changes:'
-        Invoke-ProjectGit status --short
+        Invoke-ProjectGit ls-files -ci --exclude-standard -- @scope
+        Write-Output 'Changes within the selected upload scope:'
+        Invoke-ProjectGit status --short -- @scope
         Write-Output 'No index changes, commit, push or training performed.'
         return
+    }
+    if ($ValueRepairOnly) {
+        # A commit includes every staged file. Preserve other staged work by stopping first.
+        $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
+            $stagedPath = $_
+            -not ($scope | Where-Object { $stagedPath -eq $_ -or $stagedPath.StartsWith($_ + '/') })
+        })
+        if ($outsideScope.Count -gt 0) {
+            throw ('Unrelated staged files would enter the commit; preserve them and review first: ' + ($outsideScope -join ', '))
+        }
     }
 
     # NUL-separated paths preserve spaces and Unicode; only remove matching index entries.
     $pathList = Join-Path ([IO.Path]::GetTempPath()) ('astar-github-ignored-' + [guid]::NewGuid().ToString('N') + '.txt')
     try {
-        $ignoredPaths = @(Invoke-ProjectGit ls-files -ci --exclude-standard)
+        $ignoredPaths = @(Invoke-ProjectGit ls-files -ci --exclude-standard -- @scope)
         if ($ignoredPaths.Count -gt 0) {
             $utf8 = New-Object System.Text.UTF8Encoding($false)
             [IO.File]::WriteAllText($pathList, (($ignoredPaths -join "`0") + "`0"), $utf8)
@@ -50,8 +73,8 @@ try {
     finally {
         if (Test-Path -LiteralPath $pathList) { Remove-Item -LiteralPath $pathList }
     }
-    Invoke-ProjectGit add --all
-    & $gitExecutable -c "safe.directory=$gitSafeRoot" diff --cached --quiet
+    Invoke-ProjectGit add --all -- @scope
+    & $gitExecutable @gitOptions diff --cached --quiet
     $diffCode = $LASTEXITCODE
     if ($diffCode -eq 1) {
         Invoke-ProjectGit commit -m $Message

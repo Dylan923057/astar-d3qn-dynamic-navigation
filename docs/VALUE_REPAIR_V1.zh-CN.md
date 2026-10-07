@@ -29,6 +29,8 @@
 
 2026-10-07：六组×seed0、1的正式200000步已全部完成。组合组和“A*探索＋目标限制”组最终均100%/100%安全成功；两seed平均全程AULC为0.9059和0.5863，最后5次均值99.4%和98.4%。组合组退出附近曾降至70%/62%后恢复；仅动作学习组约10万步均降至0%，最终98%/0%，不能用pilot替代长期结论。见[完整正式分析](../results/whole_map_91701_value_repair_v1/analysis_20261007_110936_677575/REPORT.md)和[GPT分析包](../results/analysis_upload/whole_map_91701_value_repair_seeds01_20261007_110936_677575/README.md)。未自动启动其他seed。
 
+2026-10-07：用户补跑seed2–4后，六组×seed0–4共30次正式运行全部完成。组合组最终[100%,100%,100%,92%,100%]，全程AULC均值0.9137、样本SD0.0105；“A*探索＋目标限制”组五seed最终均100%，AULC均值0.6044。组合组相对该组五seedAULC均提高，配对均值差+0.3093，但退出附近最低58%，后10万步AULC低于该组，seed3最终四次迎面碰撞。见[五seed完整分析](../results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/REPORT.md)。本次只分析与独立回放，不启动新训练。
+
 保持原地图SHA、起终点、全图路线池、每回合3–5障碍、观测、奖励、终止和静态动作掩码。网络保留5个空间通道和4个标量，增加的路径通道和子目标标量始终为零。每个seed内所有组共享初始网络、优化器、回放采样随机种子和引导随机种子。不同方法的轨迹与回合长度会变化，因此同一环境步不保证属于同一个训练回合；第n个训练回合使用同一个场景序列。在线回放容量10000，均匀采样，不预填充，也不另加示范回放。
 
 正式训练200000环境步；epsilon从1.0到0.05，按150000环境步衰减；batch64、500步开始更新、每步1次，共199501次更新。该初始化和探索规则沿用当前动作引导实验，不是旧foundation迁移实验的epsilon=0.30方案，也不加载foundation。
@@ -86,10 +88,16 @@ python scripts/analyze_value_repair.py --root outputs/whole_map_91701_value_repa
 python scripts/run_value_repair.py --train --seeds 0 1
 ```
 
-正式训练全部结束后分析：
+seed0–4正式训练全部结束后分析：
 ```powershell
-python scripts/analyze_value_repair.py --seeds 0 1
+python scripts/analyze_value_repair.py --seeds 0 1 2 3 4
 ```
+
+在新生成的已核验分析目录中，复核第4、6组普通D3QN独立行动和动态观测响应：
+```powershell
+python scripts/inspect_value_repair_navigation.py --source outputs/whole_map_91701_value_repair_v1 --analysis results/whole_map_91701_value_repair_v1/analysis_实际时间戳 --seeds 0 1 2 3 4 --methods advice_bound advice_bound_margin
+```
+该命令仅回放最终模型，不训练；事后碰撞判定不输入策略。同一个分析目录中已完成的回放拒绝覆盖。
 
 短诊断分析需传入其独立目录：`python scripts/analyze_value_repair.py --root results/whole_map_91701_value_repair_v1/probe_实际时间戳 --seeds 0 1`。
 

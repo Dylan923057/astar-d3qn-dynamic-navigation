@@ -1,0 +1,40 @@
+inherits: whole_map_route_pool_91701_pilot_v1.yaml
+
+experiment:
+  name: whole_map_91701_runtime_path_v1
+  protocol: runtime_path_observation_v1
+  output_root: outputs/whole_map_91701_runtime_path_v1
+  check_root: results/whole_map_91701_runtime_path_v1
+  initialization: paired_random
+
+dataset:
+  grid_sha256: 789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff
+  validation_reference: outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json
+
+dynamic_route_pool:
+  composition: {high_interaction: 2, alternative_branch: 2, background: 1}
+  obstacle_counts: [3, 4, 5]
+
+guidance:
+  methods: [unguided, path_guided]
+  lookahead_steps: 4
+  projection: nearest_manhattan_earliest_tie
+  path_source: frozen_nominal_static_astar
+  added_spatial_channels: 1
+  added_scalar_dim: 2
+  control: zero_added_inputs_same_network
+
+rule_baseline:
+  method: astar_replan_wait
+  information: known_static_map_and_current_local_dynamic_frame
+
+training:
+  seeds: [0, 1]
+  replay_strategy: uniform
+  demo_fraction: 0.0
+
+integration:
+  steps_per_branch: 8
+  batch_size: 4
+  learning_starts: 4
+  device: cpu
