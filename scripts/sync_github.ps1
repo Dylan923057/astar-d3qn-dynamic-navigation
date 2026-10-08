@@ -22,7 +22,15 @@ if ($ValueRepairOnly) {
                'scripts/package_value_repair_analysis.py', 'scripts/sync_github.ps1',
                'scripts/run_value_repair.py', 'configs/whole_map_91701_value_repair_v1.yaml',
                'configs/whole_map_91701_value_repair_pilot_v1.yaml', 'src/astar_d3qn',
-               'results/whole_map_91701_value_repair_v1', 'results/analysis_upload')
+               'results/whole_map_91701_value_repair_v1', 'results/analysis_upload',
+               'configs/whole_map_91701_teaching_efficiency_v1.yaml',
+               'docs/TEACHING_EFFICIENCY_V1.zh-CN.md', 'scripts/teaching_efficiency_common.py',
+               'scripts/prepare_teaching_efficiency.py', 'scripts/run_teaching_efficiency.py',
+               'scripts/analyze_teaching_efficiency.py', 'scripts/evaluate_teaching_efficiency.py',
+               'scripts/review_teaching_efficiency_results.py',
+               'scripts/package_teaching_efficiency_analysis.py',
+               'tests/test_teaching_efficiency.py', 'data/whole_map_91701_teaching_efficiency_v1',
+               'results/whole_map_91701_teaching_efficiency_v1')
 }
 
 function Invoke-ProjectGit {

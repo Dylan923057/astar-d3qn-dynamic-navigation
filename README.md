@@ -1,6 +1,10 @@
 # Astar-D3QN-Workshop
 
-最新完成正式实验：[A*探索、动作学习与TD目标限制，六组×seed0–4，各200000步](results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/REPORT.md)。
+最新结果已完成：[七方法五seed复核报告](results/whole_map_91701_teaching_efficiency_v1/review_20261008_113945_236854/REPORT.md)。新增`supervision_only_bound`的seed0–4各训练200000步，复用原六组，35份最终模型完成同一批冻结500场景评估；源码、配对初始化、模型SHA与全部3496条独立失败轨迹通过复核。无代选＋动作监督＋TD限制的全程AULC为83.02%±4.07%，相对无A*＋TD限制提高34.66个百分点；完整组合组91.37%±1.05%，再提高8.35个百分点，主要收益集中在前5万步。500场景最终安全成功率分别为97.84%±1.75%和98.68%±1.08%，A*代选＋TD限制为99.12%±1.17%。退出低谷、等待超时和局部动态碰撞仍存在，继续定位为学习效率提升。协议与历史命令见[实验说明](docs/TEACHING_EFFICIENCY_V1.zh-CN.md)。
+
+最新[GitHub阅读包](results/analysis_upload/whole_map_91701_teaching_efficiency_seeds0to4_20261008_113945_236854/README.md)包含新增五seed日志、源码快照、38条精选完整失败轨迹及完整结果链接；可复制[GPT分析请求](results/analysis_upload/whole_map_91701_teaching_efficiency_seeds0to4_20261008_113945_236854/GPT_ANALYSIS_PROMPT.md)。
+
+原六组正式实验（保留对照）：[A*探索、动作学习与TD目标限制，六组×seed0–4，各200000步](results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/REPORT.md)。
 组合组最终安全成功率[100%,100%,100%,92%,100%]，均值98.4%；“A*探索＋目标限制”组五seed最终均100%。
 组合组全程AULC为91.37%±1.05%，相对后者五seed均提高，平均差+30.93个百分点；优势主要是早期效率，不是最终全面胜出。退出附近曾降至58%后恢复，seed3最终仍有四次迎面碰撞。
 所有630次检查点epsilon=0，关闭A*，共用50个固定验证场景，不使用test。见[均值与退出期曲线](results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/mean_validation_curves.png)。
