@@ -2,7 +2,7 @@ param(
     [switch]$Preview,
     [switch]$ValueRepairOnly,
     [string]$ProxyUrl,
-    [string]$Message = 'Add five-seed value repair results and GPT analysis package'
+    [string]$Message = 'Add eleven-method five-seed results and frozen 500-scene evaluation'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,7 +17,7 @@ $gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false
 if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
 $scope = @('.')
 if ($ValueRepairOnly) {
-    $scope = @('README.md', '.gitattributes', 'docs/VALUE_REPAIR_V1.zh-CN.md', 'docs/GITHUB_SYNC.zh-CN.md',
+    $scope = @('README.md', '.gitattributes', '.gitignore', 'docs/VALUE_REPAIR_V1.zh-CN.md', 'docs/GITHUB_SYNC.zh-CN.md',
                'scripts/analyze_value_repair.py', 'scripts/inspect_value_repair_navigation.py',
                'scripts/package_value_repair_analysis.py', 'scripts/sync_github.ps1',
                'scripts/run_value_repair.py', 'configs/whole_map_91701_value_repair_v1.yaml',
@@ -30,7 +30,20 @@ if ($ValueRepairOnly) {
                'scripts/review_teaching_efficiency_results.py',
                'scripts/package_teaching_efficiency_analysis.py',
                'tests/test_teaching_efficiency.py', 'data/whole_map_91701_teaching_efficiency_v1',
-               'results/whole_map_91701_teaching_efficiency_v1')
+               'results/whole_map_91701_teaching_efficiency_v1',
+               'configs/whole_map_91701_supervision_tail_v1.yaml',
+               'docs/SUPERVISION_TAIL_V1.zh-CN.md', 'scripts/supervision_tail_common.py',
+               'scripts/prepare_supervision_tail.py', 'scripts/run_supervision_tail.py',
+               'scripts/analyze_supervision_tail.py', 'scripts/evaluate_supervision_tail.py',
+               'tests/test_supervision_tail.py', 'data/whole_map_91701_supervision_tail_v1',
+               'results/whole_map_91701_supervision_tail_v1',
+               'scripts/review_supervision_tail_partial.py',
+               'configs/whole_map_91701_dqfd_comparison_v1.yaml',
+               'docs/DQFD_COMPARISON_V1.zh-CN.md', 'scripts/dqfd_comparison_common.py',
+               'scripts/prepare_dqfd_comparison.py', 'scripts/run_dqfd_comparison.py',
+               'scripts/summarize_dqfd_comparison.py', 'scripts/package_dqfd_comparison_analysis.py',
+               'tests/test_dqfd_comparison.py', 'data/whole_map_91701_dqfd_comparison_v1',
+               'results/whole_map_91701_dqfd_comparison_v1')
 }
 
 function Invoke-ProjectGit {

@@ -1,8 +1,16 @@
 # Astar-D3QN-Workshop
 
-最新结果已完成：[七方法五seed复核报告](results/whole_map_91701_teaching_efficiency_v1/review_20261008_113945_236854/REPORT.md)。新增`supervision_only_bound`的seed0–4各训练200000步，复用原六组，35份最终模型完成同一批冻结500场景评估；源码、配对初始化、模型SHA与全部3496条独立失败轨迹通过复核。无代选＋动作监督＋TD限制的全程AULC为83.02%±4.07%，相对无A*＋TD限制提高34.66个百分点；完整组合组91.37%±1.05%，再提高8.35个百分点，主要收益集中在前5万步。500场景最终安全成功率分别为97.84%±1.75%和98.68%±1.08%，A*代选＋TD限制为99.12%±1.17%。退出低谷、等待超时和局部动态碰撞仍存在，继续定位为学习效率提升。协议与历史命令见[实验说明](docs/TEACHING_EFFICIENCY_V1.zh-CN.md)。
+最新主线十一方法×seed0–4全部完成，共55次200000在线步正式训练。原50场景的1155个自主验证检查点及20286条失败轨迹已核对；55份最终模型完成同一批新冻结500场景的27500次自主评估，全部3688条最终失败轨迹重新核对。epsilon=0，无A*代选，不选最佳检查点；新500仅作最终确认，未调参。
 
-最新[GitHub阅读包](results/analysis_upload/whole_map_91701_teaching_efficiency_seeds0to4_20261008_113945_236854/README.md)包含新增五seed日志、源码快照、38条精选完整失败轨迹及完整结果链接；可复制[GPT分析请求](results/analysis_upload/whole_map_91701_teaching_efficiency_seeds0to4_20261008_113945_236854/GPT_ANALYSIS_PROMPT.md)。
+最新[GitHub阅读包](results/analysis_upload/whole_map_91701_eleven_methods_seeds0to4_20261009_183634_447770/README.md)包含20次新增运行日志、源码与配置快照、监督覆盖率、成本表、55条学习曲线、194条精选完整失败轨迹及SHA清单。可复制[GPT分析请求](results/analysis_upload/whole_map_91701_eleven_methods_seeds0to4_20261009_183634_447770/GPT_ANALYSIS_PROMPT.md)。逐seed、均值±样本标准差及配对差值见[完整训练汇总](results/whole_map_91701_dqfd_comparison_v1/analysis_20261009_173936_175389/REPORT.md)和[新500最终确认](results/whole_map_91701_dqfd_comparison_v1/independent_eval_20261009_174147_641239/REPORT.md)。
+
+原组合全程AULC91.37%±1.05%；DQfD93.24%±0.42%，DQfD＋TD限制93.17%±0.60%，监督延期93.38%±1.90%，取消风险筛选90.42%±3.86%。DQfD多了20000次离线更新和7260条永久安全示范，包含198个风险等待标签；在线教学量与原组也不同，不能声称等总成本下胜出。新500最终成功率最高均值为DQfD＋TD限制99.20%±0.77%，原组合98.16%±1.82%。
+
+监督延期组新500最终成功率96.84%±2.43%，五seed后6万步AULC均降低、四seed存在低谷后移迹象；不能称交接问题已解决。取消风险筛选组新500成功率98.84%±1.32%，不能主张筛选提高最终安全性。研究继续限定为固定地图、同起终点、3–5动态障碍中的自主学习效率；没有跨地图或最终全面最优结论。新增[协议与DQfD适配说明](docs/DQFD_COMPARISON_V1.zh-CN.md)、[尾段协议](docs/SUPERVISION_TAIL_V1.zh-CN.md)和[上传命令](docs/GITHUB_SYNC.zh-CN.md)。原结果保留，权重与批量原始轨迹留在本地。
+
+此前七方法结果（旧500场景）：[七方法五seed复核报告](results/whole_map_91701_teaching_efficiency_v1/review_20261008_113945_236854/REPORT.md)。新增`supervision_only_bound`的seed0–4各训练200000步，复用原六组，35份最终模型完成同一批冻结500场景评估；源码、配对初始化、模型SHA与全部3496条独立失败轨迹通过复核。无代选＋动作监督＋TD限制的全程AULC为83.02%±4.07%，相对无A*＋TD限制提高34.66个百分点；完整组合组91.37%±1.05%，再提高8.35个百分点，主要收益集中在前5万步。500场景最终安全成功率分别为97.84%±1.75%和98.68%±1.08%，A*代选＋TD限制为99.12%±1.17%。退出低谷、等待超时和局部动态碰撞仍存在，继续定位为学习效率提升。协议与历史命令见[实验说明](docs/TEACHING_EFFICIENCY_V1.zh-CN.md)。
+
+此前七方法[GitHub阅读包](results/analysis_upload/whole_map_91701_teaching_efficiency_seeds0to4_20261008_113945_236854/README.md)包含新增五seed日志、源码快照、38条精选完整失败轨迹及完整结果链接；可复制[GPT分析请求](results/analysis_upload/whole_map_91701_teaching_efficiency_seeds0to4_20261008_113945_236854/GPT_ANALYSIS_PROMPT.md)。
 
 原六组正式实验（保留对照）：[A*探索、动作学习与TD目标限制，六组×seed0–4，各200000步](results/whole_map_91701_value_repair_v1/analysis_20261007_234317_595719/REPORT.md)。
 组合组最终安全成功率[100%,100%,100%,92%,100%]，均值98.4%；“A*探索＋目标限制”组五seed最终均100%。
