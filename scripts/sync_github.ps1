@@ -2,7 +2,7 @@ param(
     [switch]$Preview,
     [switch]$ValueRepairOnly,
     [string]$ProxyUrl,
-    [string]$Message = 'Add eleven-method five-seed results and frozen 500-scene evaluation'
+    [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,7 +43,13 @@ if ($ValueRepairOnly) {
                'scripts/prepare_dqfd_comparison.py', 'scripts/run_dqfd_comparison.py',
                'scripts/summarize_dqfd_comparison.py', 'scripts/package_dqfd_comparison_analysis.py',
                'tests/test_dqfd_comparison.py', 'data/whole_map_91701_dqfd_comparison_v1',
-               'results/whole_map_91701_dqfd_comparison_v1')
+               'results/whole_map_91701_dqfd_comparison_v1',
+               'configs/whole_map_91701_ddqna_adapter_v1.yaml',
+               'docs/DDQNA_ADAPTER_EXPERIMENT.md', 'scripts/ddqna_adapter_common.py',
+               'scripts/run_ddqna_adapter.py', 'scripts/report_ddqna_adapter.py',
+               'scripts/package_ddqna_adapter_analysis.py', 'src/astar_d3qn/agents/ddqna_adapter.py',
+               'tests/test_ddqna_adapter.py', 'data/whole_map_91701_ddqna_adapter_v1',
+               'results/whole_map_91701_ddqna_adapter_v1')
 }
 
 function Invoke-ProjectGit {

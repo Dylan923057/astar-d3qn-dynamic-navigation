@@ -1,5 +1,11 @@
 # Astar-D3QN-Workshop
 
+最新补充：[DDQNA动作选择机制适配版五seed阅读包](results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/README.md)，包含新增五次200000步训练、两方法十个最终模型的同批500场景自主评估、运行日志、源码快照、成本和失败轨迹。[GPT分析请求](results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/GPT_ANALYSIS_PROMPT.md)、[机制核对与适配差异](docs/DDQNA_ADAPTER_EXPERIMENT.md)。
+
+完整组合全程AULC91.37±1.05%，DDQNA动作机制的D3QN适配版0.94±1.19%；最终500场景自主成功率分别98.16±1.82%和0%。适配版失败主要是绕圈/等待超时；这不是DDQNA原版完整复现，不能将本任务的适配结果推广为原论文无效。逐seed及配对差值见阅读包；不据最终500调参或选择检查点。上传方式见[同步说明](docs/GITHUB_SYNC.zh-CN.md)。
+
+以下保留此前十一方法及历史实验结果。
+
 最新主线十一方法×seed0–4全部完成，共55次200000在线步正式训练。原50场景的1155个自主验证检查点及20286条失败轨迹已核对；55份最终模型完成同一批新冻结500场景的27500次自主评估，全部3688条最终失败轨迹重新核对。epsilon=0，无A*代选，不选最佳检查点；新500仅作最终确认，未调参。
 
 最新[GitHub阅读包](results/analysis_upload/whole_map_91701_eleven_methods_seeds0to4_20261009_183634_447770/README.md)包含20次新增运行日志、源码与配置快照、监督覆盖率、成本表、55条学习曲线、194条精选完整失败轨迹及SHA清单。可复制[GPT分析请求](results/analysis_upload/whole_map_91701_eleven_methods_seeds0to4_20261009_183634_447770/GPT_ANALYSIS_PROMPT.md)。逐seed、均值±样本标准差及配对差值见[完整训练汇总](results/whole_map_91701_dqfd_comparison_v1/analysis_20261009_173936_175389/REPORT.md)和[新500最终确认](results/whole_map_91701_dqfd_comparison_v1/independent_eval_20261009_174147_641239/REPORT.md)。

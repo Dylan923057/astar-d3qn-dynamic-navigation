@@ -2,6 +2,24 @@
 
 本次同步目标为 `origin/main`：`Dylan923057/astar-d3qn-dynamic-navigation`。
 
+2026-10-10最新补充：[DDQNA动作机制适配版五seed阅读包](../results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/README.md)、[GPT分析请求](../results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/GPT_ANALYSIS_PROMPT.md)。新增五次200000在线步训练全部完成，两方法十个最终模型完成5000次自主评估。210个学习检查点、5761条验证失败、2546条最终失败轨迹重新核对；阅读包约20.89MiB、123个文件，含完整五seed运行日志、源码/配置快照、配对结果、成本、图表和精选完整轨迹。
+
+上传包含本次配置、代理、训练/分析/打包脚本、测试、冻结登记、文献核对和报告。`-ValueRepairOnly` 已扩充覆盖DDQNA适配版及此前十一方法这条研究线；范围外的历史实验未提交修改保留。权重与批量原始轨迹继续留在本地，不自动训练或重跑评估。本次的权重路径为 `outputs/whole_map_91701_ddqna_adapter_v1/ddqna_d3qn/seed_<0–4>/model_final.pth`。
+
+本次已经整理完成。仓库根目录运行这一行上传，保持既有Clash代理开启：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -ValueRepairOnly -ProxyUrl http://127.0.0.1:7897 -Message "Add DDQNA adaptation five-seed results and final evaluation"
+```
+
+只检查现成包、不训练、不推送：
+
+```powershell
+python scripts/package_ddqna_adapter_analysis.py --verify results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796
+```
+
+以下为此前十一方法的同步记录和历史命令，继续保留。
+
 最新入口：[十一方法五seed阅读包](../results/analysis_upload/whole_map_91701_eleven_methods_seeds0to4_20261009_183634_447770/README.md)、[可复制的GPT分析请求](../results/analysis_upload/whole_map_91701_eleven_methods_seeds0to4_20261009_183634_447770/GPT_ANALYSIS_PROMPT.md)。
 
 55次200000在线步正式训练均已完成。1155个原50场景自主验证检查点、20286条训练期间验证失败轨迹已核对；55份最终模型统一完成新冻结500场景的27500次自主评估，全部3688条最终失败轨迹重新核对。均值与样本标准差按五个配对训练seed统计，不挑最佳检查点，不用新500调参。

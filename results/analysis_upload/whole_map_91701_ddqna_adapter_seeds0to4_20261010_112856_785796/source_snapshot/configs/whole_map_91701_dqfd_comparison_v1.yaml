@@ -1,0 +1,35 @@
+inherits: whole_map_91701_value_repair_v1.yaml
+
+experiment:
+  name: whole_map_91701_dqfd_comparison_v1
+  protocol: frozen_dqfd_and_observed_risk_ablation_v1
+  output_root: outputs/whole_map_91701_dqfd_comparison_v1
+  check_root: results/whole_map_91701_dqfd_comparison_v1
+
+comparison:
+  methods: [dqfd, dqfd_bound, advice_bound_margin_no_risk]
+  artifact_root: data/whole_map_91701_dqfd_comparison_v1
+  final_scene_config: configs/whole_map_91701_supervision_tail_v1.yaml
+  demonstration_seed: 91702641
+  demonstration_attempts: 128
+  demonstration_max_scene_draws: 100000
+  demonstration_policy: static_astar_observed_three_frame_risk_veto_wait
+  demonstration_retention: successful_noncollision_complete_episodes_only
+  pretraining_updates: 20000
+  n_steps: 10
+  n_step_weight: 1.0
+  expert_weight: 1.0
+  l2_weight: 0.00001
+  expert_margin: 0.8
+  per_alpha: 0.4
+  per_beta_start: 0.6
+  per_beta_end: 1.0
+  per_agent_bonus: 0.001
+  per_demo_bonus: 1.0
+  priority_error: absolute_one_step_td_error
+  td_loss: squared_error
+  phase_boundaries: [0, 80000, 100000, 140000, 200000]
+  original_withdrawal_window: [90000, 120500]
+  new_withdrawal_window: [130000, 160500]
+  combined_withdrawal_window: [90000, 160500]
+  formal_training_requires_explicit_flag: true
