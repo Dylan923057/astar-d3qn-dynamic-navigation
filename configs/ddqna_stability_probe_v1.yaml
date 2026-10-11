@@ -1,0 +1,19 @@
+inherits: whole_map_91701_ddqna_adapter_v1.yaml
+
+experiment:
+  name: ddqna_stability_probe_v1
+  protocol: diagnostic_single_seed_huber_mse_bound_v1
+  output_root: outputs/ddqna_stability_probe_v1
+  check_root: results/ddqna_stability_probe_v1
+
+stability_probe:
+  arms: [huber, mse, huber_bound]
+  environment_steps: 50000
+  target_lower: -6.0
+  target_upper: 10.0
+  epsilon_decay_environment_steps: 150000
+  teacher_probability: 0.5
+  seed: 0
+  use_final500: false
+  purpose: numerical_mechanism_diagnosis_not_paper_final_comparison
+  run_requires_explicit_flag: true

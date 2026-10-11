@@ -1,6 +1,7 @@
 param(
     [switch]$Preview,
     [switch]$ValueRepairOnly,
+    [switch]$DiagnosticsOnly,
     [string]$ProxyUrl,
     [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
 )
@@ -15,7 +16,27 @@ if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
 }
 $gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
 if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
+if ($ValueRepairOnly -and $DiagnosticsOnly) { throw 'Select only one upload scope.' }
 $scope = @('.')
+if ($DiagnosticsOnly) {
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md', 'scripts/sync_github.ps1',
+        'configs/ddqna_stability_probe_v1.yaml', 'configs/whole_map_91701_dqfd_no_pretrain_v1.yaml',
+        'configs/whole_map_91701_staged_withdrawal_pilot_v1.yaml',
+        'scripts/diagnose_comparison_evidence.py', 'scripts/render_comparison_diagnosis.py',
+        'scripts/probe_ddqna_stability.py', 'scripts/analyze_ddqna_stability_probe.py',
+        'scripts/run_dqfd_no_pretrain.py', 'scripts/diagnose_teaching_withdrawal.py',
+        'scripts/summarize_teaching_withdrawal.py', 'scripts/run_staged_withdrawal_pilot.py',
+        'scripts/analyze_staged_withdrawal_result.py', 'scripts/package_diagnostic_updates.py',
+        'src/astar_d3qn/agents/astar_staged_withdrawal.py',
+        'tests/test_comparison_diagnosis.py', 'tests/test_probe_analysis.py',
+        'tests/test_dqfd_no_pretrain.py', 'tests/test_staged_withdrawal_pilot.py',
+        'data/whole_map_91701_dqfd_no_pretrain_v1', 'data/whole_map_91701_staged_withdrawal_pilot_v1',
+        'results/comparison_evidence_diagnosis', 'results/ddqna_stability_probe_v1',
+        'results/teaching_withdrawal_diagnosis', 'results/whole_map_91701_dqfd_no_pretrain_v1',
+        'results/whole_map_91701_staged_withdrawal_pilot_v1',
+        'results/analysis_upload/diagnostics_withdrawal_update_v1')
+}
 if ($ValueRepairOnly) {
     $scope = @('README.md', '.gitattributes', '.gitignore', 'docs/VALUE_REPAIR_V1.zh-CN.md', 'docs/GITHUB_SYNC.zh-CN.md',
                'scripts/analyze_value_repair.py', 'scripts/inspect_value_repair_navigation.py',
@@ -76,7 +97,7 @@ try {
         Write-Output 'No index changes, commit, push or training performed.'
         return
     }
-    if ($ValueRepairOnly) {
+    if ($ValueRepairOnly -or $DiagnosticsOnly) {
         # A commit includes every staged file. Preserve other staged work by stopping first.
         $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
             $stagedPath = $_

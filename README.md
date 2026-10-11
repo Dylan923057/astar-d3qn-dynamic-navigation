@@ -1,6 +1,14 @@
 # Astar-D3QN-Workshop
 
-最新补充：[DDQNA动作选择机制适配版五seed阅读包](results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/README.md)，包含新增五次200000步训练、两方法十个最终模型的同批500场景自主评估、运行日志、源码快照、成本和失败轨迹。[GPT分析请求](results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/GPT_ANALYSIS_PROMPT.md)、[机制核对与适配差异](docs/DDQNA_ADAPTER_EXPERIMENT.md)。
+2026-10-12最新：[对比诊断、稳定性探针与单seed对照阅读包](results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/README.md)，包含已有12方法五seed的证据梳理、DDQNA适配版seed0/2诊断、三个seed0稳定性探针、撤教同状态Q值检查、DQfD取消离线预训练seed0和分阶段撤教seed0的完整运行日志、源码/冻结登记及精选失败轨迹。[GPT分析请求](results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/GPT_ANALYSIS_PROMPT.md)、[本次状态与边界](docs/DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md)、[上传命令](docs/GITHUB_SYNC.zh-CN.md)。
+
+分阶段撤教（8万步代选退出、10万步监督退出）seed0全程AULC由89.69%提高至93.48%，10–20万步由92.68%提高至97.79%，最低成功率70%→88%；最终两组均100%。只支持该seed低谷减轻，尚未解决撤教不稳，代选概率日程面积也减少了8%。DQfD取消20000次离线更新、其余机制不变的seed0全程AULC为91.08%，原DQfD对应seed0为92.80%；最终50验证成功率96%与100%。两个新对照均仅seed0完成，尚无独立500最终确认评估。
+
+DDQNA探针中TD约束抑制数值增长，但三组5万步自主成功率仅0%、0%、2%，不构成导航稳定改善或原论文优劣证据。短探针AULC已更正为0–5万步积分：1.60%、1.20%、0.20%；先前误外推到20万步的短探针汇总不再作为有效结果。
+
+以下保留此前DDQNA及十一方法五seed实验结果。
+
+此前[DDQNA动作选择机制适配版五seed阅读包](results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/README.md)，包含新增五次200000步训练、两方法十个最终模型的同批500场景自主评估、运行日志、源码快照、成本和失败轨迹。[GPT分析请求](results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/GPT_ANALYSIS_PROMPT.md)、[机制核对与适配差异](docs/DDQNA_ADAPTER_EXPERIMENT.md)。
 
 完整组合全程AULC91.37±1.05%，DDQNA动作机制的D3QN适配版0.94±1.19%；最终500场景自主成功率分别98.16±1.82%和0%。适配版失败主要是绕圈/等待超时；这不是DDQNA原版完整复现，不能将本任务的适配结果推广为原论文无效。逐seed及配对差值见阅读包；不据最终500调参或选择检查点。上传方式见[同步说明](docs/GITHUB_SYNC.zh-CN.md)。
 

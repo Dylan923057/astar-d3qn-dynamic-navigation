@@ -2,7 +2,33 @@
 
 本次同步目标为 `origin/main`：`Dylan923057/astar-d3qn-dynamic-navigation`。
 
-2026-10-10最新补充：[DDQNA动作机制适配版五seed阅读包](../results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/README.md)、[GPT分析请求](../results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/GPT_ANALYSIS_PROMPT.md)。新增五次200000在线步训练全部完成，两方法十个最终模型完成5000次自主评估。210个学习检查点、5761条验证失败、2546条最终失败轨迹重新核对；阅读包约20.89MiB、123个文件，含完整五seed运行日志、源码/配置快照、配对结果、成本、图表和精选完整轨迹。
+2026-10-12本次整理：[对比诊断与单seed对照阅读包](../results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/README.md)、[GPT分析请求](../results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/GPT_ANALYSIS_PROMPT.md)。包内193个文件约9.21MiB，包含新增实现、配置与冻结登记、运行日志、曲线、配对表、模型路径/SHA和精选失败轨迹。DDQNA短探针仅发布更正后0–5万步AULC；重复诊断、旧错误AULC报告及全量逐动作Q明细保留本地。
+
+本地HEAD与缓存origin/main均为`7deff74`，本次整理未联网核验远端新提交、未创建提交或推送。新增`-DiagnosticsOnly`范围只同步这批诊断/对照代码和报告，保留那份仅多空行的历史轨迹修改及其他范围外暂存工作；若范围外已有暂存内容，脚本停止，不自动清理。
+
+保持既有Clash代理开启，在仓库根目录执行这一行（提交并推送，不训练）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -DiagnosticsOnly -ProxyUrl http://127.0.0.1:7897 -Message "Add diagnostics and paired seed0 withdrawal controls"
+```
+
+可选预览，不改索引、不提交、不推送：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -DiagnosticsOnly -Preview
+```
+
+本次阅读包校验命令（已经通过，无需重复生成包）：
+
+```powershell
+python scripts/package_diagnostic_updates.py --verify results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455
+```
+
+DQfD取消离线预训练及分阶段撤教都已完成seed0，seed1–4未运行；它们尚未做独立500最终评估。早期preflight的“未训练”仅说明检查发生时的状态，当前完成状态以阅读包run_logs下的result.json/completion.json为准。权重及全量更新/轨迹留在outputs，不能因克隆后缺失权重自动重新训练。详情见[新增工作说明](DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md)。
+
+以下是此前已上传的结果和历史同步命令。
+
+2026-10-10此前补充：[DDQNA动作机制适配版五seed阅读包](../results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/README.md)、[GPT分析请求](../results/analysis_upload/whole_map_91701_ddqna_adapter_seeds0to4_20261010_112856_785796/GPT_ANALYSIS_PROMPT.md)。新增五次200000在线步训练全部完成，两方法十个最终模型完成5000次自主评估。210个学习检查点、5761条验证失败、2546条最终失败轨迹重新核对；阅读包约20.89MiB、123个文件，含完整五seed运行日志、源码/配置快照、配对结果、成本、图表和精选完整轨迹。
 
 上传包含本次配置、代理、训练/分析/打包脚本、测试、冻结登记、文献核对和报告。`-ValueRepairOnly` 已扩充覆盖DDQNA适配版及此前十一方法这条研究线；范围外的历史实验未提交修改保留。权重与批量原始轨迹继续留在本地，不自动训练或重跑评估。本次的权重路径为 `outputs/whole_map_91701_ddqna_adapter_v1/ddqna_d3qn/seed_<0–4>/model_final.pth`。
 
