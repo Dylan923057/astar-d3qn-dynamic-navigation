@@ -2,6 +2,7 @@ param(
     [switch]$Preview,
     [switch]$ValueRepairOnly,
     [switch]$DiagnosticsOnly,
+    [switch]$ReplicationOnly,
     [string]$ProxyUrl,
     [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
 )
@@ -16,8 +17,30 @@ if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
 }
 $gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
 if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
-if ($ValueRepairOnly -and $DiagnosticsOnly) { throw 'Select only one upload scope.' }
+if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
 $scope = @('.')
+if ($ReplicationOnly) {
+    if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add five-seed staged withdrawal and DQfD no-pretraining results' }
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/REPLICATION_FIVE_SEEDS.zh-CN.md', 'scripts/sync_github.ps1',
+        'configs/whole_map_91701_staged_withdrawal_multiseed_v1.yaml',
+        'configs/whole_map_91701_staged_withdrawal_seeds34_v1.yaml',
+        'configs/whole_map_91701_dqfd_no_pretrain_multiseed_v1.yaml',
+        'configs/whole_map_91701_dqfd_no_pretrain_seeds34_v1.yaml',
+        'scripts/run_replication_seeds12.py', 'scripts/run_replication_seeds34.py',
+        'scripts/replication_recovery.py', 'scripts/analyze_replication_seeds012.py',
+        'scripts/analyze_replication_seeds01234.py', 'scripts/package_replication_five_seeds.py',
+        'scripts/evaluate_replication_final500.py', 'scripts/finalize_replication_final500.py',
+        'data/whole_map_91701_staged_withdrawal_multiseed_v1',
+        'data/whole_map_91701_staged_withdrawal_seeds34_v1',
+        'data/whole_map_91701_dqfd_no_pretrain_multiseed_v1',
+        'data/whole_map_91701_dqfd_no_pretrain_seeds34_v1',
+        'results/replication_seeds012_v1', 'results/replication_seeds01234_v1',
+        'results/replication_final500_v1',
+        'results/whole_map_91701_staged_withdrawal_multiseed_v1',
+        'results/whole_map_91701_staged_withdrawal_seeds34_v1',
+        'results/analysis_upload/replication_seeds0to4_v1')
+}
 if ($DiagnosticsOnly) {
     $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
         'docs/DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md', 'scripts/sync_github.ps1',
@@ -97,7 +120,15 @@ try {
         Write-Output 'No index changes, commit, push or training performed.'
         return
     }
-    if ($ValueRepairOnly -or $DiagnosticsOnly) {
+    if ($ReplicationOnly) {
+        $latestPath = Join-Path $projectRoot 'results/analysis_upload/replication_seeds0to4_v1/latest.json'
+        $latestPackage = Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        & python -X utf8 scripts/package_replication_five_seeds.py --verify $latestPackage.package
+        if ($LASTEXITCODE -ne 0) { throw 'Five-seed upload package verification failed; no commit or push performed.' }
+        $latestManifest = Get-Content -LiteralPath (Join-Path $latestPackage.package 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (-not $latestManifest.independent500_evaluated) { throw 'Complete the frozen500 final confirmation and update the upload package first.' }
+    }
+    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly) {
         # A commit includes every staged file. Preserve other staged work by stopping first.
         $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
             $stagedPath = $_

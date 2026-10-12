@@ -1,6 +1,14 @@
 # Astar-D3QN-Workshop
 
-2026-10-12最新：[对比诊断、稳定性探针与单seed对照阅读包](results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/README.md)，包含已有12方法五seed的证据梳理、DDQNA适配版seed0/2诊断、三个seed0稳定性探针、撤教同状态Q值检查、DQfD取消离线预训练seed0和分阶段撤教seed0的完整运行日志、源码/冻结登记及精选失败轨迹。[GPT分析请求](results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/GPT_ANALYSIS_PROMPT.md)、[本次状态与边界](docs/DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md)、[上传命令](docs/GITHUB_SYNC.zh-CN.md)。
+最新：[分阶段撤教与DQfD无预训练的五seed阅读包](results/analysis_upload/replication_seeds0to4_v1/LATEST.md)。两种新增对照的seed0–4均完成200000在线步，原两方法五seed直接复用；包内包含20次运行的曲线、逐场景验证明细、诊断日志、配对差、源码快照、冻结登记及失败示例。[协议及上传说明](docs/REPLICATION_FIVE_SEEDS.zh-CN.md)。
+
+原完整组合全程AULC91.37±1.05%，分阶段92.06±1.41%；分阶段seed3下降、seed4几乎持平，且seed2、3、4撤教最低点更低，不能称撤教稳定改善。原DQfD全程93.24±0.42%，取消预训练90.75±0.47%，五seed全程均下降；两组10–20万AULC分别97.11±0.69%和96.92±0.51%，差异方向随seed变化。无预训练仍保留7260条永久示范，总梯度预算减少20000次。
+
+同一冻结500场景最终确认已完成：原完整组合成功98.16±1.82%，分阶段97.00±4.26%；原DQfD97.88±2.09%，无预训练95.96±2.91%。分阶段seed2仅89.6%，主要是超时，不支持最终稳定优势。复用10份场景/模型SHA及协议一致的原评估，新增10份最终模型评估，共10000条场景记录。[最终报告](results/replication_final500_v1/20261012_164953_660389/REPORT.md)。没有重训、挑最佳检查点或据500结果调参。
+
+以下单seed及三seed材料保留为历史，新增对照的当前结论以上述五seed报告为准。
+
+2026-10-12此前：[对比诊断、稳定性探针与单seed对照阅读包](results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/README.md)，包含已有12方法五seed的证据梳理、DDQNA适配版seed0/2诊断、三个seed0稳定性探针、撤教同状态Q值检查、DQfD取消离线预训练seed0和分阶段撤教seed0的完整运行日志、源码/冻结登记及精选失败轨迹。[GPT分析请求](results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/GPT_ANALYSIS_PROMPT.md)、[该批状态与边界](docs/DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md)、[上传命令](docs/GITHUB_SYNC.zh-CN.md)。
 
 分阶段撤教（8万步代选退出、10万步监督退出）seed0全程AULC由89.69%提高至93.48%，10–20万步由92.68%提高至97.79%，最低成功率70%→88%；最终两组均100%。只支持该seed低谷减轻，尚未解决撤教不稳，代选概率日程面积也减少了8%。DQfD取消20000次离线更新、其余机制不变的seed0全程AULC为91.08%，原DQfD对应seed0为92.80%；最终50验证成功率96%与100%。两个新对照均仅seed0完成，尚无独立500最终确认评估。
 

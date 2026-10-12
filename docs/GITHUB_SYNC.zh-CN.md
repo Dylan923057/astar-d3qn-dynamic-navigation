@@ -2,6 +2,19 @@
 
 本次同步目标为 `origin/main`：`Dylan923057/astar-d3qn-dynamic-navigation`。
 
+最新批次：[分阶段撤教与DQfD无预训练五seed阅读包](../results/analysis_upload/replication_seeds0to4_v1/LATEST.md)，涵盖20次运行、全部420验证点、逐seed及配对统计、源码/配置/冻结登记和失败示例。四方法五seed的同一冻结500场景最终确认已完成，共10000条记录；10份原结果按SHA和协议复用，补评10份新最终模型。上传脚本会阻止提交缺少最终500确认的旧阅读包。
+
+只同步本批源码与整理数据（不上传权重或回放断点，不混入范围外历史轨迹改动）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -ReplicationOnly -Preview
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -ReplicationOnly -ProxyUrl http://127.0.0.1:7897
+```
+
+第二条沿用此前Clash的7897端口，需保持代理开启；不用代理时省略`-ProxyUrl`。脚本先校验最新阅读包，再提交并推送；预览仅只读，不训练、不改索引。新报告及重算命令见[五seed说明](REPLICATION_FIVE_SEEDS.zh-CN.md)。
+
+以下为此前单seed批次的同步记录，其中HEAD及origin/main是当时的缓存值。
+
 2026-10-12本次整理：[对比诊断与单seed对照阅读包](../results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/README.md)、[GPT分析请求](../results/analysis_upload/diagnostics_withdrawal_update_v1/20261012_002943_168455/GPT_ANALYSIS_PROMPT.md)。包内193个文件约9.21MiB，包含新增实现、配置与冻结登记、运行日志、曲线、配对表、模型路径/SHA和精选失败轨迹。DDQNA短探针仅发布更正后0–5万步AULC；重复诊断、旧错误AULC报告及全量逐动作Q明细保留本地。
 
 本地HEAD与缓存origin/main均为`7deff74`，本次整理未联网核验远端新提交、未创建提交或推送。新增`-DiagnosticsOnly`范围只同步这批诊断/对照代码和报告，保留那份仅多空行的历史轨迹修改及其他范围外暂存工作；若范围外已有暂存内容，脚本停止，不自动清理。

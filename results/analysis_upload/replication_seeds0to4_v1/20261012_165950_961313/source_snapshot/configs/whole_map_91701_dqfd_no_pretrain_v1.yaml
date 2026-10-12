@@ -1,0 +1,22 @@
+inherits: whole_map_91701_dqfd_comparison_v1.yaml
+
+experiment:
+  name: whole_map_91701_dqfd_no_pretrain_v1
+  protocol: dqfd_single_factor_remove_offline_updates_v1
+  output_root: outputs/whole_map_91701_dqfd_no_pretrain_v1
+  check_root: results/whole_map_91701_dqfd_no_pretrain_v1
+
+comparison:
+  pretraining_updates: 0
+
+no_pretrain_control:
+  method: dqfd_no_pretrain
+  registration_root: data/whole_map_91701_dqfd_no_pretrain_v1
+  reference_method: dqfd
+  change: omit_all_20000_offline_updates_and_their_state_changes
+  regenerate_demonstrations: false
+  online_environment_steps: 200000
+  online_gradient_updates: 199501
+  total_gradient_updates: 199501
+  final_checkpoint: final_200000_only
+  formal_training_requires_explicit_flag: true
