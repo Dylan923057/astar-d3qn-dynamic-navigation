@@ -1,5 +1,15 @@
 # GitHub同步范围
 
+当前批次：[执行一致性筛选五seed阅读包](../results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)、[实验与结果说明](EXECUTION_CONSISTENCY.zh-CN.md)。新增五次200000步对照全部完成，原完整组合五seed复用；十个最终模型复核原50场景，210验证点、10500条逐场景记录。新对照尚未评估独立500场景，上传不要求也不会自动执行500评估。
+
+已经完成分析和打包，在仓库根目录运行这一行即可提交推送，保持此前Clash代理开启：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -ExecutionConsistencyOnly -ProxyUrl http://127.0.0.1:7897
+```
+
+只读预览将末尾ProxyUrl参数替换为`-Preview`。脚本验证最新包，限定本批源码、配置、冻结登记、报告和阅读包；权重、回放断点、重复报告及范围外历史轨迹不会上传。没有自动提交或推送；这条命令由用户执行。旧批次记录与命令保留如下。
+
 本次同步目标为 `origin/main`：`Dylan923057/astar-d3qn-dynamic-navigation`。
 
 最新批次：[分阶段撤教与DQfD无预训练五seed阅读包](../results/analysis_upload/replication_seeds0to4_v1/LATEST.md)，涵盖20次运行、全部420验证点、逐seed及配对统计、源码/配置/冻结登记和失败示例。四方法五seed的同一冻结500场景最终确认已完成，共10000条记录；10份原结果按SHA和协议复用，补评10份新最终模型。上传脚本会阻止提交缺少最终500确认的旧阅读包。

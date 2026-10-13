@@ -1,0 +1,193 @@
+param(
+    [switch]$Preview,
+    [switch]$ValueRepairOnly,
+    [switch]$DiagnosticsOnly,
+    [switch]$ReplicationOnly,
+    [switch]$ExecutionConsistencyOnly,
+    [string]$ProxyUrl,
+    [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
+)
+
+$ErrorActionPreference = 'Stop'
+$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$gitSafeRoot = $projectRoot.Replace('\', '/')
+$gitCommand = Get-Command git -ErrorAction SilentlyContinue
+$gitExecutable = if ($gitCommand) { $gitCommand.Source } else { 'D:\softwares\Anaconda3\envs\yolov5\Library\cmd\git.exe' }
+if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
+    throw 'Git executable was not found.'
+}
+$gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
+if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
+if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly, $ExecutionConsistencyOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
+$scope = @('.')
+if ($ExecutionConsistencyOnly) {
+    if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add five-seed execution consistency supervision ablation' }
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/EXECUTION_CONSISTENCY.zh-CN.md', 'scripts/sync_github.ps1',
+        'configs/whole_map_91701_execution_consistency_v1.yaml',
+        'configs/whole_map_91701_execution_consistency_seeds3to4_v1.yaml',
+        'scripts/run_execution_consistency.py', 'scripts/run_execution_consistency_seeds3to4.py',
+        'scripts/analyze_execution_consistency.py', 'scripts/analyze_execution_consistency_five_seeds.py',
+        'scripts/package_execution_consistency.py',
+        'src/astar_d3qn/agents/astar_all_eligible_supervision.py',
+        'src/astar_d3qn/agents/independent_teacher_actions.py', 'tests/test_execution_consistency.py',
+        'data/whole_map_91701_execution_consistency_v1',
+        'data/whole_map_91701_execution_consistency_seeds3to4_v1',
+        'results/whole_map_91701_execution_consistency_v1',
+        'results/whole_map_91701_execution_consistency_seeds3to4_v1',
+        'results/execution_consistency_five_seeds_v1',
+        'results/analysis_upload/execution_consistency_seeds0to4_v1')
+}
+if ($ReplicationOnly) {
+    if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add five-seed staged withdrawal and DQfD no-pretraining results' }
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/REPLICATION_FIVE_SEEDS.zh-CN.md', 'scripts/sync_github.ps1',
+        'configs/whole_map_91701_staged_withdrawal_multiseed_v1.yaml',
+        'configs/whole_map_91701_staged_withdrawal_seeds34_v1.yaml',
+        'configs/whole_map_91701_dqfd_no_pretrain_multiseed_v1.yaml',
+        'configs/whole_map_91701_dqfd_no_pretrain_seeds34_v1.yaml',
+        'scripts/run_replication_seeds12.py', 'scripts/run_replication_seeds34.py',
+        'scripts/replication_recovery.py', 'scripts/analyze_replication_seeds012.py',
+        'scripts/analyze_replication_seeds01234.py', 'scripts/package_replication_five_seeds.py',
+        'scripts/evaluate_replication_final500.py', 'scripts/finalize_replication_final500.py',
+        'data/whole_map_91701_staged_withdrawal_multiseed_v1',
+        'data/whole_map_91701_staged_withdrawal_seeds34_v1',
+        'data/whole_map_91701_dqfd_no_pretrain_multiseed_v1',
+        'data/whole_map_91701_dqfd_no_pretrain_seeds34_v1',
+        'results/replication_seeds012_v1', 'results/replication_seeds01234_v1',
+        'results/replication_final500_v1',
+        'results/whole_map_91701_staged_withdrawal_multiseed_v1',
+        'results/whole_map_91701_staged_withdrawal_seeds34_v1',
+        'results/analysis_upload/replication_seeds0to4_v1')
+}
+if ($DiagnosticsOnly) {
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/DIAGNOSTICS_WITHDRAWAL_UPDATE.zh-CN.md', 'scripts/sync_github.ps1',
+        'configs/ddqna_stability_probe_v1.yaml', 'configs/whole_map_91701_dqfd_no_pretrain_v1.yaml',
+        'configs/whole_map_91701_staged_withdrawal_pilot_v1.yaml',
+        'scripts/diagnose_comparison_evidence.py', 'scripts/render_comparison_diagnosis.py',
+        'scripts/probe_ddqna_stability.py', 'scripts/analyze_ddqna_stability_probe.py',
+        'scripts/run_dqfd_no_pretrain.py', 'scripts/diagnose_teaching_withdrawal.py',
+        'scripts/summarize_teaching_withdrawal.py', 'scripts/run_staged_withdrawal_pilot.py',
+        'scripts/analyze_staged_withdrawal_result.py', 'scripts/package_diagnostic_updates.py',
+        'src/astar_d3qn/agents/astar_staged_withdrawal.py',
+        'tests/test_comparison_diagnosis.py', 'tests/test_probe_analysis.py',
+        'tests/test_dqfd_no_pretrain.py', 'tests/test_staged_withdrawal_pilot.py',
+        'data/whole_map_91701_dqfd_no_pretrain_v1', 'data/whole_map_91701_staged_withdrawal_pilot_v1',
+        'results/comparison_evidence_diagnosis', 'results/ddqna_stability_probe_v1',
+        'results/teaching_withdrawal_diagnosis', 'results/whole_map_91701_dqfd_no_pretrain_v1',
+        'results/whole_map_91701_staged_withdrawal_pilot_v1',
+        'results/analysis_upload/diagnostics_withdrawal_update_v1')
+}
+if ($ValueRepairOnly) {
+    $scope = @('README.md', '.gitattributes', '.gitignore', 'docs/VALUE_REPAIR_V1.zh-CN.md', 'docs/GITHUB_SYNC.zh-CN.md',
+               'scripts/analyze_value_repair.py', 'scripts/inspect_value_repair_navigation.py',
+               'scripts/package_value_repair_analysis.py', 'scripts/sync_github.ps1',
+               'scripts/run_value_repair.py', 'configs/whole_map_91701_value_repair_v1.yaml',
+               'configs/whole_map_91701_value_repair_pilot_v1.yaml', 'src/astar_d3qn',
+               'results/whole_map_91701_value_repair_v1', 'results/analysis_upload',
+               'configs/whole_map_91701_teaching_efficiency_v1.yaml',
+               'docs/TEACHING_EFFICIENCY_V1.zh-CN.md', 'scripts/teaching_efficiency_common.py',
+               'scripts/prepare_teaching_efficiency.py', 'scripts/run_teaching_efficiency.py',
+               'scripts/analyze_teaching_efficiency.py', 'scripts/evaluate_teaching_efficiency.py',
+               'scripts/review_teaching_efficiency_results.py',
+               'scripts/package_teaching_efficiency_analysis.py',
+               'tests/test_teaching_efficiency.py', 'data/whole_map_91701_teaching_efficiency_v1',
+               'results/whole_map_91701_teaching_efficiency_v1',
+               'configs/whole_map_91701_supervision_tail_v1.yaml',
+               'docs/SUPERVISION_TAIL_V1.zh-CN.md', 'scripts/supervision_tail_common.py',
+               'scripts/prepare_supervision_tail.py', 'scripts/run_supervision_tail.py',
+               'scripts/analyze_supervision_tail.py', 'scripts/evaluate_supervision_tail.py',
+               'tests/test_supervision_tail.py', 'data/whole_map_91701_supervision_tail_v1',
+               'results/whole_map_91701_supervision_tail_v1',
+               'scripts/review_supervision_tail_partial.py',
+               'configs/whole_map_91701_dqfd_comparison_v1.yaml',
+               'docs/DQFD_COMPARISON_V1.zh-CN.md', 'scripts/dqfd_comparison_common.py',
+               'scripts/prepare_dqfd_comparison.py', 'scripts/run_dqfd_comparison.py',
+               'scripts/summarize_dqfd_comparison.py', 'scripts/package_dqfd_comparison_analysis.py',
+               'tests/test_dqfd_comparison.py', 'data/whole_map_91701_dqfd_comparison_v1',
+               'results/whole_map_91701_dqfd_comparison_v1',
+               'configs/whole_map_91701_ddqna_adapter_v1.yaml',
+               'docs/DDQNA_ADAPTER_EXPERIMENT.md', 'scripts/ddqna_adapter_common.py',
+               'scripts/run_ddqna_adapter.py', 'scripts/report_ddqna_adapter.py',
+               'scripts/package_ddqna_adapter_analysis.py', 'src/astar_d3qn/agents/ddqna_adapter.py',
+               'tests/test_ddqna_adapter.py', 'data/whole_map_91701_ddqna_adapter_v1',
+               'results/whole_map_91701_ddqna_adapter_v1')
+}
+
+function Invoke-ProjectGit {
+    & $gitExecutable @gitOptions --literal-pathspecs @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "Git command failed: $($args[0]) (exit $LASTEXITCODE)."
+    }
+}
+
+Push-Location -LiteralPath $projectRoot
+try {
+    $branch = (Invoke-ProjectGit branch --show-current).Trim()
+    $remote = (Invoke-ProjectGit remote get-url --push origin).Trim()
+    if ($branch -ne 'main') { throw "Expected main branch; found $branch." }
+    if ($remote -notin @('https://github.com/Dylan923057/astar-d3qn-dynamic-navigation.git',
+                        'git@github.com:Dylan923057/astar-d3qn-dynamic-navigation.git')) {
+        throw 'The origin push URL does not match the reviewed repository.'
+    }
+    if ($Preview) {
+        Write-Output 'Tracked files to stop tracking (local files will remain):'
+        Invoke-ProjectGit ls-files -ci --exclude-standard -- @scope
+        Write-Output 'Changes within the selected upload scope:'
+        Invoke-ProjectGit status --short -- @scope
+        Write-Output 'No index changes, commit, push or training performed.'
+        return
+    }
+    if ($ReplicationOnly) {
+        $latestPath = Join-Path $projectRoot 'results/analysis_upload/replication_seeds0to4_v1/latest.json'
+        $latestPackage = Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        & python -X utf8 scripts/package_replication_five_seeds.py --verify $latestPackage.package
+        if ($LASTEXITCODE -ne 0) { throw 'Five-seed upload package verification failed; no commit or push performed.' }
+        $latestManifest = Get-Content -LiteralPath (Join-Path $latestPackage.package 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (-not $latestManifest.independent500_evaluated) { throw 'Complete the frozen500 final confirmation and update the upload package first.' }
+    }
+    if ($ExecutionConsistencyOnly) {
+        $latestPath = Join-Path $projectRoot 'results/analysis_upload/execution_consistency_seeds0to4_v1/latest.json'
+        $latestPackage = Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        & python -X utf8 scripts/package_execution_consistency.py --verify $latestPackage.package
+        if ($LASTEXITCODE -ne 0) { throw 'Execution consistency package verification failed; no commit or push performed.' }
+    }
+    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly) {
+        # A commit includes every staged file. Preserve other staged work by stopping first.
+        $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
+            $stagedPath = $_
+            -not ($scope | Where-Object { $stagedPath -eq $_ -or $stagedPath.StartsWith($_ + '/') })
+        })
+        if ($outsideScope.Count -gt 0) {
+            throw ('Unrelated staged files would enter the commit; preserve them and review first: ' + ($outsideScope -join ', '))
+        }
+    }
+
+    # NUL-separated paths preserve spaces and Unicode; only remove matching index entries.
+    $pathList = Join-Path ([IO.Path]::GetTempPath()) ('astar-github-ignored-' + [guid]::NewGuid().ToString('N') + '.txt')
+    try {
+        $ignoredPaths = @(Invoke-ProjectGit ls-files -ci --exclude-standard -- @scope)
+        if ($ignoredPaths.Count -gt 0) {
+            $utf8 = New-Object System.Text.UTF8Encoding($false)
+            [IO.File]::WriteAllText($pathList, (($ignoredPaths -join "`0") + "`0"), $utf8)
+            Invoke-ProjectGit rm --cached --ignore-unmatch "--pathspec-from-file=$pathList" --pathspec-file-nul
+        }
+    }
+    finally {
+        if (Test-Path -LiteralPath $pathList) { Remove-Item -LiteralPath $pathList }
+    }
+    Invoke-ProjectGit add --all -- @scope
+    & $gitExecutable @gitOptions diff --cached --quiet
+    $diffCode = $LASTEXITCODE
+    if ($diffCode -eq 1) {
+        Invoke-ProjectGit commit -m $Message
+    }
+    elseif ($diffCode -ne 0) {
+        throw "Checking staged changes failed (exit $diffCode)."
+    }
+    Invoke-ProjectGit push origin main
+}
+finally {
+    Pop-Location
+}

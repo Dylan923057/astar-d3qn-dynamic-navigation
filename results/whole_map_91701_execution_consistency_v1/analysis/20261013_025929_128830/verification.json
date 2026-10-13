@@ -1,0 +1,85 @@
+{
+  "passed": true,
+  "statistical_unit": "seed",
+  "n": 3,
+  "source_sha256": {
+    "scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+    "configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+    "configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+    "src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+    "src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+    "configs\\whole_map_91701_execution_consistency_v1.yaml": "b8f87daf55d0eb6504a5508407393cf4d1984567b9354a4db660c57d6a9ab055",
+    "scripts\\run_execution_consistency.py": "7cb0dcefc504852fed2076643347846da743082fd1f570b7d706c1e30a8c586c",
+    "scripts\\replication_recovery.py": "a1f27e10adbba320378d690ae3205fb70d6054ecacaf25e95ce7ebfc6ff74139",
+    "scripts\\teaching_efficiency_common.py": "05759e62b6f8c81754db6d1b90013a729704c8437a5e6be92736eb868053cce0",
+    "src\\astar_d3qn\\agents\\independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+    "src\\astar_d3qn\\agents\\astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+    "tests\\test_execution_consistency.py": "c1a528a7d5bc3f1fa45b4c87aa6927c16df87b191a8e4c77c96862867f74c24f"
+  },
+  "analysis_source_sha256": "112393d8f46eae1300e92164a7b9354a8d1bd5f93780de8b5708f63d5556d3c0",
+  "audits": [
+    {
+      "method": "advice_bound_margin",
+      "seed": 0,
+      "final_model_sha256": "6a98b5b927c03bf8a9408195ef151b0d6e930941510bd4f9a3dd85c14a14818c",
+      "validation_points": 21,
+      "validation_episodes": 1050,
+      "final50_replayed": true
+    },
+    {
+      "method": "advice_bound_margin_all_eligible",
+      "seed": 0,
+      "final_model_sha256": "c464060e6a58c141dae88731b631cdd4008ed5d31b1e1ccaa02d69910b7d98ea",
+      "validation_points": 21,
+      "validation_episodes": 1050,
+      "final50_replayed": true
+    },
+    {
+      "method": "advice_bound_margin",
+      "seed": 1,
+      "final_model_sha256": "39b0426859796f4fd4df92699b77d6315a81a2155e40aee38e55838164bdaa77",
+      "validation_points": 21,
+      "validation_episodes": 1050,
+      "final50_replayed": true
+    },
+    {
+      "method": "advice_bound_margin_all_eligible",
+      "seed": 1,
+      "final_model_sha256": "e2d2c5d05ce4846b9f71ad8805d1509e195ef7a978f9719f15c2145af831f53e",
+      "validation_points": 21,
+      "validation_episodes": 1050,
+      "final50_replayed": true
+    },
+    {
+      "method": "advice_bound_margin",
+      "seed": 2,
+      "final_model_sha256": "efaa9ca8b4303038f86c7a7cf816230bb15cb0efdfbfeecd4e0b795867342f51",
+      "validation_points": 21,
+      "validation_episodes": 1050,
+      "final50_replayed": true
+    },
+    {
+      "method": "advice_bound_margin_all_eligible",
+      "seed": 2,
+      "final_model_sha256": "362613516e2f5d11cc1c378dc41af6e7ec311f82360b539df9c299913a65aa03",
+      "validation_points": 21,
+      "validation_episodes": 1050,
+      "final50_replayed": true
+    }
+  ],
+  "old_results_preserved": true,
+  "seed0_reused": false,
+  "independent500_used": false,
+  "scheduled_advice_area_reduction": 0.0,
+  "notes": [
+    "AULC integrates actual episode-end checkpoint positions using linear interpolation.",
+    "Pre-exit window: 80k–100500; only teacher exit is 100k; exit window: 100k–120500; overall trough: 80k–160500.",
+    "500-step right tolerance includes episode-end validation jitter, not an extra scheduled validation.",
+    "Recovery first90 and three consecutive points are distinct; neither asserts permanent stability.",
+    "Waiting/looping timeout groups are mutually exclusive; checkpoint sums reuse the same 50 scenes.",
+    "Only executed-teacher equality eligibility removed; no pretraining, demonstrations or compensation.",
+    "Recovery preserves learning state; static A* action cache may be deterministically rebuilt on restart, affecting attributed planner search cost."
+  ]
+}

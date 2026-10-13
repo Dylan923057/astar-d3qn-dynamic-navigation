@@ -1,5 +1,7 @@
 # Astar-D3QN-Workshop
 
+最新：[执行一致性筛选五seed阅读包](results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)及[实验说明](docs/EXECUTION_CONSISTENCY.zh-CN.md)。新对照五seed均完成20万步，复用原完整组合，十个最终模型复评原50场景。取消筛选的全程AULC为92.99±1.36%，原组91.37±1.05%，但seed3退化且低谷后移，不能宣称跨seed一致改善。新对照尚未做独立500最终确认；源码、冻结登记、完整曲线、配对结果和失败示例已整理，权重留在本地。
+
 最新：[分阶段撤教与DQfD无预训练的五seed阅读包](results/analysis_upload/replication_seeds0to4_v1/LATEST.md)。两种新增对照的seed0–4均完成200000在线步，原两方法五seed直接复用；包内包含20次运行的曲线、逐场景验证明细、诊断日志、配对差、源码快照、冻结登记及失败示例。[协议及上传说明](docs/REPLICATION_FIVE_SEEDS.zh-CN.md)。
 
 原完整组合全程AULC91.37±1.05%，分阶段92.06±1.41%；分阶段seed3下降、seed4几乎持平，且seed2、3、4撤教最低点更低，不能称撤教稳定改善。原DQfD全程93.24±0.42%，取消预训练90.75±0.47%，五seed全程均下降；两组10–20万AULC分别97.11±0.69%和96.92±0.51%，差异方向随seed变化。无预训练仍保留7260条永久示范，总梯度预算减少20000次。

@@ -3,6 +3,7 @@ param(
     [switch]$ValueRepairOnly,
     [switch]$DiagnosticsOnly,
     [switch]$ReplicationOnly,
+    [switch]$ExecutionConsistencyOnly,
     [string]$ProxyUrl,
     [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
 )
@@ -17,8 +18,26 @@ if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
 }
 $gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
 if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
-if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
+if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly, $ExecutionConsistencyOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
 $scope = @('.')
+if ($ExecutionConsistencyOnly) {
+    if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add five-seed execution consistency supervision ablation' }
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/EXECUTION_CONSISTENCY.zh-CN.md', 'scripts/sync_github.ps1',
+        'configs/whole_map_91701_execution_consistency_v1.yaml',
+        'configs/whole_map_91701_execution_consistency_seeds3to4_v1.yaml',
+        'scripts/run_execution_consistency.py', 'scripts/run_execution_consistency_seeds3to4.py',
+        'scripts/analyze_execution_consistency.py', 'scripts/analyze_execution_consistency_five_seeds.py',
+        'scripts/package_execution_consistency.py',
+        'src/astar_d3qn/agents/astar_all_eligible_supervision.py',
+        'src/astar_d3qn/agents/independent_teacher_actions.py', 'tests/test_execution_consistency.py',
+        'data/whole_map_91701_execution_consistency_v1',
+        'data/whole_map_91701_execution_consistency_seeds3to4_v1',
+        'results/whole_map_91701_execution_consistency_v1',
+        'results/whole_map_91701_execution_consistency_seeds3to4_v1',
+        'results/execution_consistency_five_seeds_v1',
+        'results/analysis_upload/execution_consistency_seeds0to4_v1')
+}
 if ($ReplicationOnly) {
     if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add five-seed staged withdrawal and DQfD no-pretraining results' }
     $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
@@ -128,7 +147,13 @@ try {
         $latestManifest = Get-Content -LiteralPath (Join-Path $latestPackage.package 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         if (-not $latestManifest.independent500_evaluated) { throw 'Complete the frozen500 final confirmation and update the upload package first.' }
     }
-    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly) {
+    if ($ExecutionConsistencyOnly) {
+        $latestPath = Join-Path $projectRoot 'results/analysis_upload/execution_consistency_seeds0to4_v1/latest.json'
+        $latestPackage = Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        & python -X utf8 scripts/package_execution_consistency.py --verify $latestPackage.package
+        if ($LASTEXITCODE -ne 0) { throw 'Execution consistency package verification failed; no commit or push performed.' }
+    }
+    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly) {
         # A commit includes every staged file. Preserve other staged work by stopping first.
         $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
             $stagedPath = $_
