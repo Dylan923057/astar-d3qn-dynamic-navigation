@@ -28,14 +28,17 @@ if ($ExecutionConsistencyOnly) {
         'configs/whole_map_91701_execution_consistency_seeds3to4_v1.yaml',
         'scripts/run_execution_consistency.py', 'scripts/run_execution_consistency_seeds3to4.py',
         'scripts/analyze_execution_consistency.py', 'scripts/analyze_execution_consistency_five_seeds.py',
-        'scripts/package_execution_consistency.py',
+        'scripts/package_execution_consistency.py', 'scripts/evaluate_execution_consistency_final500.py',
+        'scripts/audit_execution_consistency_final500.py',
         'src/astar_d3qn/agents/astar_all_eligible_supervision.py',
         'src/astar_d3qn/agents/independent_teacher_actions.py', 'tests/test_execution_consistency.py',
         'data/whole_map_91701_execution_consistency_v1',
         'data/whole_map_91701_execution_consistency_seeds3to4_v1',
+        'data/execution_consistency_final500_v1',
         'results/whole_map_91701_execution_consistency_v1',
         'results/whole_map_91701_execution_consistency_seeds3to4_v1',
         'results/execution_consistency_five_seeds_v1',
+        'results/execution_consistency_final500_v1',
         'results/analysis_upload/execution_consistency_seeds0to4_v1')
 }
 if ($ReplicationOnly) {
@@ -152,6 +155,8 @@ try {
         $latestPackage = Get-Content -LiteralPath $latestPath -Raw -Encoding UTF8 | ConvertFrom-Json
         & python -X utf8 scripts/package_execution_consistency.py --verify $latestPackage.package
         if ($LASTEXITCODE -ne 0) { throw 'Execution consistency package verification failed; no commit or push performed.' }
+        $latestManifest = Get-Content -LiteralPath (Join-Path $latestPackage.package 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (-not $latestManifest.independent500_evaluated) { throw 'Update the package with the completed frozen500 confirmation before uploading this batch.' }
     }
     if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly) {
         # A commit includes every staged file. Preserve other staged work by stopping first.

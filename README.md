@@ -1,6 +1,6 @@
 # Astar-D3QN-Workshop
 
-最新：[执行一致性筛选五seed阅读包](results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)及[实验说明](docs/EXECUTION_CONSISTENCY.zh-CN.md)。新对照五seed均完成20万步，复用原完整组合，十个最终模型复评原50场景。取消筛选的全程AULC为92.99±1.36%，原组91.37±1.05%，但seed3退化且低谷后移，不能宣称跨seed一致改善。新对照尚未做独立500最终确认；源码、冻结登记、完整曲线、配对结果和失败示例已整理，权重留在本地。
+最新：[执行一致性筛选五seed阅读包](results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)及[实验说明](docs/EXECUTION_CONSISTENCY.zh-CN.md)。新对照五seed均完成20万步，复用原完整组合，十个最终模型复评原50场景。取消筛选的全程AULC为92.99±1.36%，原组91.37±1.05%，但seed3退化且低谷后移，不能宣称跨seed一致改善。独立500最终确认已完成：原组成功率98.16±1.82%，新组99.36±0.43%，新组仍有12次碰撞和4次超时。包内包含源码、冻结登记、全部曲线、原50与独立500分开的配对统计及失败示例；权重留在本地。
 
 最新：[分阶段撤教与DQfD无预训练的五seed阅读包](results/analysis_upload/replication_seeds0to4_v1/LATEST.md)。两种新增对照的seed0–4均完成200000在线步，原两方法五seed直接复用；包内包含20次运行的曲线、逐场景验证明细、诊断日志、配对差、源码快照、冻结登记及失败示例。[协议及上传说明](docs/REPLICATION_FIVE_SEEDS.zh-CN.md)。
 

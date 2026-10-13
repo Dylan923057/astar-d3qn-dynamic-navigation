@@ -1,6 +1,6 @@
 # GitHub同步范围
 
-当前批次：[执行一致性筛选五seed阅读包](../results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)、[实验与结果说明](EXECUTION_CONSISTENCY.zh-CN.md)。新增五次200000步对照全部完成，原完整组合五seed复用；十个最终模型复核原50场景，210验证点、10500条逐场景记录。新对照尚未评估独立500场景，上传不要求也不会自动执行500评估。
+当前批次：[执行一致性筛选五seed阅读包](../results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)、[实验与结果说明](EXECUTION_CONSISTENCY.zh-CN.md)。新增五次200000步对照全部完成，原完整组合五seed复用；十个最终模型复核原50场景，210验证点、10500条逐场景记录。同一冻结500最终确认已完成，新增五模型2500回合，原组五seed按SHA与协议复用，合计5000条记录和62条失败轨迹均已审计，不重跑评估或训练。阅读包包含分开的训练/最终报告及合并配对表，脚本阻止上传缺少500确认的旧包。
 
 已经完成分析和打包，在仓库根目录运行这一行即可提交推送，保持此前Clash代理开启：
 
