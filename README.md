@@ -1,5 +1,7 @@
 # Astar-D3QN-Workshop
 
+最新：[新版完整方法模块消融阅读包](results/analysis_upload/latest_all_eligible_modules_v1/LATEST.md)及[实验与结果说明](docs/LATEST_MODULE_ABLATIONS.zh-CN.md)。新增去TD目标约束、去A*动作代选两组，五seed共10次200000步训练及同一冻结500最终评估全部完成。完整方法全程AULC为92.99±1.36%，两组消融分别为34.86±8.23%、84.97±1.34%；动作监督与代选的前期学习增益均在五seed重复，TD约束明显改善本实现的学习稳定性。撤教低谷仍存在，不主张保证安全或最终性能全面优于对照。源码、配置、逐seed及配对统计、曲线、失败示例和SHA清单均已整理，权重与原始回放留在本地。
+
 最新：[执行一致性筛选五seed阅读包](results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)及[实验说明](docs/EXECUTION_CONSISTENCY.zh-CN.md)。新对照五seed均完成20万步，复用原完整组合，十个最终模型复评原50场景。取消筛选的全程AULC为92.99±1.36%，原组91.37±1.05%，但seed3退化且低谷后移，不能宣称跨seed一致改善。独立500最终确认已完成：原组成功率98.16±1.82%，新组99.36±0.43%，新组仍有12次碰撞和4次超时。包内包含源码、冻结登记、全部曲线、原50与独立500分开的配对统计及失败示例；权重留在本地。
 
 最新：[分阶段撤教与DQfD无预训练的五seed阅读包](results/analysis_upload/replication_seeds0to4_v1/LATEST.md)。两种新增对照的seed0–4均完成200000在线步，原两方法五seed直接复用；包内包含20次运行的曲线、逐场景验证明细、诊断日志、配对差、源码快照、冻结登记及失败示例。[协议及上传说明](docs/REPLICATION_FIVE_SEEDS.zh-CN.md)。

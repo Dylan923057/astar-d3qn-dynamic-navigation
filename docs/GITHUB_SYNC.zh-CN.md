@@ -1,5 +1,7 @@
 # GitHub同步范围
 
+最新批次：[新版完整方法模块消融阅读包](../results/analysis_upload/latest_all_eligible_modules_v1/LATEST.md)及[结果说明](LATEST_MODULE_ABLATIONS.zh-CN.md)。新增两组五seed共10次200000步训练、10份新最终模型的500场景评估均完成，另25份历史最终评估按模型、场景与协议SHA复用。上传包括本批源码、两份配置、测试、冻结登记、检查报告、统计表、曲线和阅读包；权重、回放及原始outputs保留本地。旧脚本的 `-ExecutionConsistencyOnly` 仅覆盖上一批，不包含本批模块消融。
+
 当前批次：[执行一致性筛选五seed阅读包](../results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)、[实验与结果说明](EXECUTION_CONSISTENCY.zh-CN.md)。新增五次200000步对照全部完成，原完整组合五seed复用；十个最终模型复核原50场景，210验证点、10500条逐场景记录。同一冻结500最终确认已完成，新增五模型2500回合，原组五seed按SHA与协议复用，合计5000条记录和62条失败轨迹均已审计，不重跑评估或训练。阅读包包含分开的训练/最终报告及合并配对表，脚本阻止上传缺少500确认的旧包。
 
 已经完成分析和打包，在仓库根目录运行这一行即可提交推送，保持此前Clash代理开启：
