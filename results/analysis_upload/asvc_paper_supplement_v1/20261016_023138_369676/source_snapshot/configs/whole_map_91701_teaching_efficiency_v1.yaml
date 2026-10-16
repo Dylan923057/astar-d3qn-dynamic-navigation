@@ -1,0 +1,21 @@
+inherits: whole_map_91701_value_repair_v1.yaml
+
+experiment:
+  name: whole_map_91701_teaching_efficiency_v1
+  protocol: supervision_without_action_override_v1
+  output_root: outputs/whole_map_91701_teaching_efficiency_v1
+  check_root: results/whole_map_91701_teaching_efficiency_v1
+
+teaching_efficiency:
+  method: supervision_only_bound
+  baseline_root: outputs/whole_map_91701_value_repair_v1
+  artifact_root: data/whole_map_91701_teaching_efficiency_v1
+  evaluation_scene_count: 500
+  evaluation_sampling_seed: 91702500
+  evaluation_max_candidate_draws: 100000
+  evaluation_use: final_200000_step_only_never_tuning_or_schedule
+  require_new_route_combinations: true
+  withdrawal_window: [90000, 120500]
+  phase_boundaries: [0, 50000, 100000, 200000]
+  diagnostic_positions: [[35, 22], [35, 23]]
+  formal_training_requires_explicit_flag: true

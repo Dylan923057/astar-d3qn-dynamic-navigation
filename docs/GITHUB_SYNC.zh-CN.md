@@ -1,5 +1,16 @@
 # GitHub同步范围
 
+最新批次（2026-10-16）：[ASVC-D3QN补实验阅读包](../results/analysis_upload/asvc_paper_supplement_v1/LATEST.md)及[结果与图表说明](ASVC_PAPER_SUPPLEMENT.zh-CN.md)。五次初始化对照训练、85组最终评估、42500条场景记录全部完成；无需重新训练、评估或打包。使用本批专用范围，旧选项不包含本批。
+
+```powershell
+# 只读预览与校验
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -AsvcOnly -Preview
+# 提交并推送；保持此前Clash代理开启，不使用代理时省略ProxyUrl
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -AsvcOnly -ProxyUrl http://127.0.0.1:7897
+```
+
+本批阅读包约98.84 MiB，上传范围含源码、冻结数据与文档约112 MiB；单文件最大约2.73 MiB。上传前自动核对包内SHA和完整实验记录，`.gitattributes`防止换行转换破坏冻结文件SHA。权重、恢复断点、全量原始轨迹及重复实时结果留在本地；不包含范围外历史轨迹改动。本次整理未创建提交或推送。以下为历史批次记录。
+
 最新批次：[新版完整方法模块消融阅读包](../results/analysis_upload/latest_all_eligible_modules_v1/LATEST.md)及[结果说明](LATEST_MODULE_ABLATIONS.zh-CN.md)。新增两组五seed共10次200000步训练、10份新最终模型的500场景评估均完成，另25份历史最终评估按模型、场景与协议SHA复用。上传包括本批源码、两份配置、测试、冻结登记、检查报告、统计表、曲线和阅读包；权重、回放及原始outputs保留本地。旧脚本的 `-ExecutionConsistencyOnly` 仅覆盖上一批，不包含本批模块消融。
 
 当前批次：[执行一致性筛选五seed阅读包](../results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)、[实验与结果说明](EXECUTION_CONSISTENCY.zh-CN.md)。新增五次200000步对照全部完成，原完整组合五seed复用；十个最终模型复核原50场景，210验证点、10500条逐场景记录。同一冻结500最终确认已完成，新增五模型2500回合，原组五seed按SHA与协议复用，合计5000条记录和62条失败轨迹均已审计，不重跑评估或训练。阅读包包含分开的训练/最终报告及合并配对表，脚本阻止上传缺少500确认的旧包。

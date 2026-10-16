@@ -1,0 +1,36 @@
+experiment: dynamic_route_pool_v1
+source_manifest: data/risk_handover_v1/manifest.json
+dataset: data/dynamic_route_pool_v1/manifest.json
+preview_root: maps/previews/dynamic_route_pool_v1
+
+# Design-only protocol. This file is intentionally not referenced by a trainer.
+map_ids:
+  - irregular_workcell_91701
+  - irregular_workcell_91702
+  - irregular_workcell_91703
+
+path_ensemble:
+  seed_offset: 260930
+  sample_count: 240
+  candidate_attempts: 6000
+  detour_budget_steps: 12
+
+route_pool_counts:
+  high_interaction: 20
+  alternative_branch: 24
+  background: 12
+
+classification:
+  # Prevent the common start/goal fan-in from consuming the entire
+  # high-interaction pool. Five routes are selected from each progress band.
+  high_interaction_progress_edges: [0.08, 0.30, 0.50, 0.72, 0.92]
+
+example_scenarios:
+  count: 5
+  sampling_trials_per_scene: 500
+  minimum_ensemble_path_coverage: 0.55
+  composition:
+    high_interaction: 2
+    alternative_branch: 2
+    background: 1
+  move_every: 1

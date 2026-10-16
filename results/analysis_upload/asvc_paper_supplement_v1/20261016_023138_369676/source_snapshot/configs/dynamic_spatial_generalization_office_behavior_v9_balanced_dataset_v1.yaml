@@ -1,0 +1,61 @@
+inherits: dynamic_spatial_generalization_office_behavior_v8_static_mask_curriculum_v2.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_behavior_v9_balanced_dataset_v1
+  output_root: outputs/dynamic_spatial_generalization_office_behavior_v9_balanced_dataset_v1
+  run_name_prefix: dynamic_spatial_generalization_office_behavior_v9
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_behavior_v9_balanced.json
+  behavior_search_seed: 20260941
+  route_pool_preview: maps/previews/office_40x40_behavior_v9_route_pools.png
+  dataset_summary_preview: maps/previews/office_40x40_behavior_v9_dataset_summary.png
+  training_preview: maps/previews/office_40x40_behavior_v9_training_scenarios.png
+  validation_preview: maps/previews/office_40x40_behavior_v9_validation_scenarios.png
+  test_preview: maps/previews/office_40x40_behavior_v9_test_scenarios.png
+  scenario_design:
+    behavior_counts:
+      train: {normal: 20, wait: 30, avoidance: 25, reroute: 25}
+      validation: {normal: 4, wait: 6, avoidance: 5, reroute: 5}
+      test: {normal: 10, wait: 15, avoidance: 13, reroute: 12}
+    difficulty_fractions: {easy: 0.40, medium: 0.35, hard: 0.25}
+    candidate_pool_multiplier: 2
+    normal_candidate_pool_multiplier: 4
+    max_search_attempts_per_candidate: 12000
+    normal_max_safe_detour_steps: 0
+    minimum_wait_advantage_steps: 1
+    minimum_oracle_wait_steps: 1
+    minimum_reroute_margin_steps: 1
+    minimum_decisive_obstacles: 1
+
+# STAY already receives the ordinary step cost. An additional stay penalty made
+# the one-step-shorter wait oracle less rewarding than a two-step oscillation.
+reward:
+  stay: 0.0
+
+# Three seeds are a diagnostic pilot. Expand to five only after every strategy
+# learns the static and low-conflict stages reliably.
+training:
+  seeds: [0, 1, 2]
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: low_conflict_z3_1
+        start_environment_step: 60000
+        obstacle_count: 1
+        obstacle_indices: [2]
+        allowed_difficulties: [control, easy]
+      - name: medium_conflict_z3_z4_z5_3
+        start_environment_step: 140000
+        obstacle_count: 3
+        obstacle_indices: [2, 3, 4]
+        allowed_difficulties: [control, easy, medium]
+      - name: full_conflict_z1_to_z5_5
+        start_environment_step: 240000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]
+        allowed_difficulties: [control, easy, medium, hard]

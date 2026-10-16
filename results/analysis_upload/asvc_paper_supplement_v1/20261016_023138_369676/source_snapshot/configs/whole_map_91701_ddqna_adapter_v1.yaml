@@ -1,0 +1,24 @@
+inherits: whole_map_91701_value_repair_v1.yaml
+
+experiment:
+  name: whole_map_91701_ddqna_adapter_v1
+  protocol: ddqna_action_selection_d3qn_adapter_v1
+  output_root: outputs/whole_map_91701_ddqna_adapter_v1
+  check_root: results/whole_map_91701_ddqna_adapter_v1
+
+ddqna_adapter:
+  method: ddqna_d3qn
+  teacher_probability: 0.5
+  teacher_schedule: constant_all_online_steps
+  epsilon_branch_first: true
+  evaluation_advice: false
+  dynamic_risk_filter: false
+  auxiliary_supervision: false
+  td_target_clip: false
+  artifact_root: data/whole_map_91701_ddqna_adapter_v1
+  final_scene_config: configs/whole_map_91701_supervision_tail_v1.yaml
+  phase_boundaries: [0, 80000, 100000, 140000, 200000]
+  stable_success_threshold: 0.9
+  stable_success_checkpoints: 3
+  stable_success_step_definition: first_checkpoint_of_first_qualifying_triple
+  formal_training_requires_explicit_flag: true

@@ -1,0 +1,52 @@
+inherits: dynamic_spatial_generalization_office_behavior_v9_balanced_dataset_v1.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_behavior_v10_paired_v1
+  output_root: outputs/dynamic_spatial_generalization_office_behavior_v10_paired_v1
+  run_name_prefix: dynamic_spatial_generalization_office_behavior_v10
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_behavior_v10_paired.json
+  behavior_search_seed: 20260951
+  scenario_counts: {train: 100, validation: 20, test: 60}
+  route_pool_preview: maps/previews/office_40x40_behavior_v10_route_pools.png
+  dataset_summary_preview: maps/previews/office_40x40_behavior_v10_dataset_summary.png
+  training_preview: maps/previews/office_40x40_behavior_v10_training_scenarios.png
+  validation_preview: maps/previews/office_40x40_behavior_v10_validation_scenarios.png
+  test_preview: maps/previews/office_40x40_behavior_v10_test_scenarios.png
+  paired_test_preview: maps/previews/office_40x40_behavior_v10_paired_test_scenarios.png
+  scenario_design:
+    behavior_counts:
+      train: {normal: 25, wait: 25, avoidance: 25, reroute: 25}
+      validation: {normal: 5, wait: 5, avoidance: 5, reroute: 5}
+      # Every behavioral test case has one matched normal control.  Therefore
+      # the 60-case test contains 30 conflicts and 30 paired controls.
+      test: {normal: 30, wait: 10, avoidance: 10, reroute: 10}
+    difficulty_fractions: {easy: 0.40, medium: 0.35, hard: 0.25}
+    candidate_pool_multiplier: 2
+    normal_candidate_pool_multiplier: 2
+    max_search_attempts_per_candidate: 20000
+    # Stop and preserve diagnostics after this many consecutive failed trials.
+    max_attempts_without_acceptance: 3000
+    normal_max_safe_detour_steps: 0
+    minimum_wait_advantage_steps: 1
+    minimum_oracle_wait_steps: 1
+    minimum_reroute_margin_steps: 1
+    minimum_decisive_obstacles: 1
+    # Speeds remain discrete and reproducible.  A matched pair always keeps
+    # speed and direction fixed and changes only the primary obstacle phase.
+    move_every_choices: [1, 2]
+    # The curriculum first enables obstacle index 2.  Behavioral scenarios put
+    # their verified primary obstacle at that index, regardless of its zone.
+    primary_obstacle_index: 2
+    # Primary-zone diversity is reported for dataset review.  Behavior validity
+    # is checked per scenario; no unsupported minimum zone count is imposed.
+    require_primary_demo_conflict: true
+    # The paired control must reduce the primary obstacle's A* conflict count.
+    # Total conflict may stay unchanged because the other four obstacles are fixed.
+    require_strict_demo_conflict_reduction_in_pair: true
+
+# Three seeds remain a diagnostic pilot.  Promote to five only after the
+# generated dataset audit and the one-seed training pilot both pass.
+training:
+  seeds: [0, 1, 2]

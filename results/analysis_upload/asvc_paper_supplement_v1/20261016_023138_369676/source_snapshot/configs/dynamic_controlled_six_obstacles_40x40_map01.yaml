@@ -1,0 +1,80 @@
+experiment:
+  name: dynamic_controlled_six_obstacles_40x40_map01_v1
+  seed: 0
+  output_root: outputs/dynamic_controlled_six_obstacles_40x40_map01
+  independent_maps: true
+
+map:
+  generator: structured_layout_v1
+  scene: calibration_40x40_map_01
+  size: 40
+  start: [1, 1]
+  goal: [39, 39]
+
+map_sets:
+  train:
+    count: 5
+    file: maps/structured_calibration_40x40/maps.json
+
+environment:
+  kind: dynamic
+  observation: local_static_dynamic_history_goal_vector
+  spatial_channels: 4
+  window_size: 15
+  max_steps: 600
+  action_count: 5
+  terminate_on_collision: false
+
+dynamic_obstacle:
+  scenario: map01_controlled_six_obstacles
+  count: 6
+  planning: ignored_by_astar
+  motion: deterministic_bounce
+  move_every: 1
+  placement_basis: mandatory_graph_cut_plus_all_five_nominal_crossings
+  mandatory_interaction_cell: [6, 5]
+  nominal_path_interaction_indices: [9, 13, 27, 28, 36, 43]
+  nominal_blind_policy_interaction_steps: [9, 14, 29, 31, 40, 48]
+  shared_across_replay_strategies: true
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: -0.05
+  collision: -1.0
+  goal: 10.0
+
+demonstrations:
+  episodes: 20
+  seed: 7400
+  collection_environment: static_nominal
+  environment_id: static_nominal_zero_dynamic_channels_v1
+  file: data/demonstrations/dynamic_controlled_bottleneck_40x40_map01/map_{map_number:02d}_seed_{map_seed}_astar_demos.npz
+
+agent:
+  learning_rate: 0.0003
+  gamma: 0.99
+  target_sync_interval: 250
+  gradient_clip_norm: 10.0
+  hidden_dim: 256
+  device: auto
+
+training:
+  episodes: 1500
+  replay_capacity: 10000
+  batch_size: 64
+  learning_starts: 64
+  updates_per_step: 1
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 1200
+  replay_strategy: persistent_demo
+  demo_fraction: 0.25
+  progress_interval: 100
+  diagnostic_interval: 10
+  per_alpha: 0.6
+  per_beta_start: 0.4
+  per_beta_end: 1.0
+  per_priority_epsilon: 1.0e-6
+  demo_margin: 0.8
+  demo_loss_weight: 1.0

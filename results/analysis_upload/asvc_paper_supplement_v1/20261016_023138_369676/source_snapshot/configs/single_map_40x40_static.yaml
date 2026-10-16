@@ -1,0 +1,64 @@
+experiment:
+  name: single_map_40x40_static_v1
+  seed: 0
+  output_root: outputs/single_map_40x40_static
+
+map:
+  generator: astar_iddqn_style_random_v1
+  size: 40
+  density: 0.20
+  start: [1, 1]
+  goal: [38, 38]
+  endpoint_clearance: 1
+  min_path_steps: 78
+  max_path_steps: 150
+  min_turns: 8
+  max_attempts: 5000
+
+map_sets:
+  train:
+    seed_start: 4005
+    count: 1
+    file: maps/single_map_40x40_static/maps.json
+
+environment:
+  kind: static
+  observation: local_static_grid_goal_vector
+  spatial_channels: 1
+  window_size: 11
+  max_steps: 350
+  action_count: 5
+  terminate_on_collision: false
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: -0.05
+  collision: -1.0
+  goal: 10.0
+
+demonstrations:
+  episodes: 20
+  seed: 7000
+  file: data/demonstrations/single_map_40x40_static_astar_demos.npz
+
+agent:
+  learning_rate: 0.0003
+  gamma: 0.99
+  target_sync_interval: 250
+  gradient_clip_norm: 10.0
+  hidden_dim: 256
+  device: auto
+
+training:
+  episodes: 1500
+  replay_capacity: 10000
+  batch_size: 64
+  learning_starts: 64
+  updates_per_step: 1
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 1200
+  replay_strategy: persistent_demo
+  demo_fraction: 0.25
+  progress_interval: 100

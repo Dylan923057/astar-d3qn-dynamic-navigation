@@ -4,6 +4,7 @@ param(
     [switch]$DiagnosticsOnly,
     [switch]$ReplicationOnly,
     [switch]$ExecutionConsistencyOnly,
+    [switch]$AsvcOnly,
     [string]$ProxyUrl,
     [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
 )
@@ -18,8 +19,20 @@ if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
 }
 $gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
 if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
-if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly, $ExecutionConsistencyOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
+if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly, $ExecutionConsistencyOnly, $AsvcOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
 $scope = @('.')
+if ($AsvcOnly) {
+    if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add ASVC-D3QN prefill control, density evaluation and paper figures' }
+    $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
+        'docs/ASVC_PAPER_SUPPLEMENT.zh-CN.md', 'scripts/sync_github.ps1',
+        'scripts/verify_asvc_upload.py', 'configs/asvc_paper_supplement_v1.yaml',
+        'scripts/asvc_prefill_training.py', 'scripts/asvc_supplement_common.py',
+        'scripts/evaluate_asvc_supplement.py', 'scripts/finish_asvc_supplement.py',
+        'scripts/package_asvc_supplement.py', 'scripts/plot_asvc_supplement.py',
+        'scripts/prepare_asvc_density.py', 'scripts/run_asvc_supplement.py',
+        'data/asvc_paper_supplement_v1', 'data/asvc_paper_density_v2',
+        'results/analysis_upload/asvc_paper_supplement_v1')
+}
 if ($ExecutionConsistencyOnly) {
     if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add five-seed execution consistency supervision ablation' }
     $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
@@ -134,6 +147,10 @@ try {
                         'git@github.com:Dylan923057/astar-d3qn-dynamic-navigation.git')) {
         throw 'The origin push URL does not match the reviewed repository.'
     }
+    if ($AsvcOnly) {
+        & python -X utf8 scripts/verify_asvc_upload.py
+        if ($LASTEXITCODE -ne 0) { throw 'ASVC upload verification failed; no index changes, commit or push performed.' }
+    }
     if ($Preview) {
         Write-Output 'Tracked files to stop tracking (local files will remain):'
         Invoke-ProjectGit ls-files -ci --exclude-standard -- @scope
@@ -158,7 +175,7 @@ try {
         $latestManifest = Get-Content -LiteralPath (Join-Path $latestPackage.package 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         if (-not $latestManifest.independent500_evaluated) { throw 'Update the package with the completed frozen500 confirmation before uploading this batch.' }
     }
-    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly) {
+    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly -or $AsvcOnly) {
         # A commit includes every staged file. Preserve other staged work by stopping first.
         $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
             $stagedPath = $_

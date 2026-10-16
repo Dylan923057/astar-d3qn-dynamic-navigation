@@ -1,0 +1,59 @@
+experiment:
+  name: structured_calibration_five_map_v1
+  seed: 0
+  output_root: outputs/structured_calibration
+  independent_maps: true
+
+map:
+  generator: structured_layout_v1
+  scene: calibration_20x20_five_fixed_maps
+  size: 20
+  start: [1, 1]
+  goal: [19, 19]
+
+map_sets:
+  train:
+    count: 5
+    file: maps/structured_calibration/maps.json
+
+environment:
+  kind: static
+  observation: local_static_grid_goal_vector
+  spatial_channels: 1
+  window_size: 11
+  max_steps: 350
+  action_count: 5
+  terminate_on_collision: false
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: -0.05
+  collision: -1.0
+  goal: 10.0
+
+demonstrations:
+  episodes: 20
+  seed: 7100
+  file: data/demonstrations/structured_calibration/map_{map_number:02d}_seed_{map_seed}_astar_demos.npz
+
+agent:
+  learning_rate: 0.0003
+  gamma: 0.99
+  target_sync_interval: 250
+  gradient_clip_norm: 10.0
+  hidden_dim: 256
+  device: auto
+
+training:
+  episodes: 1500
+  replay_capacity: 10000
+  batch_size: 64
+  learning_starts: 64
+  updates_per_step: 1
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 1200
+  replay_strategy: persistent_demo
+  demo_fraction: 0.25
+  progress_interval: 100

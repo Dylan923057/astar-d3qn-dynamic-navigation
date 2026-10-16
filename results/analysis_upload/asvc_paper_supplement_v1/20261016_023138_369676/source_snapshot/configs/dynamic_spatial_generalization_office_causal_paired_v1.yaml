@@ -1,0 +1,59 @@
+inherits: dynamic_spatial_generalization_office_terminal_collision_v1.yaml
+
+# Minimal causal benchmark for deciding whether persistent static A* replay
+# helps early learning but increases sensitivity to a moving obstacle.  It
+# intentionally does not require semantic wait/avoidance/reroute labels.
+experiment:
+  name: dynamic_spatial_generalization_office_causal_paired_v1
+  output_root: outputs/dynamic_spatial_generalization_office_causal_paired_v1
+  run_name_prefix: office_causal_paired_v1
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_causal_paired_v1.json
+  generation_seed: 20260991
+  obstacle_count: 1
+  corridor_per_scenario: 1
+  background_per_scenario: 0
+  route_pool_counts:
+    train: {corridor: 4, background: 0}
+    validation: {corridor: 2, background: 0}
+    test: {corridor: 2, background: 0}
+  scenario_counts: {train: 30, validation: 14, test: 14}
+  route_pool_preview: maps/previews/office_40x40_causal_paired_v1_route_pools.png
+  validation_preview: maps/previews/office_40x40_causal_paired_v1_test_pairs.png
+  static_retention_evaluation: true
+  causal_paired:
+    source_manifest: data/dynamic_scenarios/office_40x40_balanced_v4.json
+    pairs_per_route: 4
+    audit_output: outputs/office_causal_paired_v1_design
+
+environment:
+  # Remove trivial wall/boundary actions while leaving dynamic-risk actions for
+  # the agent to learn.  A collision still terminates the episode.
+  mask_static_invalid_actions: true
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: 0.0
+  collision: -1.0
+  goal: 10.0
+
+training:
+  # Three seeds are a development gate, not the final paper cohort.
+  seeds: [0, 1, 2]
+  max_environment_steps: 200000
+  epsilon_decay_environment_steps: 170000
+  validation_interval_environment_steps: 12500
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: paired_dynamic_1
+        start_environment_step: 40000
+        obstacle_count: 1
+        obstacle_indices: [0]
+

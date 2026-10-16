@@ -1,0 +1,87 @@
+# Primary fixed-Office causal study. Train/validation/test share the same dynamic
+# route templates so the comparison targets A*-demonstration conflict rather
+# than unseen route geometry. Complete obstacle configurations (phase,
+# direction, speed, and five-obstacle combination) remain strictly disjoint.
+inherits: dynamic_office_clean_v1.yaml
+
+experiment:
+  name: dynamic_office_clean_v2
+  output_root: outputs/dynamic_office_clean_v2
+  run_name_prefix: office_clean_v2
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_clean_v2.json
+  behavior_search_seed: 20260961
+  evaluation_design: shared_route_templates_held_out_complete_dynamic_scenarios
+  shared_route_templates_across_splits: true
+  split_isolation:
+    enabled: true
+    require_distinct_sources: true
+    level: exact_scenario
+  route_pool_counts:
+    train: {corridor: 15, background: 0}
+    validation: {corridor: 15, background: 0}
+    test: {corridor: 15, background: 0}
+  route_pool_preview: maps/previews/office_40x40_clean_v2_route_pools.png
+  dataset_summary_preview: maps/previews/office_40x40_clean_v2_dataset_summary.png
+  training_preview: maps/previews/office_40x40_clean_v2_training_scenarios.png
+  validation_preview: maps/previews/office_40x40_clean_v2_validation_scenarios.png
+  test_preview: maps/previews/office_40x40_clean_v2_test_scenarios.png
+
+training:
+  # Two seeds are a diagnostic pilot. Expand only after the foundation and
+  # curriculum-transition audit passes for all three baseline strategies.
+  seeds: [0, 1]
+  max_environment_steps: 500000
+  epsilon_decay_environment_steps: 425000
+  validation_interval_environment_steps: 25000
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: observable_primary_1
+        start_environment_step: 100000
+        obstacle_count: 1
+        obstacle_indices: [0]
+        allowed_difficulties: [control, easy]
+      - name: primary_plus_context_3
+        start_environment_step: 200000
+        obstacle_count: 3
+        obstacle_indices: [0, 1, 2]
+        allowed_difficulties: [control, easy, medium]
+      - name: full_scenario_5
+        start_environment_step: 325000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]
+        allowed_difficulties: [control, easy, medium, hard]
+  # These train-source scenarios never enter replay or gradient updates. They
+  # are a separate curriculum-control probe, not validation/model-selection data.
+  dynamic_obstacle_curriculum_gate:
+    enabled: true
+    probe_scenario_ids: [0, 19, 20, 31, 32, 41, 42, 49, 50, 59, 60, 68, 69, 74, 75, 84, 85, 93, 94, 99]
+    stages:
+      - name: static_foundation_0
+        minimum_environment_steps: 50000
+        maximum_environment_steps: 100000
+        safe_success_threshold: 0.95
+        required_consecutive_passes: 2
+      - name: observable_primary_1
+        minimum_environment_steps: 50000
+        maximum_environment_steps: 100000
+        safe_success_threshold: 0.75
+        required_consecutive_passes: 2
+      - name: primary_plus_context_3
+        minimum_environment_steps: 75000
+        maximum_environment_steps: 125000
+        safe_success_threshold: 0.65
+        required_consecutive_passes: 2
+  # Rows correspond to the active stage and columns to sampled stages. Earlier
+  # stages remain in the training mixture to prevent catastrophic forgetting.
+  dynamic_obstacle_curriculum_rehearsal_probabilities:
+    - [1.00, 0.00, 0.00, 0.00]
+    - [0.20, 0.80, 0.00, 0.00]
+    - [0.10, 0.20, 0.70, 0.00]
+    - [0.10, 0.10, 0.15, 0.65]

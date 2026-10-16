@@ -1,0 +1,22 @@
+inherits: whole_map_route_pool_91701_time_decay_v1.yaml
+
+experiment:
+  name: whole_map_route_pool_91701_four_methods_3to5_v1
+  protocol: four_method_training_window_v1
+  output_root: outputs/whole_map_route_pool_91701_four_methods_3to5_v1
+
+dynamic_route_pool:
+  composition: {high_interaction: 2, alternative_branch: 2, background: 1}
+  obstacle_counts: [3, 4, 5]
+
+training:
+  seeds: [0, 1, 2, 3, 4]
+
+adaptive:
+  interval_environment_steps: 10000
+  minimum_conflict_episodes: 5
+  ema_alpha: 0.3
+  lower: 0.60
+  upper: 0.95
+  rho_max: 0.25
+  source: training_interaction

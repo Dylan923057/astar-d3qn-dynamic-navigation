@@ -1,0 +1,17 @@
+inherits: whole_map_route_pool_91701_time_decay_v1.yaml
+
+experiment:
+  name: whole_map_route_pool_91701_time_decay_capacity_controlled_v1
+  output_root: outputs/whole_map_route_pool_91701_time_decay_capacity_controlled_v1
+  run_name_prefix: whole_map_pool_91701_7obs_time_decay_capacity_controlled
+  comparison_baseline_config: configs/whole_map_route_pool_91701_pilot_v1.yaml
+
+diagnostic:
+  kind: capacity_controlled_time_decay
+  expected_demo_transitions: 1320
+  online_replay_capacity: 10000
+  total_replay_capacity: 11320
+
+training:
+  replay_capacity: 11320
+

@@ -1,5 +1,7 @@
 # Astar-D3QN-Workshop
 
+最新（2026-10-16）：[ASVC-D3QN补实验阅读包](results/analysis_upload/asvc_paper_supplement_v1/LATEST.md)及[结果、图表与上传说明](docs/ASVC_PAPER_SUPPLEMENT.zh-CN.md)。仅新增A*初始化＋TD约束的五次20万步训练；原500最终评估及1/3/5/7障碍密度评估全部完成，共42500条新评估记录。ASVC-D3QN全程AULC为92.99±1.36%，初始化对照为51.51±6.16%；原500安全成功率分别为99.36±0.43%和96.84±2.03%。DQfD全程AULC为93.24±0.42%，另有20000次离线更新。统计单位为训练seed；密度测试仅限同地图，不主张所有指标全面最优。ASVC-D3QN仅统一论文显示名称，已有方法ID `advice_bound_margin_all_eligible`及历史路径保持不变。上传使用专用`-AsvcOnly`范围，权重、恢复断点和全量原始轨迹保留本地。
+
 最新：[新版完整方法模块消融阅读包](results/analysis_upload/latest_all_eligible_modules_v1/LATEST.md)及[实验与结果说明](docs/LATEST_MODULE_ABLATIONS.zh-CN.md)。新增去TD目标约束、去A*动作代选两组，五seed共10次200000步训练及同一冻结500最终评估全部完成。完整方法全程AULC为92.99±1.36%，两组消融分别为34.86±8.23%、84.97±1.34%；动作监督与代选的前期学习增益均在五seed重复，TD约束明显改善本实现的学习稳定性。撤教低谷仍存在，不主张保证安全或最终性能全面优于对照。源码、配置、逐seed及配对统计、曲线、失败示例和SHA清单均已整理，权重与原始回放留在本地。
 
 最新：[执行一致性筛选五seed阅读包](results/analysis_upload/execution_consistency_seeds0to4_v1/LATEST.md)及[实验说明](docs/EXECUTION_CONSISTENCY.zh-CN.md)。新对照五seed均完成20万步，复用原完整组合，十个最终模型复评原50场景。取消筛选的全程AULC为92.99±1.36%，原组91.37±1.05%，但seed3退化且低谷后移，不能宣称跨seed一致改善。独立500最终确认已完成：原组成功率98.16±1.82%，新组99.36±0.43%，新组仍有12次碰撞和4次超时。包内包含源码、冻结登记、全部曲线、原50与独立500分开的配对统计及失败示例；权重留在本地。

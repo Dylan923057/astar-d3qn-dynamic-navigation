@@ -1,0 +1,20 @@
+experiment: whole_map_91701_foundation_reuse_v1
+legacy_config: configs/replay_adaptation_v2.yaml
+foundation_source_root: outputs/replay_adaptation_v2/formal/irregular_workcell_91701
+equivalent_foundation_root: outputs/risk_handover_v1/formal/irregular_workcell_91701
+latest_experiment_root: outputs/whole_map_91701_3to5_four_methods_20261001_002044
+scene_config: configs/whole_map_route_pool_91701_four_methods_3to5_v1.yaml
+output_root: outputs/whole_map_91701_foundation_reuse_v1
+audit_root: results/whole_map_91701_foundation_reuse_v1
+seeds: [0, 1]
+methods: [foundation_no_demo, foundation_fixed_25, foundation_time_decay]
+online_replay_capacity: 8680
+demonstration_transition_count: 1320
+adaptation:
+  max_steps: 200000
+  evaluation_interval: 10000
+  epsilon_start: 0.30
+  epsilon_end: 0.05
+  epsilon_decay_steps: 150000
+  safe_success_threshold: 0.90
+  consecutive_passes: 2

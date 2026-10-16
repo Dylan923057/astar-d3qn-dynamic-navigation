@@ -1,0 +1,17 @@
+# Event-sensitive adaptive decay.  A conflict with any static A* action raises
+# pressure quickly; safe observations release it slowly.  The 5% floor keeps a
+# small amount of static planning knowledge available throughout training.
+inherits: dynamic_office_controlled_behavior_v1.yaml
+
+experiment:
+  name: dynamic_office_conflict_adaptive_decay_v2
+  output_root: outputs/dynamic_office_conflict_adaptive_decay_v2
+  run_name_prefix: office_conflict_adaptive_decay_v2
+
+training:
+  conflict_demo_fraction_min: 0.05
+  conflict_ema_alpha: 0.5
+  conflict_recovery_alpha: 0.005
+  conflict_sensitivity: 1.0
+  conflict_event_binary: true
+  conflict_predict_next: true

@@ -1,0 +1,23 @@
+inherits: dynamic_spatial_generalization_warehouse_balanced_v4.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_warehouse_terminal_collision_v1
+  output_root: outputs/dynamic_spatial_generalization_warehouse_terminal_collision_v1
+  run_name_prefix: dynamic_spatial_generalization_warehouse_terminal_collision
+
+# A collision is a failed navigation attempt.  The penalty stays moderate;
+# termination supplies the stronger learning signal by removing future goal return.
+environment:
+  terminate_on_collision: true
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: -0.05
+  collision: -1.0
+  goal: 10.0
+
+training:
+  max_environment_steps: 400000
+  epsilon_decay_environment_steps: 340000
+  validation_interval_environment_steps: 25000

@@ -1,0 +1,21 @@
+inherits: whole_map_91701_value_repair_v1.yaml
+
+experiment:
+  name: asvc_paper_supplement_v1
+  protocol: astar_initialization_mechanism_and_density_v1
+  output_root: outputs/asvc_paper_supplement_v1
+  check_root: results/asvc_paper_supplement_v1
+
+training:
+  replay_strategy: prefill
+
+supplement:
+  method: astar_prefill_bound
+  seeds: [0, 1, 2, 3, 4]
+  demonstration_root: data/whole_map_91701_dqfd_comparison_v1
+  registration_root: data/asvc_paper_supplement_v1
+  density_seed: 917015107
+  densities: [1, 3, 5, 7]
+  scenes_per_density: 500
+  representative_indices: [0, 1, 2]
+  pretraining_updates: 0

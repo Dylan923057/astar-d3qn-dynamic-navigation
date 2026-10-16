@@ -1,0 +1,15 @@
+inherits: whole_map_91701_runtime_path_v1.yaml
+
+experiment:
+  name: whole_map_91701_runtime_path_no_progress_v1
+  protocol: runtime_path_observation_no_progress_v1
+  output_root: outputs/whole_map_91701_runtime_path_no_progress_v1
+  check_root: results/whole_map_91701_runtime_path_no_progress_v1
+
+# Both methods remove only Manhattan goal-progress shaping.
+# Goal direction remains observed; terminal and step rewards remain unchanged.
+reward:
+  progress: 0.0
+
+training:
+  seeds: [0, 1, 2, 3, 4]

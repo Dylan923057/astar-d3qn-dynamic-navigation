@@ -1,0 +1,95 @@
+# Practical Office training data plus a small phase-paired diagnostic subset.
+# This does not inherit any v6/v10 scenario manifest or route pool.
+inherits: dynamic_spatial_generalization_office_terminal_collision_v1.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_practical_v11
+  output_root: outputs/dynamic_spatial_generalization_office_practical_v11
+  run_name_prefix: office_practical_v11
+
+spatial_generalization:
+  manifest: data/dynamic_scenarios/office_40x40_practical_v11.json
+  generation_seed: 20260971
+  behavior_search_seed: 20260981
+  # 500 randomized shortest paths estimate static corridor coverage.  They are
+  # distinct from the 20 A* demonstration episodes used by replay strategies.
+  reference_path_count: 500
+  # Lengths for straight blocker/approach candidates. Turning wait-clearance
+  # routes use 5/6/7 cells so the three splits can hold out whole geometries.
+  candidate_route_lengths: [3, 5, 7]
+  separation_radius: 0
+  move_every: 1
+  obstacle_count: 5
+  corridor_per_scenario: 5
+  background_per_scenario: 0
+  route_pool_counts:
+    train: {corridor: 19, background: 0}
+    validation: {corridor: 14, background: 0}
+    test: {corridor: 15, background: 0}
+  # Bounded streaming search: do not materialize every route combination.
+  max_route_assignment_trials: 250000
+  scenario_counts: {train: 100, validation: 20, test: 50}
+  route_pool_preview: maps/previews/office_40x40_practical_v11_route_pools.png
+  dataset_summary_preview: maps/previews/office_40x40_practical_v11_dataset_summary.png
+  training_preview: maps/previews/office_40x40_practical_v11_training_scenarios.png
+  validation_preview: maps/previews/office_40x40_practical_v11_validation_scenarios.png
+  test_preview: maps/previews/office_40x40_practical_v11_test_scenarios.png
+  scenario_design:
+    # Practical scenes are not required to exhibit one exclusive behavior.
+    # The label states the verified opportunity/witness used at generation.
+    practical_counts:
+      train: {normal: 20, wait: 30, avoidance: 30, reroute: 20}
+      validation: {normal: 4, wait: 6, avoidance: 6, reroute: 4}
+      # 30 ordinary held-out scenes. Ten additional conflict/control pairs
+      # below contribute 20 scenes, giving 50 test scenes in total.
+      test: {normal: 6, wait: 8, avoidance: 8, reroute: 8}
+    diagnostic_pair_counts: {wait: 4, avoidance: 3, reroute: 3}
+    difficulty_fractions: {easy: 0.40, medium: 0.35, hard: 0.25}
+    move_every_choices: [1, 2]
+    minimum_wait_advantage_steps: 1
+    minimum_reroute_margin_steps: 1
+    maximum_visible_avoidance_extra_steps: 4
+    max_attempts_per_requested_scene: 5000
+    # Stop an infeasible search early and preserve its detailed rejection audit.
+    max_attempts_without_acceptance: 2000
+    require_paired_primary_demo_conflict_reduction: true
+
+environment:
+  terminate_on_collision: true
+  # Mask known walls/bounds only. Dynamic-collision actions remain learnable.
+  mask_static_invalid_actions: true
+
+reward:
+  step: -0.01
+  progress: 0.05
+  stay: 0.0
+  collision: -1.0
+  goal: 10.0
+
+training:
+  seeds: [0, 1, 2]
+  max_environment_steps: 400000
+  epsilon_decay_environment_steps: 340000
+  validation_interval_environment_steps: 25000
+  demo_fraction: 0.25
+  dynamic_obstacle_curriculum:
+    enabled: true
+    # Every targeted scene stores its verified primary at index 0. Context
+    # obstacles remain functional routes and rotate into primary roles elsewhere.
+    stages:
+      - name: static_foundation_0
+        start_environment_step: 0
+        obstacle_count: 0
+        obstacle_indices: []
+      - name: primary_interaction_1
+        start_environment_step: 60000
+        obstacle_count: 1
+        obstacle_indices: [0]
+      - name: primary_plus_context_3
+        start_environment_step: 140000
+        obstacle_count: 3
+        obstacle_indices: [0, 1, 2]
+      - name: full_dynamic_5
+        start_environment_step: 240000
+        obstacle_count: 5
+        obstacle_indices: [0, 1, 2, 3, 4]

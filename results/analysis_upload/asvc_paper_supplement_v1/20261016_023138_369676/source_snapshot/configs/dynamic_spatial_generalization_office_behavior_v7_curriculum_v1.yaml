@@ -1,0 +1,22 @@
+inherits: dynamic_spatial_generalization_office_behavior_v6_terminal_v1.yaml
+
+experiment:
+  name: dynamic_spatial_generalization_office_behavior_v7_curriculum_v1
+  output_root: outputs/dynamic_spatial_generalization_office_behavior_v7_curriculum_v1
+  run_name_prefix: dynamic_spatial_generalization_office_behavior_v7_curriculum
+
+# All activated obstacles remain at the frozen v6 critical route locations.
+# Only the number of active blockers changes; validation and test always retain five.
+training:
+  dynamic_obstacle_curriculum:
+    enabled: true
+    stages:
+      - name: early_route_1
+        start_environment_step: 0
+        obstacle_count: 1
+      - name: early_to_middle_route_3
+        start_environment_step: 80000
+        obstacle_count: 3
+      - name: full_route_5
+        start_environment_step: 200000
+        obstacle_count: 5

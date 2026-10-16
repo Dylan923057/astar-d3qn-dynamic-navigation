@@ -1,0 +1,22 @@
+inherits: whole_map_route_pool_91701_pilot_v1.yaml
+
+experiment:
+  name: whole_map_route_pool_91701_prefill_only_v1
+  output_root: outputs/whole_map_route_pool_91701_prefill_only_v1
+  run_name_prefix: whole_map_pool_91701_7obs_prefill_only
+  comparison_baseline_config: configs/whole_map_route_pool_91701_pilot_v1.yaml
+
+diagnostic:
+  kind: prefill_only
+  expected_demo_transitions: 1320
+  online_replay_capacity: 10000
+  persistent_partition: false
+  forced_demo_sampling: false
+
+demonstration:
+  source: static_randomized_tie_astar
+  episodes: 20
+  seed: 7400
+
+training:
+  replay_strategy: prefill

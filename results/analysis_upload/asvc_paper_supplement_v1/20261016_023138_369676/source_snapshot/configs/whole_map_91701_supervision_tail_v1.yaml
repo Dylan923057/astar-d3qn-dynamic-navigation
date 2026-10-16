@@ -1,0 +1,28 @@
+inherits: whole_map_91701_value_repair_v1.yaml
+
+experiment:
+  name: whole_map_91701_supervision_tail_v1
+  protocol: independent_action_supervision_tail_140k_v1
+  output_root: outputs/whole_map_91701_supervision_tail_v1
+  check_root: results/whole_map_91701_supervision_tail_v1
+
+supervision_tail:
+  method: advice_bound_margin_tail140k
+  baseline_method: advice_bound_margin
+  baseline_root: outputs/whole_map_91701_value_repair_v1
+  schedule:
+    original_decay_steps: 100000
+    tail_start_steps: 80000
+    tail_end_steps: 140000
+  artifact_root: data/whole_map_91701_supervision_tail_v1
+  excluded_independent_scenes: data/whole_map_91701_teaching_efficiency_v1/independent_final_scenarios.json
+  critical_states_reference: data/whole_map_91701_teaching_efficiency_v1/critical_states.json
+  evaluation_scene_count: 500
+  evaluation_sampling_seed: 91702640
+  evaluation_max_candidate_draws: 100000
+  evaluation_use: final_200000_step_only_never_tuning_or_schedule
+  original_withdrawal_window: [90000, 120500]
+  new_withdrawal_window: [130000, 160500]
+  combined_withdrawal_window: [90000, 160500]
+  phase_boundaries: [0, 80000, 100000, 140000, 200000]
+  formal_training_requires_explicit_flag: true

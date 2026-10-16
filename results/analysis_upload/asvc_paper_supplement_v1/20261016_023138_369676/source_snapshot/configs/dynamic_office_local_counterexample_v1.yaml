@@ -1,0 +1,16 @@
+# Preserve the full A* demo quota, suppress only locally risky demo actions,
+# and reserve part of the online batch for safe responses discovered there.
+inherits: dynamic_office_controlled_behavior_v1.yaml
+
+experiment:
+  name: dynamic_office_local_counterexample_v1
+  output_root: outputs/dynamic_office_local_counterexample_v1
+  run_name_prefix: office_local_counterexample_v1
+
+training:
+  demo_fraction: 0.25
+  local_conflict_suppression_steps: 2500
+  local_conflict_min_sampling_weight: 0.0
+  local_conflict_predict_next: true
+  local_counterexample_capacity: 2000
+  local_counterexample_fraction: 0.25
