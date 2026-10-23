@@ -5,6 +5,7 @@ param(
     [switch]$ReplicationOnly,
     [switch]$ExecutionConsistencyOnly,
     [switch]$AsvcOnly,
+    [switch]$PersistentSupervisionOnly,
     [string]$ProxyUrl,
     [string]$Message = 'Add DDQNA adaptation five-seed results and final evaluation'
 )
@@ -19,8 +20,25 @@ if (-not (Test-Path -LiteralPath $gitExecutable -PathType Leaf)) {
 }
 $gitOptions = @('-c', "safe.directory=$gitSafeRoot", '-c', 'core.quotePath=false')
 if ($ProxyUrl) { $gitOptions += @('-c', "http.proxy=$ProxyUrl") }
-if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly, $ExecutionConsistencyOnly, $AsvcOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
+if (@($ValueRepairOnly, $DiagnosticsOnly, $ReplicationOnly, $ExecutionConsistencyOnly, $AsvcOnly, $PersistentSupervisionOnly | Where-Object { $_ }).Count -gt 1) { throw 'Select only one upload scope.' }
 $scope = @('.')
+if ($PersistentSupervisionOnly) {
+    if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add ASVC persistent supervision five-seed results and figures' }
+    $bundleRoot = Join-Path $projectRoot 'results/analysis_upload/asvc_persistent_supervision_five_seeds_v1'
+    $bundlePointer = Get-Content -LiteralPath (Join-Path $bundleRoot 'latest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $bundlePath = [IO.Path]::GetFullPath((Join-Path $projectRoot $bundlePointer.package))
+    if (-not $bundlePath.StartsWith($bundleRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The persistent-supervision package must stay within its results directory.'
+    }
+    $scope = (Get-Content -LiteralPath (Join-Path $bundlePath 'upload_scope.json') -Raw -Encoding UTF8 | ConvertFrom-Json)
+    foreach ($scopePath in $scope) {
+        $resolvedScope = [IO.Path]::GetFullPath((Join-Path $projectRoot $scopePath))
+        if (-not $resolvedScope.StartsWith($projectRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
+            $scopePath -eq '.' -or $scopePath.StartsWith('.git/')) {
+            throw "Invalid upload scope: $scopePath"
+        }
+    }
+}
 if ($AsvcOnly) {
     if (-not $PSBoundParameters.ContainsKey('Message')) { $Message = 'Add ASVC-D3QN prefill control, density evaluation and paper figures' }
     $scope = @('README.md', '.gitignore', '.gitattributes', 'docs/GITHUB_SYNC.zh-CN.md',
@@ -151,6 +169,12 @@ try {
         & python -X utf8 scripts/verify_asvc_upload.py
         if ($LASTEXITCODE -ne 0) { throw 'ASVC upload verification failed; no index changes, commit or push performed.' }
     }
+    if ($PersistentSupervisionOnly) {
+        $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+        $pythonExecutable = if ($pythonCommand) { $pythonCommand.Source } else { 'D:\softwares\Anaconda3\envs\astar-drl\python.exe' }
+        & $pythonExecutable -X utf8 scripts/package_persistent_supervision.py --verify --check-sources
+        if ($LASTEXITCODE -ne 0) { throw 'Persistent-supervision bundle verification failed; no index changes, commit or push performed.' }
+    }
     if ($Preview) {
         Write-Output 'Tracked files to stop tracking (local files will remain):'
         Invoke-ProjectGit ls-files -ci --exclude-standard -- @scope
@@ -175,7 +199,7 @@ try {
         $latestManifest = Get-Content -LiteralPath (Join-Path $latestPackage.package 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         if (-not $latestManifest.independent500_evaluated) { throw 'Update the package with the completed frozen500 confirmation before uploading this batch.' }
     }
-    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly -or $AsvcOnly) {
+    if ($ValueRepairOnly -or $DiagnosticsOnly -or $ReplicationOnly -or $ExecutionConsistencyOnly -or $AsvcOnly -or $PersistentSupervisionOnly) {
         # A commit includes every staged file. Preserve other staged work by stopping first.
         $outsideScope = @(Invoke-ProjectGit diff --cached --name-only | Where-Object {
             $stagedPath = $_

@@ -1,0 +1,24 @@
+inherits: asvc_persistent_teaching_v1.yaml
+experiment:
+  name: asvc_persistent_supervision_five_seeds_v1
+  protocol: unchanged_supervision_floor_extend_seeds34_v1
+  output_root: outputs/asvc_persistent_supervision_five_seeds_v1
+  check_root: results/asvc_persistent_supervision_five_seeds_v1
+persistent_teaching:
+  seeds: [3, 4]
+  registration_root: data/asvc_persistent_supervision_five_seeds_v1
+  baseline_root: outputs/whole_map_91701_execution_consistency_seeds3to4_v1/advice_bound_margin_all_eligible
+five_seed_review:
+  variant: supervision_floor
+  pooled_seeds: [0, 1, 2, 3, 4]
+  reused_seeds: [0, 1, 2]
+  reused_root: outputs/asvc_persistent_teaching_v1/supervision_floor
+  final500_config: configs/whole_map_91701_supervision_tail_v1.yaml
+  candidate_name: ASVC-D3QN-PS
+  promotion_criteria:
+    both_new_seeds_late_aulc_not_lower: true
+    both_new_seeds_late_minimum_not_lower: true
+    five_seed_mean_late_aulc_higher: true
+    five_seed_mean_late_minimum_higher: true
+    final500_maximum_mean_success_drop: 0.01
+  selection_note: descriptive_acceptance_criteria_not_statistical_significance

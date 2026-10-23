@@ -1,5 +1,23 @@
 # GitHub同步范围
 
+最新批次（2026-10-23）：[持续弱监督五seed阅读包](../results/analysis_upload/asvc_persistent_supervision_five_seeds_v1/LATEST.md)。五个seed各20万步，包含五方法主对比、最终500场景明细、六组PNG/PDF/SVG图、三seed方案选择历史、训练日志和冻结代码。前三个seed复用，后两个补跑；新方法最终评估2500回合，四个对照复用10000回合。
+
+数据包已经整理好，以下命令不重新训练或评估。PowerShell中先进入项目，再预览或上传：
+
+```powershell
+Set-Location 'D:\Asatr-D3QN-Workshop'
+# 只读预览及SHA/统计校验
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -PersistentSupervisionOnly -Preview
+# 提交并推送到已配置的origin/main
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_github.ps1 -PersistentSupervisionOnly -ProxyUrl http://127.0.0.1:7897
+```
+
+最后一行沿用此前Clash代理；不用代理时删除`-ProxyUrl http://127.0.0.1:7897`。脚本自动定位本机Git，使用专用提交信息，不需要手动`git add .`。已暂存的范围外文件会触发停止，以免混入本次提交；不会清空这些暂存内容，也不会强制推送。
+
+此范围上传相关代码、配置、测试、文档、冻结登记和整理后的结果。模型权重、回放恢复文件、原始批量轨迹、奖励实验结果和其他历史改动留在本地。训练冻结曾覆盖全部src模块，所以其源码字节也保留以便核对；不代表本次采用了奖励重设计。单独校验：`python scripts/package_persistent_supervision.py --verify`。只有本地原始文件齐全时才使用`--check-sources`。
+
+本次整理不执行commit或push，由用户运行上面的上传命令。以下为历史批次记录，旧的`-AsvcOnly`不包含持续弱监督结果。
+
 最新批次（2026-10-16）：[ASVC-D3QN补实验阅读包](../results/analysis_upload/asvc_paper_supplement_v1/LATEST.md)及[结果与图表说明](ASVC_PAPER_SUPPLEMENT.zh-CN.md)。五次初始化对照训练、85组最终评估、42500条场景记录全部完成；无需重新训练、评估或打包。使用本批专用范围，旧选项不包含本批。
 
 ```powershell
