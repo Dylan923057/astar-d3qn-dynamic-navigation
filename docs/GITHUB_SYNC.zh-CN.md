@@ -1,5 +1,23 @@
 # GitHub同步范围
 
+最新批次（2026-10-24）：[持续弱监督新版模块消融与密度阅读包](../results/analysis_upload/asvc_persistent_paper_completion_v1/LATEST.md)。10次新训练全部20万步完成；120组评估共60000回合，其中新增15000、复用45000。包含逐seed与逐场景数据、训练诊断、冻结输入及源码、五组PNG/PDF/SVG图和结果解读。
+
+本次使用独立上传脚本，不改变上一批的上传入口。数据已经打包，以下命令只校验/提交/推送，不训练、不重跑评估：
+
+```powershell
+Set-Location 'D:\Asatr-D3QN-Workshop'
+# 只读预览
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_persistent_paper_github.ps1 -Preview
+# 提交并推送到现有origin/main；保持此前Clash代理开启
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync_persistent_paper_github.ps1 -ProxyUrl http://127.0.0.1:7897
+```
+
+不用代理时删除`-ProxyUrl http://127.0.0.1:7897`。脚本自动找到本机Git和Python、验证数据包及原始来源、限定此次提交范围，并保护范围外的暂存内容。权重、恢复文件、批量失败轨迹和奖励实验结果留在本地。本次准备工作不执行commit或push。
+
+只校验阅读包：`python scripts/package_persistent_paper_completion.py --verify`；原工作空间可增加`--check-sources`核对本地模型与原始文件。克隆后的只读校验无需PyTorch、模型权重或原始outputs。
+
+结果解读需保留：TD消融支持稳定性作用，代选与监督主要改善学习速度；新版7障碍成功率95.68%，低于原版96.64%，不能写成所有指标全面提升。以下为历史批次记录。
+
 最新批次（2026-10-23）：[持续弱监督五seed阅读包](../results/analysis_upload/asvc_persistent_supervision_five_seeds_v1/LATEST.md)。五个seed各20万步，包含五方法主对比、最终500场景明细、六组PNG/PDF/SVG图、三seed方案选择历史、训练日志和冻结代码。前三个seed复用，后两个补跑；新方法最终评估2500回合，四个对照复用10000回合。
 
 数据包已经整理好，以下命令不重新训练或评估。PowerShell中先进入项目，再预览或上传：

@@ -1,0 +1,19 @@
+inherits: whole_map_91701_execution_consistency_v1.yaml
+experiment:
+  name: latest_all_eligible_modules_v1
+  protocol: latest_all_eligible_remove_override_v1
+  output_root: outputs/latest_all_eligible_modules_v1
+  check_root: results/latest_all_eligible_modules_v1
+execution_consistency:
+  method: supervision_only_bound_all_eligible
+  seeds: [0, 1, 2, 3, 4]
+  registration_root: data/latest_all_eligible_modules_v1/supervision_only_bound_all_eligible
+module_ablation:
+  remove: action_override
+  target_clip: true
+  action_override: false
+  execution_match_required: false
+  compensate_label_count: false
+  supervision_exit: 100000
+  offline_demonstrations: 0
+  pretraining_updates: 0
