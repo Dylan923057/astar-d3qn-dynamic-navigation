@@ -1,0 +1,220 @@
+{
+  "identity": {
+    "group": "C",
+    "seed": 0,
+    "freeze_sha256": "5af3b22bfee03181f013724b655ed2170239ace98c77322d2968e28d7a8eab51"
+  },
+  "created": "2026-10-25T22:44:43+08:00",
+  "config": {
+    "experiment": {
+      "name": "asvc_multitask_risk_pilot_v1",
+      "baseline": "persistent_weak_supervision_ASVC",
+      "map_manifest": "data/risk_handover_v1/manifest.json",
+      "map_id": "irregular_workcell_91701",
+      "allowed_runs": [
+        [
+          "C",
+          0
+        ],
+        [
+          "D",
+          0
+        ],
+        [
+          "C",
+          1
+        ],
+        [
+          "D",
+          1
+        ]
+      ],
+      "maximum_parallel_training": 2,
+      "test_pool_evaluation": false
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto",
+      "spatial_shape": [
+        5,
+        15,
+        15
+      ],
+      "scalar_dim": 4,
+      "action_dim": 5
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "training": {
+      "environment_steps": 500000,
+      "replay_capacity": 20000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_steps": 150000,
+      "advice_probability_start": 0.8,
+      "advice_decay_steps": 100000,
+      "advice_rng_offset": 730000,
+      "supervision_start": 1.0,
+      "supervision_decay_steps": 100000,
+      "supervision_floor": 0.1,
+      "margin": 0.8,
+      "td_target_lower": -6.0,
+      "td_target_upper": 10.0,
+      "validation_interval": 10000,
+      "checkpoint_interval": 10000,
+      "log_interval": 1000
+    },
+    "tasks": {
+      "pool_seed": 20261025,
+      "candidate_goals": 50,
+      "unseen_goal_fraction": 0.2,
+      "candidate_starts": 64,
+      "train_count": 240,
+      "validation_count": 50,
+      "unseen_combination_count": 60,
+      "unseen_goal_count": 60,
+      "length_bands": {
+        "short": [
+          12,
+          29
+        ],
+        "medium": [
+          30,
+          49
+        ],
+        "long": [
+          50,
+          79
+        ]
+      },
+      "training_band_ratio": [
+        1,
+        1,
+        1
+      ],
+      "timeout_rule": "max(100, 4 * shortest_path_length + 20)",
+      "tie_break": [
+        "up",
+        "down",
+        "left",
+        "right"
+      ],
+      "sequence_seed_offset": 810000
+    },
+    "scenes": {
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ],
+      "count_rule": "cycle_3_4_5_by_episode",
+      "route_min_cells": 5,
+      "route_max_cells": 11,
+      "move_every": 1,
+      "composition": {
+        "3": [
+          "nominal",
+          "alternative",
+          "background"
+        ],
+        "4": [
+          "nominal",
+          "nominal",
+          "alternative",
+          "background"
+        ],
+        "5": [
+          "nominal",
+          "nominal",
+          "alternative",
+          "alternative",
+          "background"
+        ]
+      },
+      "phase_rule": "uniform_route_index_and_direction",
+      "sequence_rule": "method_independent_training_seed_and_episode_index"
+    },
+    "observation": {
+      "history_frames": 3,
+      "history_visibility": "actual_local_visible_cells_at_capture_time",
+      "history_coordinates": "aligned_to_current_robot_without_repeated_compensation",
+      "initial_missing_history": "zero",
+      "route_input": "disabled_zero_padding"
+    },
+    "risk": {
+      "horizon": 4,
+      "gamma_r": 0.9,
+      "power": 2,
+      "distance": "manhattan_grid_cell_distance",
+      "d_crit": 0,
+      "d_safe": 2,
+      "collision_rule": "destination_in_old_or_new_occupancy_including_swaps",
+      "hard_gate_radius": 1,
+      "association": "mutual_unique_four_neighbor_match_from_observations",
+      "fallback": "static_free_reachable_sets_with_speed_at_most_one_cell_per_step",
+      "unseen_now": "retain_unmatched_historical_detections_with_age_uncertainty",
+      "confident_prediction": "constant_observed_velocity_with_static_obstruction_fallback",
+      "interpretation": "proximity_score_not_collision_probability_or_safety_guarantee",
+      "loss_normalization": "eligible_sample_count_not_weight_sum"
+    },
+    "formal_presets": {
+      "enabled": false,
+      "A": {
+        "advice": false,
+        "supervision": "none",
+        "td_bound": true
+      },
+      "B": {
+        "advice": true,
+        "supervision": "none",
+        "td_bound": true
+      },
+      "C": {
+        "advice": true,
+        "supervision": "fixed",
+        "td_bound": true
+      },
+      "D": {
+        "advice": true,
+        "supervision": "adaptive",
+        "td_bound": true
+      },
+      "E": {
+        "advice": true,
+        "supervision": "adaptive",
+        "td_bound": false
+      },
+      "F": {
+        "advice": false,
+        "supervision": "adaptive",
+        "td_bound": true
+      }
+    },
+    "analysis": {
+      "early_aulc_end": 100000,
+      "late_aulc_start": 250000,
+      "final_window_start": 400000,
+      "descriptive_multitask_success_threshold": 0.8,
+      "descriptive_each_band_threshold": 0.7,
+      "conclusions": "two_seed_pilot_only_no_formal_significance_claim"
+    }
+  },
+  "device": "cuda",
+  "torch_version": "2.13.0+cu126",
+  "expected_steps": 500000,
+  "expected_updates": 499501,
+  "evaluation": "greedy network only, 50 frozen validation scenes, test pools disabled",
+  "restoration": "optimizer, online/target networks, replay and RNG, counters, in-flight environment and local history"
+}

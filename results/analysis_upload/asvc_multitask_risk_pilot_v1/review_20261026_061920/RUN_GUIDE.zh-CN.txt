@@ -1,0 +1,68 @@
+同地图多起终点＋四步风险自适应监督：独立预实验
+
+本轮只运行 C、D 两组，每组 seed 0、1，各 500000 环境步。
+当前正式队列包含四项，不会启动 A/B/E/F、DQfD、原始 D3QN 或 C-Matched。
+系统内存不足 3 GiB 时，调度器只保留一个训练进程；资源允许时最多两个。
+
+实验配置：configs/asvc_multitask_risk_pilot_v1.yaml
+冻结协议：data/asvc_multitask_risk_pilot_v1/frozen_protocol.json
+任务池：data/asvc_multitask_risk_pilot_v1/task_pools.json
+50 个冻结验证场景：data/asvc_multitask_risk_pilot_v1/validation_scenes.json
+六组禁用启动的正式配置：configs/asvc_multitask_risk_pilot_v1_formal/A.yaml 至 F.yaml
+旧文件保护清单：data/asvc_multitask_risk_pilot_v1/legacy_protection.json
+
+训练任务池 240 对，验证池 50 对，未见组合池 60 对，未见目标池 60 对。
+候选目标 50 个，其中 10 个只用于未见目标测试。训练覆盖其余 40 个目标、64 个起点。
+长度按 12–29、30–49、50–79 步三档划分，训练每三个回合各采样一档。
+本轮不评估两个测试池。验证池与训练及测试池的起终点组合互不重叠。
+每回合目标固定，回放记录任务 ID、位置、真实动作、终止/截断标记和观测。
+教师查询以回放条目的任务为准；距离/动作场缓存按地图和目标区分，位置作场内索引。
+等长最优动作按上、下、左、右确定性选取，教师与参考路径共用该动作场。
+
+共同适配：历史通道只保存当时局部可见的障碍，再对齐到当前机器人坐标。
+起始缺失历史置零。网络仍为原 5×15×15＋4 标量输入，路线占位通道及附加标量为零。
+动态场景同时覆盖参考路、替代路和背景区；3/4/5 障碍按回合循环，随机相位和往返方向冻结于确定性生成规则。
+相同训练 seed、回合序号产生相同任务和场景。策略造成回合长度不同，因此按环境步看的回合序号可能不同。
+
+C 保留原代选、硬筛查、监督基础日程和 TD 目标 [-6,10]。
+D 只在合格监督样本内部乘 (1-R)^2，风险基于当前及历史局部观测，沿最优动作场推演四步。
+H=4，gamma_r=0.9，p=2，曼哈顿距离 d_crit=0、d_safe=2，按旧/新占据覆盖交换位置碰撞。
+风险属于启发式接近度，不是碰撞概率或安全保证。
+首次出现、关联歧义、观测转弯、静止/合并及消失检测采用有界速度可达格集合退化。
+自举目标、损失、优化器及梯度裁剪沿用基线；监督损失除以合格样本数量，不除以权重之和。
+风险分数随经验存储，实际监督系数按回放更新时刻的基础日程计算，计数以真实回放更新为准。
+
+超时上限固定为 max(100, 4×静态最短路长度+20)。
+到达/碰撞 terminated；超时 truncated。只有 terminated 关闭 TD 自举，超时保留自举。
+总预算在回合中耗尽时，保留未完成回合状态，不把它伪报为成功、碰撞或超时。
+
+每 10000 步对同一组 50 个验证场景纯网络贪心评估，保留共有静态合法动作掩码。
+不使用教师代选、动态动作保护、探索或网络更新；离线案例的参考动作和风险只在验证全部结束后计算。
+checkpoint_latest.pth 是完整续训状态，包含在线/目标网络、优化器、回放及采样 RNG、所有训练 RNG、教学 RNG、计数、在途环境及实际可见历史。
+model_step_*.pth / model_final.pth 仅为模型权重，不能当作完整续训。
+出现数值或其他失败会保留 failure.json，不自动重跑或替换 seed。
+
+仓库根目录下的命令：
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_multitask_pilot.ps1 -Action Prepare
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_multitask_pilot.ps1 -Action Start -Workers 2
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_multitask_pilot.ps1 -Action Status
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_multitask_pilot.ps1 -Action Report
+
+中断后继续现有四次队列（必须确认旧调度器已退出，文件锁会拒绝重复运行）：
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_multitask_pilot.ps1 -Action Resume -Workers 2
+
+单个中断项续训示例：
+python -u scripts/run_multitask_pilot.py train --group C --seed 0 --resume
+不要与正在管理同一项的队列同时使用单项命令。
+
+自动汇总位置：results/asvc_multitask_risk_pilot_v1/REPORT.json
+四次状态与指标：run_results.csv
+每个 seed 的验证曲线：validation_curves_all_seeds.csv、individual_learning_curves.png
+同 seed 的 D-C 差异：paired_D_minus_C_curves.csv、paired_differences.png
+任务分档曲线：length_band_learning_curves.png
+分风险监督统计：supervision_by_risk.csv；完整分母见各运行 supervision_statistics.json。
+每次运行完成后及队列结束时，调度器自动刷新汇总；运行期间可用 Report 手动刷新。
+
+只有四次都完成后，才报告完整预算 AULC、最终验证成绩及后半程最低值。
+冻结的描述性多任务门槛为最终验证成功率至少 80%，每档至少 70%；仅用于解释，不用于提前停止或选模型。
+同时检查最后 10 万步变化和波动，判断 50 万步是否充分。两个 seed 不作为正式显著性结论，也不代表未见目标测试通过。

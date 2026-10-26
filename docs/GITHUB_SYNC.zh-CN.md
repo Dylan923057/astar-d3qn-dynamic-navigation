@@ -1,5 +1,18 @@
 # GitHub同步范围
 
+最新批次（2026-10-26）：[同地图多起终点与风险自适应监督预实验](ASVC_MULTITASK_PILOT.zh-CN.md) · [阅读包](../results/analysis_upload/asvc_multitask_risk_pilot_v1/LATEST.md)。C/D 各 seed 0、1，共四次训练，全部完成 50 万环境步。D 的最终平均碰撞率更低，但成功率更低、超时更多，未显示学习速度或稳定性的持续增益；两个测试池和正式消融均未运行。
+
+本批独立上传命令，不混入已有 README、旧实验和其他未提交改动：
+
+```powershell
+# 只读预览：校验阅读包及本地来源，不训练、不评估、不暂存
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_multitask_evidence_github.ps1 -Preview
+# 由用户执行提交和推送；不使用代理时省略 ProxyUrl
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_multitask_evidence_github.ps1 -ProxyUrl http://127.0.0.1:7897
+```
+
+克隆后只读校验：`python scripts/package_multitask_evidence.py --verify`，只需 Python 标准库。原工作空间可增加 `--check-sources` 校验原始日志与模型 SHA。权重、完整回放断点、绘图缓存和实时输出保留本地；阅读包内包含冻结输入、源码、四次运行记录、场景明细、监督诊断和图表。以下为历史批次。
+
 最新批次（2026-10-24）：[持续弱监督新版模块消融与密度阅读包](../results/analysis_upload/asvc_persistent_paper_completion_v1/LATEST.md)。10次新训练全部20万步完成；120组评估共60000回合，其中新增15000、复用45000。包含逐seed与逐场景数据、训练诊断、冻结输入及源码、五组PNG/PDF/SVG图和结果解读。
 
 本次使用独立上传脚本，不改变上一批的上传入口。数据已经打包，以下命令只校验/提交/推送，不训练、不重跑评估：
