@@ -1,5 +1,18 @@
 # GitHub同步范围
 
+最新批次（2026-10-27）：[四方法多任务外部基线与静态/动态配对诊断](MULTITASK_COMPARISON_UPLOAD.zh-CN.md) · [完整阅读包](../results/analysis_upload/asvc_multitask_external_v1/LATEST.md)。新增D3QN/DQfD各2seed、复用C/D四次，共8条500000步曲线；全部完成，无失败。含408个检查点、20400条验证记录、AULC、配对诊断、失败轨迹、学习趋势、冻结输入/源码和示范覆盖限制。模型、回放及文档转换工具保留本地，D不升级，未见目标测试及追加训练均未启动。
+
+本批使用独立命令，不混入范围外未提交改动：
+
+```powershell
+# 只读校验/预览，不训练、不评估、不暂存、不联网
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_multitask_comparison_github.ps1 -Preview
+# 用户自行执行提交和推送；不使用代理时省略ProxyUrl
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_multitask_comparison_github.ps1 -ProxyUrl http://127.0.0.1:7897
+```
+
+克隆后只读校验：`python scripts/package_multitask_comparison.py --verify`，仅需标准库；原工作区增加`--check-sources`校验日志、模型及断点来源。此前C/D单独阅读包和旧命令保留如下。
+
 最新批次（2026-10-26）：[同地图多起终点与风险自适应监督预实验](ASVC_MULTITASK_PILOT.zh-CN.md) · [阅读包](../results/analysis_upload/asvc_multitask_risk_pilot_v1/LATEST.md)。C/D 各 seed 0、1，共四次训练，全部完成 50 万环境步。D 的最终平均碰撞率更低，但成功率更低、超时更多，未显示学习速度或稳定性的持续增益；两个测试池和正式消融均未运行。
 
 本批独立上传命令，不混入已有 README、旧实验和其他未提交改动：

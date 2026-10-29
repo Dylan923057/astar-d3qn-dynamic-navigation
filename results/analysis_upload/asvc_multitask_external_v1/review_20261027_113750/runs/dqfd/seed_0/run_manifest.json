@@ -1,0 +1,394 @@
+{
+  "identity": {
+    "method": "dqfd",
+    "seed": 0,
+    "freeze_sha256": "ed88b4ad3b88f32f28964076e44e9eda2e148c33a21adac53450538ec9f9631b"
+  },
+  "config": {
+    "experiment": {
+      "name": "asvc_multitask_risk_pilot_v1",
+      "baseline": "persistent_weak_supervision_ASVC",
+      "map_manifest": "data/risk_handover_v1/manifest.json",
+      "map_id": "irregular_workcell_91701",
+      "allowed_runs": [
+        [
+          "C",
+          0
+        ],
+        [
+          "D",
+          0
+        ],
+        [
+          "C",
+          1
+        ],
+        [
+          "D",
+          1
+        ]
+      ],
+      "maximum_parallel_training": 2,
+      "test_pool_evaluation": false
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto",
+      "spatial_shape": [
+        5,
+        15,
+        15
+      ],
+      "scalar_dim": 4,
+      "action_dim": 5
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "training": {
+      "environment_steps": 500000,
+      "replay_capacity": 20000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_steps": 150000,
+      "advice_probability_start": 0.8,
+      "advice_decay_steps": 100000,
+      "advice_rng_offset": 730000,
+      "supervision_start": 1.0,
+      "supervision_decay_steps": 100000,
+      "supervision_floor": 0.1,
+      "margin": 0.8,
+      "td_target_lower": -6.0,
+      "td_target_upper": 10.0,
+      "validation_interval": 10000,
+      "checkpoint_interval": 10000,
+      "log_interval": 1000
+    },
+    "tasks": {
+      "pool_seed": 20261025,
+      "candidate_goals": 50,
+      "unseen_goal_fraction": 0.2,
+      "candidate_starts": 64,
+      "train_count": 240,
+      "validation_count": 50,
+      "unseen_combination_count": 60,
+      "unseen_goal_count": 60,
+      "length_bands": {
+        "short": [
+          12,
+          29
+        ],
+        "medium": [
+          30,
+          49
+        ],
+        "long": [
+          50,
+          79
+        ]
+      },
+      "training_band_ratio": [
+        1,
+        1,
+        1
+      ],
+      "timeout_rule": "max(100, 4 * shortest_path_length + 20)",
+      "tie_break": [
+        "up",
+        "down",
+        "left",
+        "right"
+      ],
+      "sequence_seed_offset": 810000
+    },
+    "scenes": {
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ],
+      "count_rule": "cycle_3_4_5_by_episode",
+      "route_min_cells": 5,
+      "route_max_cells": 11,
+      "move_every": 1,
+      "composition": {
+        "3": [
+          "nominal",
+          "alternative",
+          "background"
+        ],
+        "4": [
+          "nominal",
+          "nominal",
+          "alternative",
+          "background"
+        ],
+        "5": [
+          "nominal",
+          "nominal",
+          "alternative",
+          "alternative",
+          "background"
+        ]
+      },
+      "phase_rule": "uniform_route_index_and_direction",
+      "sequence_rule": "method_independent_training_seed_and_episode_index"
+    },
+    "observation": {
+      "history_frames": 3,
+      "history_visibility": "actual_local_visible_cells_at_capture_time",
+      "history_coordinates": "aligned_to_current_robot_without_repeated_compensation",
+      "initial_missing_history": "zero",
+      "route_input": "disabled_zero_padding"
+    },
+    "risk": {
+      "horizon": 4,
+      "gamma_r": 0.9,
+      "power": 2,
+      "distance": "manhattan_grid_cell_distance",
+      "d_crit": 0,
+      "d_safe": 2,
+      "collision_rule": "destination_in_old_or_new_occupancy_including_swaps",
+      "hard_gate_radius": 1,
+      "association": "mutual_unique_four_neighbor_match_from_observations",
+      "fallback": "static_free_reachable_sets_with_speed_at_most_one_cell_per_step",
+      "unseen_now": "retain_unmatched_historical_detections_with_age_uncertainty",
+      "confident_prediction": "constant_observed_velocity_with_static_obstruction_fallback",
+      "interpretation": "proximity_score_not_collision_probability_or_safety_guarantee",
+      "loss_normalization": "eligible_sample_count_not_weight_sum"
+    },
+    "formal_presets": {
+      "enabled": false,
+      "A": {
+        "advice": false,
+        "supervision": "none",
+        "td_bound": true
+      },
+      "B": {
+        "advice": true,
+        "supervision": "none",
+        "td_bound": true
+      },
+      "C": {
+        "advice": true,
+        "supervision": "fixed",
+        "td_bound": true
+      },
+      "D": {
+        "advice": true,
+        "supervision": "adaptive",
+        "td_bound": true
+      },
+      "E": {
+        "advice": true,
+        "supervision": "adaptive",
+        "td_bound": false
+      },
+      "F": {
+        "advice": false,
+        "supervision": "adaptive",
+        "td_bound": true
+      }
+    },
+    "analysis": {
+      "early_aulc_end": 100000,
+      "late_aulc_start": 250000,
+      "final_window_start": 400000,
+      "descriptive_multitask_success_threshold": 0.8,
+      "descriptive_each_band_threshold": 0.7,
+      "conclusions": "two_seed_pilot_only_no_formal_significance_claim"
+    }
+  },
+  "external_config": {
+    "experiment": {
+      "name": "asvc_multitask_external_v1",
+      "source_pilot": "asvc_multitask_risk_pilot_v1",
+      "allowed_runs": [
+        [
+          "d3qn",
+          0
+        ],
+        [
+          "dqfd",
+          0
+        ],
+        [
+          "d3qn",
+          1
+        ],
+        [
+          "dqfd",
+          1
+        ]
+      ],
+      "online_environment_steps": 500000,
+      "online_updates": 499501,
+      "online_replay_capacity": 20000,
+      "maximum_training_workers": 2,
+      "test_pool_evaluation": false,
+      "formal_ablations_enabled": false
+    },
+    "dqfd": {
+      "pretraining_updates": 20000,
+      "n_steps": 10,
+      "n_step_weight": 1.0,
+      "expert_weight": 1.0,
+      "l2_weight": 1e-05,
+      "expert_margin": 0.8,
+      "per_alpha": 0.4,
+      "per_beta_start": 0.6,
+      "per_beta_end": 1.0,
+      "per_agent_bonus": 0.001,
+      "per_demo_bonus": 1.0,
+      "priority_error": "absolute_one_step_td_error",
+      "td_loss": "squared_error",
+      "td_target_bound": false
+    },
+    "demonstrations": {
+      "scene_seed_base": 926100000,
+      "attempts_per_training_task": 2,
+      "training_tasks": 240,
+      "total_attempts": 480,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ],
+      "task_order": "sorted_task_id_then_attempt",
+      "scene_seed_rule": "scene_seed_base_plus_10_times_task_index_plus_attempt",
+      "count_rule": "cycle_3_4_5_by_attempt_index",
+      "teacher": "same_frozen_optimal_action_field_and_observed_hard_gate_else_wait",
+      "retention": "successful_noncollision_complete_episodes_only",
+      "budget_adaptation": "prohibited",
+      "validation_or_test_tasks_allowed": false
+    },
+    "diagnostics": {
+      "tasks": "frozen_50_validation_only",
+      "dynamic_scores": "reuse_if_model_scene_and_protocol_identical",
+      "static_condition": "same_task_and_timeout_with_all_dynamic_obstacles_removed",
+      "movement_repeat": "successful_movement_destination_previously_visited_divided_by_successful_moves",
+      "cycle_period_min": 2,
+      "cycle_period_max": 12,
+      "cycle_min_repetitions": 3,
+      "common_grouping": "nominal_optimal_field_reference_old_or_next_cell_dynamic_conflict",
+      "unknown_trace_metrics": "null_not_zero",
+      "representative_rule": "lowest_id_success_and_collision_and_highest_cycle_ratio_timeout",
+      "future_analysis": "offline_only_after_all_policy_decisions",
+      "additional_dynamic_policy_replay": "requires_explicit_user_clarification"
+    },
+    "future_training": {
+      "online_cross_entropy": false,
+      "supervision_floor_sensitivity": false,
+      "five_seed_extension": false,
+      "full_formal_ablation": false
+    }
+  },
+  "device": "cuda",
+  "torch_version": "2.13.0+cu126",
+  "created": "2026-10-26T17:04:50+08:00",
+  "shared_identity": {
+    "pilot_freeze_sha256": "5af3b22bfee03181f013724b655ed2170239ace98c77322d2968e28d7a8eab51",
+    "inputs_sha256": {
+      "task_pools.json": "56a9129b8a1e5b913feca622f6a3dff6ef6236bb3d072d9c4e4e91dd0ceb55ff",
+      "validation_scenes.json": "84ba2665a2dda667bfe418be727b825108ec924a3279d7428e89f71a400a0c80",
+      "training_sequence_preview.json": "97879ac86efc22b37046889f98384a655d6a2649ba88af9855bef150e6ddc135",
+      "legacy_protection.json": "b3c130ddf8936b548161f5fb32b98307c5c4bd34463ef4900971ef6ae91961e2"
+    },
+    "source_sha256": {
+      "configs/asvc_multitask_risk_pilot_v1.yaml": "fbde8720bb045cec379fd642a4247fbdffa43388fc74b01b26fcd056c4b57967",
+      "scripts/analyze_multitask_pilot.py": "f47c3d24dd73b8262d09a0c15c03c2181ccae633970962700d3e4daa6d47d802",
+      "scripts/multitask_pilot_agent.py": "f412e4e1a7acd48a41140bc527c2a6c1c45fa9761e8d770bac1570c6c03d848e",
+      "scripts/multitask_pilot_common.py": "5d3f391e488d2b9c30071c748b2d91e43d4b4f7011263c45e8e57cfaff7a9532",
+      "scripts/multitask_pilot_domain.py": "09dc1316ccd5e44400dc2eef8ce437731be55dc9b6b945d7d4eb55ead5356f41",
+      "scripts/multitask_pilot_engine.py": "46c72ccd88ec3cced2a2c38b2c4c30e91aed6bd1d7f807fe238b34ea94f3728f",
+      "scripts/run_multitask_pilot.py": "aab2ced8c823ef9816af5577757cff400ac984d942bd4ce8282b47d490c9e2b9",
+      "scripts/start_multitask_pilot.ps1": "83a359580b48d89980108bc239002418e7b953c8d14f86326faa4f5f89d65d87",
+      "tests/test_multitask_pilot.py": "87c0d9bce6824f3d19cf298aec7340cdceaea31abc99b51a8b9acf3148eccce3",
+      "src/astar_d3qn/__init__.py": "910a064605b486657aeaa25f9d0f072326e38e80db1fb9b21feeb0309e5412ad",
+      "src/astar_d3qn/agents/__init__.py": "bbdb02a0ed3b2750604cb9479b62a058e56d63ffacd162b7ffa3535540eb9f7f",
+      "src/astar_d3qn/agents/all_eligible_module_ablation.py": "866cf34025b9779b7de4ed2687bbc9b7c34c469affa5af01d2135fc0995f8600",
+      "src/astar_d3qn/agents/astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+      "src/astar_d3qn/agents/astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+      "src/astar_d3qn/agents/astar_replan_wait.py": "7f1fff6f4476436fc3f13ffe579936b5c19343143d3d42dca60043f0e10f1fd3",
+      "src/astar_d3qn/agents/astar_staged_withdrawal.py": "33d087ce6bfad0995663429703e37d06a93896e422e440cfb8f9242bb255e775",
+      "src/astar_d3qn/agents/astar_supervision_only.py": "40d212f4fe6bdc8fc61abd0f13df7c9c2fb56561ff0fef059fcd05d7503a7e0f",
+      "src/astar_d3qn/agents/astar_supervision_tail.py": "8654f07719532216e839b3d077e08fab35f676c8421a1806895b2d4d1e8ef3c1",
+      "src/astar_d3qn/agents/astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+      "src/astar_d3qn/agents/astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+      "src/astar_d3qn/agents/d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+      "src/astar_d3qn/agents/ddqna_adapter.py": "12bdb6c4a2e37d1dac168cf9c4ec73e3c47cb5e00a1aeccfc0a4c5cb6317403b",
+      "src/astar_d3qn/agents/dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+      "src/astar_d3qn/agents/independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+      "src/astar_d3qn/agents/networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+      "src/astar_d3qn/agents/persistent_teaching.py": "ce6a3be5acb4ab0e4b1ebeb884c60d559cfc6ad981af9b2c1d1495680424d8d6",
+      "src/astar_d3qn/agents/reward_study.py": "24d37c412e421cc82a46954c7a58b15d429307f8342e3e478e447a0c69690b1b",
+      "src/astar_d3qn/core/__init__.py": "9e50490d0f1631c78c388ff7d5044407a1f0b8b15bf63a2c8ca7873232bde071",
+      "src/astar_d3qn/core/astar.py": "b1ae18017330ecda7e6db7f5172cd357cbfc89c0cf56e2065e2ba9ef876e5b95",
+      "src/astar_d3qn/core/collisions.py": "db8ff782a290871c4eb05e312278ae4065fc6c08825e3eff7d3d0472baaaf78c",
+      "src/astar_d3qn/core/grid.py": "bc1e7be80c1cedf36f27deb369d8d24594fc6b542279da4e80d034c7a2c4bee9",
+      "src/astar_d3qn/core/metrics.py": "62c32138ded8199f373b5426fb59d7c9827dfafe27ab3d41b5859b8370b1f3e0",
+      "src/astar_d3qn/core/path_progress.py": "6766e2ef4f7dad2f2b23ecf58b5119fc9c8e9da0f81e0873bcbdaca5cda20836",
+      "src/astar_d3qn/core/trajectory.py": "88e9c63dbb7c94953c8796e4964792bc8caa8a7473bdb4706b2e9563122eee3d",
+      "src/astar_d3qn/envs/__init__.py": "a632ae6cbda3c352e204465a10076d16dde6731ce1feea1d5e3977b020dccf35",
+      "src/astar_d3qn/envs/dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+      "src/astar_d3qn/envs/dynamic_scenarios.py": "b72bf3d597a83fbb9f57bbd915e6666cd0cbcd42c6738aaf18aa5befa6fcdc4e",
+      "src/astar_d3qn/envs/path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+      "src/astar_d3qn/envs/reward_study.py": "9a36a53c299a2e8c900402f079faa9de60f172b3e2640c84d6225d55adecbc68",
+      "src/astar_d3qn/envs/spatial_scenarios.py": "b4c5a546a02261a5903139aa2e8f65a5bd2e64b3cd6f34e8de39f09412b4ba62",
+      "src/astar_d3qn/envs/static_grid.py": "1a0c1d53dd4d55034a2e59fdb056f80354cecffeae33bbfd3c68761d4256b719",
+      "src/astar_d3qn/envs/types.py": "c60213f0bcc22aa00629af3e537cb5b193f44ff203ca3f655f1bdbb235a5550f",
+      "src/astar_d3qn/envs/whole_map_route_pool.py": "dde8eebd20dde08c8e522c7fd93b80ed65ed3dcc39ecef134bf50d3792937a13",
+      "src/astar_d3qn/evaluation/__init__.py": "041c5a7d7915aff4fd36058a81ddece471b0cb6f27b48dfcf9bf727f0b76af18",
+      "src/astar_d3qn/evaluation/behavior_oracle.py": "9b17c3ad4f831b26897ab1468be16cb9655377b10e631115243cb5febd10e6d7",
+      "src/astar_d3qn/evaluation/checkpoints.py": "e60a7f70497c1e4c103554cb8d89bb54b443e1217be286538bd96314652c7e77",
+      "src/astar_d3qn/evaluation/conflict.py": "a2f5bb05d0e5e2d1bdee7ab4c599925bb5b0f2998ed0193e9d1f1948c0e914b5",
+      "src/astar_d3qn/evaluation/diagnostics.py": "373bd3b7779b61930894599eaccf9e879f1222930970eb63cacce736c3c86bfc",
+      "src/astar_d3qn/evaluation/rollout.py": "7ebfef498b51923cd20bf806b057aa196c51c30a1a6ad60cb7d2a823c05c2b68",
+      "src/astar_d3qn/evaluation/spatial_witness.py": "a445cf414f0e6ceabb4d6f1a05d23d0db60ba2f562bd690949d303a093d9bdd4",
+      "src/astar_d3qn/maps/__init__.py": "e8d123436babe2d57604c1c55e672591eaf85c274df884f9573cedb94b5a3edd",
+      "src/astar_d3qn/maps/adaptation.py": "335df25986c1dc639c8ae60e9fd027a58eb7943422794a98bd79103eb87e085c",
+      "src/astar_d3qn/maps/io.py": "cc67dd5c027d4441ff479bb86c87c9a202783361aac9b235c599bec322e4e941",
+      "src/astar_d3qn/maps/problem.py": "1c160adebe974d0355a9bdfdaaa4f1d6e51d3632431d09bb1dd09169d2dff0a2",
+      "src/astar_d3qn/maps/random_benchmark.py": "f21f32129c116b3e403a5aa971b6281549a9176495729f50944ea82a5449d3f4",
+      "src/astar_d3qn/maps/render.py": "a704b35217fef382ed63bba7578256429a9a3c30c55859fee033db767f51a914",
+      "src/astar_d3qn/maps/risk_handover.py": "73c2697aa4e9eda381710455d485abdef8c164e127455cae019889e390650dd8",
+      "src/astar_d3qn/maps/structured.py": "d198d841d9d7f087497d09f8f054e14e1ce26a0c35103d58eace696a2b290fbf",
+      "src/astar_d3qn/plotting/__init__.py": "de16ca366f216cf7d6f64e92d9ca42c8ca47f1a991d7df464aca7ef2557f6da7",
+      "src/astar_d3qn/plotting/training_plots.py": "64566acd388b608aa46090e212d67b24794d3ae199bfb9d86fd213c1f4dc575d",
+      "src/astar_d3qn/replay/__init__.py": "6ca34621d0f858df75da5ee5d9f67219f7b4256053af45096538ddfc9fb53420",
+      "src/astar_d3qn/replay/demo.py": "18dd392fcf2ca5fa9cde11d27f075b4bc49892111b906ebb3998e88c6c38c642",
+      "src/astar_d3qn/replay/dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+      "src/astar_d3qn/replay/prioritized.py": "5d19daf1ed4295f7536c053a6e575ae9f6e1c18e4d6fdddf1daae119f9bdf204",
+      "src/astar_d3qn/replay/transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+      "src/astar_d3qn/replay/uniform.py": "3134b49769ca3ebbcac5ad6e0777ef6ff7631fc1794a04aeb63c5e414556ce2c",
+      "src/astar_d3qn/training/__init__.py": "2433ff9c0b44c5fd713ad1d2314cafc3c5ecdf10fe71031fbfa19547d67de13a",
+      "src/astar_d3qn/training/budget.py": "a805cd5838e21fcfde2b549dcf97cb5cfe9d89611556bdc7b1b81f7456401c4d",
+      "src/astar_d3qn/training/demo_collector.py": "ce62513b5099ef26098517b053db4ba47ee9f7acaf9cc564b97e9e6e707c8362",
+      "src/astar_d3qn/training/dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+      "src/astar_d3qn/training/replay_adaptation.py": "ccd0f1c22af9cd2ee1410b4f5809def134dfc7010930f766bd28a8ab9c0c9184",
+      "src/astar_d3qn/training/trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+      "src/astar_d3qn/utils/__init__.py": "4eca4a0dcb8d735ae590f678ff0ccbd48226769ec36be487f8b3fb4a15b83f89",
+      "src/astar_d3qn/utils/config.py": "66259072dfbd1911ef0f23ecefb6ffde359ddc99ec1e135683ab46b6c56dff44",
+      "src/astar_d3qn/utils/io.py": "414e06cdda617d0059cfd38b4d5a609defa62c01b986a62e76d42d06636f4be6",
+      "src/astar_d3qn/utils/seed.py": "f24700aea18ae70f94638e1eecec7c0b01ffe6e4f1c6358b891cd85c3b682468"
+    }
+  },
+  "demonstration_sha256": "b8257373213491a10cc25914817bea20e65fee2633f1fc245c3263bfc257ca6a",
+  "no_td_target_bound": true,
+  "no_online_astar_advice": true,
+  "test_pools_used": false,
+  "expected_online_updates": 499501,
+  "expected_offline_updates": 20000,
+  "zero_step_validation": "after offline pretraining for DQfD, fresh network for D3QN"
+}
