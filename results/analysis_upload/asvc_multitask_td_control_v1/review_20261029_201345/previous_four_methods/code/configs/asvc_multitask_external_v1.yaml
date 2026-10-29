@@ -1,0 +1,56 @@
+experiment:
+  name: asvc_multitask_external_v1
+  source_pilot: asvc_multitask_risk_pilot_v1
+  allowed_runs: [[d3qn, 0], [dqfd, 0], [d3qn, 1], [dqfd, 1]]
+  online_environment_steps: 500000
+  online_updates: 499501
+  online_replay_capacity: 20000
+  maximum_training_workers: 2
+  test_pool_evaluation: false
+  formal_ablations_enabled: false
+dqfd:
+  pretraining_updates: 20000
+  n_steps: 10
+  n_step_weight: 1.0
+  expert_weight: 1.0
+  l2_weight: 0.00001
+  expert_margin: 0.8
+  per_alpha: 0.4
+  per_beta_start: 0.6
+  per_beta_end: 1.0
+  per_agent_bonus: 0.001
+  per_demo_bonus: 1.0
+  priority_error: absolute_one_step_td_error
+  td_loss: squared_error
+  td_target_bound: false
+demonstrations:
+  scene_seed_base: 926100000
+  attempts_per_training_task: 2
+  training_tasks: 240
+  total_attempts: 480
+  obstacle_counts: [3, 4, 5]
+  task_order: sorted_task_id_then_attempt
+  scene_seed_rule: scene_seed_base_plus_10_times_task_index_plus_attempt
+  count_rule: cycle_3_4_5_by_attempt_index
+  teacher: same_frozen_optimal_action_field_and_observed_hard_gate_else_wait
+  retention: successful_noncollision_complete_episodes_only
+  budget_adaptation: prohibited
+  validation_or_test_tasks_allowed: false
+diagnostics:
+  tasks: frozen_50_validation_only
+  dynamic_scores: reuse_if_model_scene_and_protocol_identical
+  static_condition: same_task_and_timeout_with_all_dynamic_obstacles_removed
+  movement_repeat: successful_movement_destination_previously_visited_divided_by_successful_moves
+  cycle_period_min: 2
+  cycle_period_max: 12
+  cycle_min_repetitions: 3
+  common_grouping: nominal_optimal_field_reference_old_or_next_cell_dynamic_conflict
+  unknown_trace_metrics: null_not_zero
+  representative_rule: lowest_id_success_and_collision_and_highest_cycle_ratio_timeout
+  future_analysis: offline_only_after_all_policy_decisions
+  additional_dynamic_policy_replay: requires_explicit_user_clarification
+future_training:
+  online_cross_entropy: false
+  supervision_floor_sensitivity: false
+  five_seed_extension: false
+  full_formal_ablation: false

@@ -1,0 +1,48 @@
+experiment:
+  name: asvc_multitask_td_control_v1
+  shared_pilot: asvc_multitask_risk_pilot_v1
+  shared_external_baselines: asvc_multitask_external_v1
+  method: d3qn_bound
+  seeds: [0, 1]
+  online_environment_steps: 500000
+  expected_online_updates: 499501
+  offline_updates: 0
+  maximum_training_workers: 2
+  default_training_workers: 1
+  minimum_free_gib_for_second_worker: 4
+algorithm:
+  base: unchanged_ExternalD3QNAgent_uniform_online_branch
+  complete_td_target_clip: [-6, 10]
+  clip_q_outputs: false
+  astar_action_advice: false
+  action_supervision: false
+  risk_soft_weighting: false
+  demonstration_prefill: false
+  permanent_demonstrations: false
+  prioritized_replay: false
+  additional_losses: false
+logging:
+  raw_and_clipped_target_ranges: every_update_aggregated_per_1000_environment_steps
+  target_sample_interval_updates: 1000
+  target_samples: full_batch_at_first_and_each_interval
+  full_checkpoint_interval_steps: 10000
+diagnostics:
+  missing_c_d_dynamic_replay_authorized: true
+  authorization_date: '2026-10-29'
+  replay_only_missing_trajectories: true
+  original_scores_and_logs_immutable: true
+  epsilon: 0
+  updates: 0
+  actual_evaluation_supervision_weight: 0
+  teacher_and_risk_annotation: strictly_after_policy_execution
+  hypothetical_c_weight: 0.1
+  hypothetical_d_weight: 0.1_times_1_minus_risk_squared
+  reference_groups: reuse_frozen_policy_independent_reference_groups
+  future_obstacle_information: offline_error_analysis_only
+scope:
+  ce_training: false
+  supervision_floor_scan: false
+  five_seed_extension: false
+  full_ablation: false
+  unseen_combination_test: false
+  unseen_goal_test: false

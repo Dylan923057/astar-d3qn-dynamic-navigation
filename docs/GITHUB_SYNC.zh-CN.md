@@ -1,5 +1,17 @@
 # GitHub同步范围
 
+最新批次（2026-10-29）：[TD-only控制与完整循环证据](TD_CONTROL_GITHUB_UPLOAD.zh-CN.md) · [五方法阅读包](../results/analysis_upload/asvc_multitask_td_control_v1/LATEST.md)。新增2次TD控制、复用8次运行；所有训练和诊断已完成。TD-only平均成功14%→31%，C为74%，C−TD-only是教学组合差。包含25500条验证、1000份完整配对轨迹、五动作Q与教师/风险事后诊断、64000个目标样本及80000条最终回放审计；旧包保留，其他训练和测试池未启动。
+
+本批限定范围命令，预览只读：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_td_control_github.ps1 -Preview
+# 用户自行提交推送；不用代理时省略ProxyUrl
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_td_control_github.ps1 -ProxyUrl http://127.0.0.1:7897
+```
+
+克隆后标准库校验：`python scripts/package_td_control_evidence.py --verify`。仅原工作区可加`--check-sources`复核模型/断点/原日志。模型、回放、缓存和范围外改动留在本地，不自动训练、评估或推送。此前批次保留如下。
+
 最新批次（2026-10-27）：[四方法多任务外部基线与静态/动态配对诊断](MULTITASK_COMPARISON_UPLOAD.zh-CN.md) · [完整阅读包](../results/analysis_upload/asvc_multitask_external_v1/LATEST.md)。新增D3QN/DQfD各2seed、复用C/D四次，共8条500000步曲线；全部完成，无失败。含408个检查点、20400条验证记录、AULC、配对诊断、失败轨迹、学习趋势、冻结输入/源码和示范覆盖限制。模型、回放及文档转换工具保留本地，D不升级，未见目标测试及追加训练均未启动。
 
 本批使用独立命令，不混入范围外未提交改动：

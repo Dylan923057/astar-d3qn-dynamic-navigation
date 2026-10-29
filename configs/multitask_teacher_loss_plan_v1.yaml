@@ -1,0 +1,38 @@
+status: proposed_not_executed
+training_enabled: false
+description: same_static_teacher_online_CE_versus_existing_large_margin
+full_qdagger_replication: false
+shared_protocol: configs/asvc_multitask_risk_pilot_v1.yaml
+shared_base_method: C
+shared:
+  teacher: frozen_goal_conditioned_optimal_action_field
+  hard_screen: identical_observation_gate_and_collision_transition_rejection
+  action_advice_schedule: unchanged_C_0.8_to_0_by_100000
+  advice_risk_gate: unchanged_C
+  complete_td_target_clip: [-6, 10]
+  base_supervision_schedule: max_0.1_and_1_minus_step_divided_by_100000
+  risk_soft_weighting: false
+  supervision_denominator: max_1_eligible_sample_count
+  epsilon_schedule: unchanged_1_to_0.05_by_150000
+  training_tasks: 240
+  validation_tasks: 50
+  test_pools_allowed: false
+  replay: 20000
+  batch: 64
+tuning:
+  seeds: [0, 1]
+  online_steps_per_candidate_seed: 100000
+  large_margin_candidates: [0.4, 0.8, 1.6]
+  cross_entropy_temperature_candidates: [0.5, 1.0, 2.0]
+  selection: highest_two_seed_mean_validation_AULC_0_100000
+  tie_break: middle_candidate
+  limitation: 100000_step_tuning_does_not_cover_long_post_withdrawal_behavior
+final:
+  seeds: [0, 1]
+  online_steps_per_seed: 500000
+  reuse_C_only_if_selected_margin_is_0.8_and_all_protocol_hashes_match: true
+  seed_selection_is_not_blind_independent_replication: true
+execution:
+  current_round_training_allowed: false
+  actual_training_runner_implemented: false
+  request_generation_only: true
