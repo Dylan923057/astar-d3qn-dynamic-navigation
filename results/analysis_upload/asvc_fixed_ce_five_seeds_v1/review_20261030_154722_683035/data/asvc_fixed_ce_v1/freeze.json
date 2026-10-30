@@ -1,0 +1,3993 @@
+{
+  "config": {
+    "experiment": {
+      "name": "asvc_fixed_ce_v1",
+      "output_root": "outputs/asvc_fixed_ce_v1",
+      "run_name_prefix": "whole_map_pool_91701_7obs",
+      "protocol": "fixed_start_goal_same_teacher_online_ce_v1",
+      "check_root": "results/asvc_fixed_ce_v1",
+      "initialization": "paired_random"
+    },
+    "dataset": {
+      "source_manifest": "data/risk_handover_v1/manifest.json",
+      "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+      "route_pool_protocol": "dynamic_route_pool_v2",
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "map_id": "irregular_workcell_91701",
+      "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+      "validation_reference": "outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json"
+    },
+    "dynamic_route_pool": {
+      "composition": {
+        "high_interaction": 2,
+        "alternative_branch": 2,
+        "background": 1
+      },
+      "move_every": 1,
+      "sampling_trials_per_episode": 1000,
+      "training_sampling_seed_offset": 91701000,
+      "validation_sampling_seed": 91701999,
+      "validation_episodes": 50,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ]
+    },
+    "environment": {
+      "window_size": 15,
+      "spatial_channels": 4,
+      "action_count": 5,
+      "max_steps": 300,
+      "terminate_on_collision": true,
+      "mask_static_invalid_actions": true
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto"
+    },
+    "training": {
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "replay_strategy": "uniform",
+      "episodes": 1000000,
+      "max_environment_steps": 200000,
+      "replay_capacity": 10000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 1000000,
+      "epsilon_decay_environment_steps": 150000,
+      "validation_interval_environment_steps": 10000,
+      "demo_fraction": 0.0
+    },
+    "guidance": {
+      "methods": [
+        "unguided",
+        "path_guided"
+      ],
+      "lookahead_steps": 4,
+      "projection": "nearest_manhattan_earliest_tie",
+      "path_source": "frozen_nominal_static_astar",
+      "added_spatial_channels": 1,
+      "added_scalar_dim": 2,
+      "control": "zero_added_inputs_same_network"
+    },
+    "rule_baseline": {
+      "method": "astar_replan_wait",
+      "information": "known_static_map_and_current_local_dynamic_frame"
+    },
+    "integration": {
+      "steps_per_branch": 8,
+      "batch_size": 4,
+      "learning_starts": 4,
+      "device": "cpu"
+    },
+    "training_advice": {
+      "methods": [
+        "unguided",
+        "astar_fixed",
+        "astar_decay",
+        "astar_risk_decay",
+        "astar_budget_matched"
+      ],
+      "probability": 0.8,
+      "decay_environment_steps": 100000,
+      "risk_radius": 1,
+      "rng_seed_offset": 730000,
+      "teacher": "static_astar_replan_from_current_position",
+      "risk_information": "current_and_two_previous_observed_dynamic_frames",
+      "evaluation_advice": false,
+      "observation_guidance": false
+    },
+    "value_repair": {
+      "methods": [
+        "unguided_raw",
+        "unguided_bound",
+        "advice_raw",
+        "advice_bound",
+        "advice_margin",
+        "advice_bound_margin"
+      ],
+      "target_lower": -6.0,
+      "target_upper": 10.0,
+      "margin": 0.8,
+      "margin_weight": 1.0,
+      "margin_decay_environment_steps": 100000,
+      "labels": "matching_executed_astar_action_observed_risk_clear_noncollision",
+      "competitor_mask": "static_valid_only",
+      "evaluation_advice": false,
+      "probe_environment_steps": 2000,
+      "probe_device": "cpu",
+      "probe_epsilon_decay_environment_steps": 150000
+    },
+    "execution_consistency": {
+      "method": "advice_bound_margin_all_eligible",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "require_executed_teacher_match": false,
+      "registration_root": "data/whole_map_91701_execution_consistency_v1",
+      "teacher_action_separate_from_transition_action": true,
+      "reweight_or_resample": false,
+      "use_independent500": false,
+      "pretraining_updates": 0,
+      "offline_demonstrations": 0
+    },
+    "persistent_teaching": {
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "registration_root": "data/asvc_persistent_teaching_v1",
+      "baseline_root": "outputs/whole_map_91701_execution_consistency_v1/advice_bound_margin_all_eligible",
+      "environment_steps": 200000,
+      "schedule": "maximum_of_original_schedule_and_floor",
+      "variants": {
+        "supervision_floor": {
+          "advice_floor": 0.0,
+          "supervision_floor": 0.1
+        },
+        "advice_floor": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.0
+        },
+        "both_floors": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.1
+        }
+      },
+      "evaluation_advice": false,
+      "independent500_used": false
+    },
+    "ce_control": {
+      "seeds": [
+        0,
+        1
+      ],
+      "maximum_new_training_runs": 2,
+      "environment_steps": 200000,
+      "expected_gradient_updates": 199501,
+      "registration_root": "data/asvc_fixed_ce_v1",
+      "baseline_root": "outputs/asvc_persistent_teaching_v1/supervision_floor",
+      "baseline_variant": "supervision_floor",
+      "supervision_loss": "masked_cross_entropy",
+      "temperature": 1.0,
+      "supervision_floor": 0.1,
+      "advice_floor": 0.0,
+      "initialization": "fresh_random_paired_with_existing_margin_seed",
+      "evaluation": "original_frozen50_every_10000_crossing_at_episode_end",
+      "evaluation_advice": false,
+      "independent500_used": false,
+      "pretraining_updates": 0,
+      "soft_risk_weight": false,
+      "model_selection": "final_200000_only",
+      "aulc_intervals": [
+        [
+          0,
+          50000
+        ],
+        [
+          0,
+          200000
+        ],
+        [
+          100000,
+          200000
+        ]
+      ],
+      "aulc_rule": "piecewise_linear_in_actual_environment_steps_normalized_by_interval_length",
+      "statistics": "paired_two_seed_exploratory_mean_and_sample_sd"
+    }
+  },
+  "source_sha256": {
+    "scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+    "configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+    "configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+    "src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+    "src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+    "configs\\whole_map_91701_execution_consistency_v1.yaml": "b8f87daf55d0eb6504a5508407393cf4d1984567b9354a4db660c57d6a9ab055",
+    "scripts\\run_execution_consistency.py": "7cb0dcefc504852fed2076643347846da743082fd1f570b7d706c1e30a8c586c",
+    "scripts\\replication_recovery.py": "a1f27e10adbba320378d690ae3205fb70d6054ecacaf25e95ce7ebfc6ff74139",
+    "scripts\\teaching_efficiency_common.py": "05759e62b6f8c81754db6d1b90013a729704c8437a5e6be92736eb868053cce0",
+    "src\\astar_d3qn\\agents\\independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+    "src\\astar_d3qn\\agents\\astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+    "tests\\test_execution_consistency.py": "c1a528a7d5bc3f1fa45b4c87aa6927c16df87b191a8e4c77c96862867f74c24f",
+    "configs\\asvc_persistent_teaching_v1.yaml": "1aab447027ee307ba3c72ca86e2a9b79b54ac83c2141d77c2ea610af071dfc6f",
+    "scripts\\run_persistent_teaching.py": "f8735c52aaed2cb7ecaea3fc49606eff1366b8fdacb7dfbd592aa6a59ed8254e",
+    "tests\\test_persistent_teaching.py": "e43140fab068acd90e49634ed5aa7defec7bdb98f4ff796bcfa25211c4cf3ddb",
+    "src\\astar_d3qn\\__init__.py": "910a064605b486657aeaa25f9d0f072326e38e80db1fb9b21feeb0309e5412ad",
+    "src\\astar_d3qn\\agents\\__init__.py": "bbdb02a0ed3b2750604cb9479b62a058e56d63ffacd162b7ffa3535540eb9f7f",
+    "src\\astar_d3qn\\agents\\all_eligible_module_ablation.py": "866cf34025b9779b7de4ed2687bbc9b7c34c469affa5af01d2135fc0995f8600",
+    "src\\astar_d3qn\\agents\\astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+    "src\\astar_d3qn\\agents\\astar_replan_wait.py": "7f1fff6f4476436fc3f13ffe579936b5c19343143d3d42dca60043f0e10f1fd3",
+    "src\\astar_d3qn\\agents\\astar_staged_withdrawal.py": "33d087ce6bfad0995663429703e37d06a93896e422e440cfb8f9242bb255e775",
+    "src\\astar_d3qn\\agents\\astar_supervision_only.py": "40d212f4fe6bdc8fc61abd0f13df7c9c2fb56561ff0fef059fcd05d7503a7e0f",
+    "src\\astar_d3qn\\agents\\astar_supervision_tail.py": "8654f07719532216e839b3d077e08fab35f676c8421a1806895b2d4d1e8ef3c1",
+    "src\\astar_d3qn\\agents\\ddqna_adapter.py": "12bdb6c4a2e37d1dac168cf9c4ec73e3c47cb5e00a1aeccfc0a4c5cb6317403b",
+    "src\\astar_d3qn\\agents\\dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+    "src\\astar_d3qn\\agents\\networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+    "src\\astar_d3qn\\agents\\persistent_teaching.py": "ce6a3be5acb4ab0e4b1ebeb884c60d559cfc6ad981af9b2c1d1495680424d8d6",
+    "src\\astar_d3qn\\agents\\reward_study.py": "24d37c412e421cc82a46954c7a58b15d429307f8342e3e478e447a0c69690b1b",
+    "src\\astar_d3qn\\core\\__init__.py": "9e50490d0f1631c78c388ff7d5044407a1f0b8b15bf63a2c8ca7873232bde071",
+    "src\\astar_d3qn\\core\\astar.py": "b1ae18017330ecda7e6db7f5172cd357cbfc89c0cf56e2065e2ba9ef876e5b95",
+    "src\\astar_d3qn\\core\\collisions.py": "db8ff782a290871c4eb05e312278ae4065fc6c08825e3eff7d3d0472baaaf78c",
+    "src\\astar_d3qn\\core\\grid.py": "bc1e7be80c1cedf36f27deb369d8d24594fc6b542279da4e80d034c7a2c4bee9",
+    "src\\astar_d3qn\\core\\metrics.py": "62c32138ded8199f373b5426fb59d7c9827dfafe27ab3d41b5859b8370b1f3e0",
+    "src\\astar_d3qn\\core\\path_progress.py": "6766e2ef4f7dad2f2b23ecf58b5119fc9c8e9da0f81e0873bcbdaca5cda20836",
+    "src\\astar_d3qn\\core\\trajectory.py": "88e9c63dbb7c94953c8796e4964792bc8caa8a7473bdb4706b2e9563122eee3d",
+    "src\\astar_d3qn\\envs\\__init__.py": "a632ae6cbda3c352e204465a10076d16dde6731ce1feea1d5e3977b020dccf35",
+    "src\\astar_d3qn\\envs\\dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+    "src\\astar_d3qn\\envs\\dynamic_scenarios.py": "b72bf3d597a83fbb9f57bbd915e6666cd0cbcd42c6738aaf18aa5befa6fcdc4e",
+    "src\\astar_d3qn\\envs\\path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+    "src\\astar_d3qn\\envs\\reward_study.py": "9a36a53c299a2e8c900402f079faa9de60f172b3e2640c84d6225d55adecbc68",
+    "src\\astar_d3qn\\envs\\spatial_scenarios.py": "b4c5a546a02261a5903139aa2e8f65a5bd2e64b3cd6f34e8de39f09412b4ba62",
+    "src\\astar_d3qn\\envs\\static_grid.py": "1a0c1d53dd4d55034a2e59fdb056f80354cecffeae33bbfd3c68761d4256b719",
+    "src\\astar_d3qn\\envs\\types.py": "c60213f0bcc22aa00629af3e537cb5b193f44ff203ca3f655f1bdbb235a5550f",
+    "src\\astar_d3qn\\envs\\whole_map_route_pool.py": "dde8eebd20dde08c8e522c7fd93b80ed65ed3dcc39ecef134bf50d3792937a13",
+    "src\\astar_d3qn\\evaluation\\__init__.py": "041c5a7d7915aff4fd36058a81ddece471b0cb6f27b48dfcf9bf727f0b76af18",
+    "src\\astar_d3qn\\evaluation\\behavior_oracle.py": "9b17c3ad4f831b26897ab1468be16cb9655377b10e631115243cb5febd10e6d7",
+    "src\\astar_d3qn\\evaluation\\checkpoints.py": "e60a7f70497c1e4c103554cb8d89bb54b443e1217be286538bd96314652c7e77",
+    "src\\astar_d3qn\\evaluation\\conflict.py": "a2f5bb05d0e5e2d1bdee7ab4c599925bb5b0f2998ed0193e9d1f1948c0e914b5",
+    "src\\astar_d3qn\\evaluation\\diagnostics.py": "373bd3b7779b61930894599eaccf9e879f1222930970eb63cacce736c3c86bfc",
+    "src\\astar_d3qn\\evaluation\\rollout.py": "7ebfef498b51923cd20bf806b057aa196c51c30a1a6ad60cb7d2a823c05c2b68",
+    "src\\astar_d3qn\\evaluation\\spatial_witness.py": "a445cf414f0e6ceabb4d6f1a05d23d0db60ba2f562bd690949d303a093d9bdd4",
+    "src\\astar_d3qn\\maps\\__init__.py": "e8d123436babe2d57604c1c55e672591eaf85c274df884f9573cedb94b5a3edd",
+    "src\\astar_d3qn\\maps\\adaptation.py": "335df25986c1dc639c8ae60e9fd027a58eb7943422794a98bd79103eb87e085c",
+    "src\\astar_d3qn\\maps\\io.py": "cc67dd5c027d4441ff479bb86c87c9a202783361aac9b235c599bec322e4e941",
+    "src\\astar_d3qn\\maps\\problem.py": "1c160adebe974d0355a9bdfdaaa4f1d6e51d3632431d09bb1dd09169d2dff0a2",
+    "src\\astar_d3qn\\maps\\random_benchmark.py": "f21f32129c116b3e403a5aa971b6281549a9176495729f50944ea82a5449d3f4",
+    "src\\astar_d3qn\\maps\\render.py": "a704b35217fef382ed63bba7578256429a9a3c30c55859fee033db767f51a914",
+    "src\\astar_d3qn\\maps\\risk_handover.py": "73c2697aa4e9eda381710455d485abdef8c164e127455cae019889e390650dd8",
+    "src\\astar_d3qn\\maps\\structured.py": "d198d841d9d7f087497d09f8f054e14e1ce26a0c35103d58eace696a2b290fbf",
+    "src\\astar_d3qn\\plotting\\__init__.py": "de16ca366f216cf7d6f64e92d9ca42c8ca47f1a991d7df464aca7ef2557f6da7",
+    "src\\astar_d3qn\\plotting\\training_plots.py": "64566acd388b608aa46090e212d67b24794d3ae199bfb9d86fd213c1f4dc575d",
+    "src\\astar_d3qn\\replay\\__init__.py": "6ca34621d0f858df75da5ee5d9f67219f7b4256053af45096538ddfc9fb53420",
+    "src\\astar_d3qn\\replay\\demo.py": "18dd392fcf2ca5fa9cde11d27f075b4bc49892111b906ebb3998e88c6c38c642",
+    "src\\astar_d3qn\\replay\\dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+    "src\\astar_d3qn\\replay\\prioritized.py": "5d19daf1ed4295f7536c053a6e575ae9f6e1c18e4d6fdddf1daae119f9bdf204",
+    "src\\astar_d3qn\\replay\\transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+    "src\\astar_d3qn\\replay\\uniform.py": "3134b49769ca3ebbcac5ad6e0777ef6ff7631fc1794a04aeb63c5e414556ce2c",
+    "src\\astar_d3qn\\training\\__init__.py": "2433ff9c0b44c5fd713ad1d2314cafc3c5ecdf10fe71031fbfa19547d67de13a",
+    "src\\astar_d3qn\\training\\budget.py": "a805cd5838e21fcfde2b549dcf97cb5cfe9d89611556bdc7b1b81f7456401c4d",
+    "src\\astar_d3qn\\training\\demo_collector.py": "ce62513b5099ef26098517b053db4ba47ee9f7acaf9cc564b97e9e6e707c8362",
+    "src\\astar_d3qn\\training\\dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+    "src\\astar_d3qn\\training\\replay_adaptation.py": "ccd0f1c22af9cd2ee1410b4f5809def134dfc7010930f766bd28a8ab9c0c9184",
+    "src\\astar_d3qn\\utils\\__init__.py": "4eca4a0dcb8d735ae590f678ff0ccbd48226769ec36be487f8b3fb4a15b83f89",
+    "src\\astar_d3qn\\utils\\config.py": "66259072dfbd1911ef0f23ecefb6ffde359ddc99ec1e135683ab46b6c56dff44",
+    "src\\astar_d3qn\\utils\\io.py": "414e06cdda617d0059cfd38b4d5a609defa62c01b986a62e76d42d06636f4be6",
+    "src\\astar_d3qn\\utils\\seed.py": "f24700aea18ae70f94638e1eecec7c0b01ffe6e4f1c6358b891cd85c3b682468",
+    "configs\\asvc_fixed_ce_v1.yaml": "78077faef029bff8ebaf15387df02df2d078f57d466a0a03441f54d4142db4e4",
+    "tests\\test_fixed_ce.py": "82d6b18ebcaf5b269e7787cabf4e8607b2f534ec5e95fa59fb04c93cee8e1487",
+    "docs\\ASVC_FIXED_CE.zh-CN.md": "be1b75c8eef53d3881607d9736e9afd587058f8d753c7ec46fbbe43fa8acf126",
+    "scripts\\start_fixed_ce.ps1": "a7063e749fb149fd9c90c06ee0704c94ee3bf2a6938f4e40c490c75b02faeb34",
+    "scripts\\analyze_fixed_ce.py": "80a93351aca7b5c9e0a2c42ecab82816fcc6e618602c4fb0b0349ff0d34bc61c",
+    "scripts\\run_fixed_ce.py": "b5cf34a1f0b3a669f2272f45da1cd79292482e871e3a3698c1ccfb4721cd8db5",
+    "scripts\\fixed_ce_agent.py": "062aa570813d34067d3359f95d2e7ce5c35237e1ad4f759ed4d63d020d5965c5",
+    "scripts\\fixed_ce_common.py": "5c92425052e194a90f20fb75e515930fd9f2f90e49ddc871a83984b1113ade9c"
+  },
+  "protected_files_sha256": {
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\advice_budget.csv": "21d57c2435d449e0083c4cb0210e3ff094c9b121f034d5a7d5aa8eaef623c1de",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\failure_behaviors.csv": "fbac59fd2ea85dbb065b9aea55a031088fd7e43e5003b80e9c0e7ea78a9864b8",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_final.pth": "626050f4b70796500dd0d1db81d71296b7307dc83813e18a7fd5f5313483e949",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_000000.pth": "065362931a1a6a13484e7edf05a83e621daa69084d71535e9f24957b3503f968",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_010062.pth": "65df48ad31aea9b66544f6dd7c1220e9a55676e8bece7512382036969469b371",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_020066.pth": "fd085ce65fe927fc330305760cd1ff429fe7152b95ceaeaf5422921b989fa80c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_030092.pth": "74f41c98eadb189352387bfa81e33eee90c5a60cb26598d32987a0e6321104ea",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_040017.pth": "578222c59788896b824253c9d010224222fc8a50cf60db29285eff205f646527",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_050053.pth": "ab6bda8ddf0c7a9da552c9ce9bb66a34ab06019f9ad7f8916b83279ccc0047a5",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_060100.pth": "d34507515ebe266daf5d6145edb2630b8873c0b95034d6cb68f07499345cbb75",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_070011.pth": "6e76cc128cfa44443093f48421a2eec0f9f00779c2b0aadc5698b1b7120d37a3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_080062.pth": "a0d3092daf1389039ed630fa39841a08a408bd4d9cb2693a82fc96f3ca0f52ff",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_090028.pth": "3bd0b769c5762e1028613c89f1d9eeac0e2b20275e43660155838296e5a5034a",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_100025.pth": "a45e3ecff81240655c1e9f114ec5d0802746a920d605305989110d99e0f50758",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_110078.pth": "577f9e35f06eb1d6ecaca86274c2277c7a55e75906d7015ebcbc1e548be5085b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_120068.pth": "33e85b77bd4fec6c53d3914adde8d9b047afa178da58f5ba988bf90a03e49aa1",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_130025.pth": "dfe9d6c9e0b5c97baecf772350ab80bc989bf9ceeb82dbb1cfb2cd9cb6e5fabb",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_140043.pth": "5ee1f91ef44f86e4313f85ee17ed709e84f302a42e34ae1056c7461f27a9f785",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_150053.pth": "bbb78613ae45fcb8c749a579cb279f1bd98ece4f6888b732d6b4d77db6eab8c7",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_160020.pth": "58ceaeb67bca28af029c432581f77427fca68ac8c766bad9b17e593b2f135c7e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_170070.pth": "ed8f444e34c380e5c0710e8ad99909ea55c99864944603f2bef106c131c51006",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_180030.pth": "2b1cd2897190bdcc0ef2eba10835328c86aa69324b274890bdd63606b20ef198",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_190038.pth": "5bfc607c53c7be56986dd8e5957fffea3df5432b519cafa8370f12a8b5516e35",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_200000.pth": "53d29b644b3487b3e59ed899b9f7741ed1c6ebc0ebce2c8a141846163429533b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\prefix_parity.json": "3b2070880a56a7275e67918846342f29cc902fcffd842b9377de32b273f66d91",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\recovery_latest.pth": "43870140f1ae8ca72db1d74453a47723e92fd8eb11c93ddead804106f9dee78b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\result.json": "8960066a27b31be7dff564d2a1c0af8c8afa609f90a3c3be842ef1f6b5ff8a45",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\run_manifest.json": "6c8c33f6bf33682e2ce14dba2b605c5662cad0ee78cc1220a55ec02e8381d542",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\supervision_alignment.csv": "abcb1025a3962ff41eb1b9a635f3ff565f2169b80b7d01ba7a7c278f795aa1e0",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\training.csv": "8718ba5b3c648877c7e4fe34417d8fc2f9327dfc91fb757aa7e838cb09308448",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_curve.csv": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_details.csv": "bc16ba61a31d8c62b44bc98785d820c783ea36f667abd03f3220a6ebfe800d02",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_000000.json": "dada31427a857b091ec36b2894e57762fd0dd875af03ff5d535405c58a460490",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_010062.json": "08695e88ea0083dda31e88c8100aa26a6068a6ca210635c17de3d7f75efcdc4e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_020066.json": "3a6d8f2ca2e7ddb0ffc38763aaadb78bf140c8ff1425e40a1b356996663cafd6",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_030092.json": "f9f51bf308d0a338177b79bc4191b56b7d2b401829ed1dc883a1c821ae177e40",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_040017.json": "12c82e7bb3773d4c1fb36d6a6d99ba9cb32c508729fccbbd1113e90919c49d4a",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_050053.json": "33e2f4b3e98f0a64c3f862e2dd2f4cd1a228510f551637b3703c35d694d705fe",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_060100.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_070011.json": "9c1882a76e228fc5704f6e5540e6bdc947bd913453c27094dcaa092ad56552e3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_080062.json": "a4da9e7b367bbdb82143c87ce52baa032d58ab724518a4218d26658921be5c9b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_090028.json": "e6cdaaa58fdf0a9776540e134e3e137c40a4e1048131d0a4d53b1ef256f8cffb",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_100025.json": "ec90187260e50df33d54cbddffcd2c9a8b89a1ea98270a225b5fefaa80b7c5ec",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_110078.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_120068.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_130025.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_140043.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_150053.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_160020.json": "dffc0797568059baf366fb03ed016f888996fe42d1a4ac26e43d8e6d1df93c69",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_170070.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_180030.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_190038.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\value_learning.csv": "504411e161cdb673a68bf548d1998b5719368bb7cf8b5f9af1a94920e439ef1f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\advice_budget.csv": "d694b34edd18ff7c99048eb60df8c1864a1127b11c094ff597f13e8bd4e94beb",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\failure_behaviors.csv": "849f915baaf3ffe2c65b507ed9403279c0a6794fca0374714f42577370610eb7",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_final.pth": "269047fd17ac77ed1a9ff1fe532f99dc50083973aeb3207eba1022f993f224da",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_000000.pth": "00f33e4a2a566ca6abd0109821529f7198d5bf3ab365cb0a5c3232dd0b85855e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_010014.pth": "64c9fde19ae921ac58a57220369f053ac8cbdc5494f24d583ac65a08a7def1f9",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_020084.pth": "5c057e1491c50c53249203a8ec7ae00617eba75a728af3beac25f0602204ab32",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_030040.pth": "ee6026cd790815c7837cac27d7ecff5c26a30396f05a29d81476ada0d23ad72e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_040058.pth": "86afef18f1b5533c18a040d862683304c5f342c0a67193277d4d9a657de180b3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_050105.pth": "1c0bca91f760e96b90ab1ea955f8f463aad412097b7552d9d3454df2f4a9ad6c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_060059.pth": "d4fd7346481caed1541de3fd1ed4731e3897f273654aab8fd606d9fc6b992f45",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_070015.pth": "62c20f3bc12a7de26c862b7bbdae9748ef4200726d94a9c46a46109827a720c0",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_080067.pth": "231635fc50e17aa79934d61befb8a27a5c4974c81fe8ca6df2c5ce1f84dfce30",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_090013.pth": "4c598229b1d2719c411d45de00683d5ac8b44465a257a21d86ab0352ca3685fd",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_100097.pth": "56d1aa0f8c1718b375bf8af16ae02dcfb0958cae01b849afad79d5ec3aa000c2",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_110033.pth": "d4bd641a7b5a8c1cbf8ef544df0138b99bf621cac995b32bd4fe84365fa726ff",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_120038.pth": "b6d3075724d13b32ad06139e0e62cdf5d295a41c1c599967de6f7bdca54d7469",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_130039.pth": "f52d41bb114f56318d5eacc361d52cfc848a32d1b008cd3ce2da573d8ccda976",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_140011.pth": "402109234748115086cb4703cf84656223777f0a5fa1061345c6b36972ba0c54",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_150068.pth": "79f3d6863e745cb56bdb78751b2364ef0aab64116775830363ab8eeca44931bf",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_160033.pth": "93064a8409b6f0f8717f8d9ce1f1fac7425a0ebc0c3dc46c191159811f9ab112",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_170042.pth": "705d982aed44b041eedeae809469a5c90c3841ea5a37aee4ef8573ce832d486c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_180004.pth": "9ba5caceb8898fc3c6ff2741a5a7ec447993af60da1e764a492d3fbcd99e8a87",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_190026.pth": "472b96ed94878e29641aa15fafc85a593673f2e4e3c5c73248b5ff7539770b6d",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_200000.pth": "afc38970686bfd94f60ec8e9fc9be4f0e1a9e30996eaa04925a340c9dbb5f166",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\prefix_parity.json": "dc80cf03f1e40055a1049e316e8c244ee32fb8e5e365200bd5ceb8f4a2027750",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\recovery_latest.pth": "392f7229bb1d192821b7bc4ebada355bd2626be9b841a34235dd367a8e4d5760",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\result.json": "802055ba6d9a58ec2dfd411f345eabcf902b97f8353d988a043dbb5d927db56d",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\run_manifest.json": "b11c413cfb5a6e29a9f2f2aaa33a102bd1df55187bd2746202261911bb9770f3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\supervision_alignment.csv": "3c7f79695be10871cc8eb8fd20a8c7882f3abf015ad1eb19f7bface67efdfae3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\training.csv": "deb8ca08f7038425a5b78ff603448cf051350bfaa5d2bc58f0b70f70540d2733",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_curve.csv": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_details.csv": "88e69d368205d04b0835a6b2d9500f3b76c838efd1f8cbbaebc4abd1bf12981a",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_000000.json": "ec88e55f33acd66e9cecb530c7755074dc67b1a6857c4127316e1c4725568509",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_010014.json": "cec7b2f32d4918668015521113dad8abcf08f22806c3323c8876f4fb5e974298",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_020084.json": "0f6935aaeb244f67f7b74751c989878f01c18631f8feb69354a660ac9e41761f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_030040.json": "60c89998093d10d8d9f4277274926aeff1c0a20c4a3db99f89729bc980900610",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_040058.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_050105.json": "4e140b2928c84a2eb340af996cd2c186f1b4a7cb6aa47d4ba53ea5586cdc59cc",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_060059.json": "3e2a63758d7f869c6cad6ae920f6764aa8cd7be9dfd30af8729e67f38b2ca6e5",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_070015.json": "32569affd35a3782cfc218e462a505860c6e9d65e634161ec3283f8675e931b8",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_080067.json": "7dd461ad79f92cbe1f5b01e29d31f606630820b53de72097bd72a80c8144e3e1",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_090013.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_100097.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_110033.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_120038.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_130039.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_140011.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_150068.json": "eec8cb48d0329c26fd1c71a172507797931198fadbed3cccaa2d6c6ddce96d00",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_160033.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_170042.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_180004.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_190026.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\value_learning.csv": "9c88875f03eacbe3fb4b7e641aada243d940416239b81f91b35a984bd85a5287",
+    "docs\\ASVC_CURRENT.zh-CN.md": "8c6407284471b4679d6cf81d31cd1bf82b7a8957c3e781ab3b6432d9be6562fc",
+    "data\\asvc_current_method.json": "e5bb91d34806b799f15f5325498e4a7fcb8f45be09f60f2ef34d8007c69805d0",
+    "data\\asvc_persistent_teaching_v1\\freeze_manifest.json": "97b3b56e94f7b61ae5356ef2c8dc66018f62c4e26239154817df1a121b7c524d",
+    "outputs\\foundation_dynamic_ratios_91701_20261002_v1\\fixed_validation_scenarios.json": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+    "data\\risk_handover_v1\\manifest.json": "34e62ae1f01f0d6d7f53aaf8db663f4d7cf3fd49a5d074eb693f7bbff00e55b3",
+    "data\\dynamic_route_pool_v2\\manifest.json": "2e43b58b834d830b014ebdee8c6f5ba4396786736133b3150433fd22a2ce8049"
+  },
+  "copied_input_sha256": {
+    "fixed_validation_scenarios.json": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+    "generated_ce_train_batch.py.txt": "0b1fea8481b9cbd200a5e910faed64fa4979f6cd32881a866c6a567dbdbc62f1",
+    "generated_teacher_wrapper.py.txt": "79794bd85f32ee247da4bfe41d95e8f2eb2448627dc4aa328c7563cdd7f11878",
+    "baseline_snapshots\\seed_0\\advice_budget.csv": "21d57c2435d449e0083c4cb0210e3ff094c9b121f034d5a7d5aa8eaef623c1de",
+    "baseline_snapshots\\seed_0\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_0\\result.json": "8960066a27b31be7dff564d2a1c0af8c8afa609f90a3c3be842ef1f6b5ff8a45",
+    "baseline_snapshots\\seed_0\\run_manifest.json": "6c8c33f6bf33682e2ce14dba2b605c5662cad0ee78cc1220a55ec02e8381d542",
+    "baseline_snapshots\\seed_0\\supervision_alignment.csv": "abcb1025a3962ff41eb1b9a635f3ff565f2169b80b7d01ba7a7c278f795aa1e0",
+    "baseline_snapshots\\seed_0\\validation_curve.csv": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+    "baseline_snapshots\\seed_0\\validation_details.csv": "bc16ba61a31d8c62b44bc98785d820c783ea36f667abd03f3220a6ebfe800d02",
+    "baseline_snapshots\\seed_0\\value_learning.csv": "504411e161cdb673a68bf548d1998b5719368bb7cf8b5f9af1a94920e439ef1f",
+    "baseline_snapshots\\seed_1\\advice_budget.csv": "d694b34edd18ff7c99048eb60df8c1864a1127b11c094ff597f13e8bd4e94beb",
+    "baseline_snapshots\\seed_1\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_1\\result.json": "802055ba6d9a58ec2dfd411f345eabcf902b97f8353d988a043dbb5d927db56d",
+    "baseline_snapshots\\seed_1\\run_manifest.json": "b11c413cfb5a6e29a9f2f2aaa33a102bd1df55187bd2746202261911bb9770f3",
+    "baseline_snapshots\\seed_1\\supervision_alignment.csv": "3c7f79695be10871cc8eb8fd20a8c7882f3abf015ad1eb19f7bface67efdfae3",
+    "baseline_snapshots\\seed_1\\validation_curve.csv": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+    "baseline_snapshots\\seed_1\\validation_details.csv": "88e69d368205d04b0835a6b2d9500f3b76c838efd1f8cbbaebc4abd1bf12981a",
+    "baseline_snapshots\\seed_1\\value_learning.csv": "9c88875f03eacbe3fb4b7e641aada243d940416239b81f91b35a984bd85a5287",
+    "source_snapshot\\configs\\asvc_fixed_ce_v1.yaml": "78077faef029bff8ebaf15387df02df2d078f57d466a0a03441f54d4142db4e4",
+    "source_snapshot\\configs\\asvc_persistent_teaching_v1.yaml": "1aab447027ee307ba3c72ca86e2a9b79b54ac83c2141d77c2ea610af071dfc6f",
+    "source_snapshot\\configs\\whole_map_91701_execution_consistency_v1.yaml": "b8f87daf55d0eb6504a5508407393cf4d1984567b9354a4db660c57d6a9ab055",
+    "source_snapshot\\configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+    "source_snapshot\\configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+    "source_snapshot\\docs\\ASVC_FIXED_CE.zh-CN.md": "be1b75c8eef53d3881607d9736e9afd587058f8d753c7ec46fbbe43fa8acf126",
+    "source_snapshot\\scripts\\analyze_fixed_ce.py": "80a93351aca7b5c9e0a2c42ecab82816fcc6e618602c4fb0b0349ff0d34bc61c",
+    "source_snapshot\\scripts\\fixed_ce_agent.py": "062aa570813d34067d3359f95d2e7ce5c35237e1ad4f759ed4d63d020d5965c5",
+    "source_snapshot\\scripts\\fixed_ce_common.py": "5c92425052e194a90f20fb75e515930fd9f2f90e49ddc871a83984b1113ade9c",
+    "source_snapshot\\scripts\\replication_recovery.py": "a1f27e10adbba320378d690ae3205fb70d6054ecacaf25e95ce7ebfc6ff74139",
+    "source_snapshot\\scripts\\run_execution_consistency.py": "7cb0dcefc504852fed2076643347846da743082fd1f570b7d706c1e30a8c586c",
+    "source_snapshot\\scripts\\run_fixed_ce.py": "b5cf34a1f0b3a669f2272f45da1cd79292482e871e3a3698c1ccfb4721cd8db5",
+    "source_snapshot\\scripts\\run_persistent_teaching.py": "f8735c52aaed2cb7ecaea3fc49606eff1366b8fdacb7dfbd592aa6a59ed8254e",
+    "source_snapshot\\scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+    "source_snapshot\\scripts\\start_fixed_ce.ps1": "a7063e749fb149fd9c90c06ee0704c94ee3bf2a6938f4e40c490c75b02faeb34",
+    "source_snapshot\\scripts\\teaching_efficiency_common.py": "05759e62b6f8c81754db6d1b90013a729704c8437a5e6be92736eb868053cce0",
+    "source_snapshot\\tests\\test_execution_consistency.py": "c1a528a7d5bc3f1fa45b4c87aa6927c16df87b191a8e4c77c96862867f74c24f",
+    "source_snapshot\\tests\\test_fixed_ce.py": "82d6b18ebcaf5b269e7787cabf4e8607b2f534ec5e95fa59fb04c93cee8e1487",
+    "source_snapshot\\tests\\test_persistent_teaching.py": "e43140fab068acd90e49634ed5aa7defec7bdb98f4ff796bcfa25211c4cf3ddb",
+    "source_snapshot\\src\\astar_d3qn\\__init__.py": "910a064605b486657aeaa25f9d0f072326e38e80db1fb9b21feeb0309e5412ad",
+    "source_snapshot\\src\\astar_d3qn\\agents\\all_eligible_module_ablation.py": "866cf34025b9779b7de4ed2687bbc9b7c34c469affa5af01d2135fc0995f8600",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_replan_wait.py": "7f1fff6f4476436fc3f13ffe579936b5c19343143d3d42dca60043f0e10f1fd3",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_staged_withdrawal.py": "33d087ce6bfad0995663429703e37d06a93896e422e440cfb8f9242bb255e775",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_supervision_only.py": "40d212f4fe6bdc8fc61abd0f13df7c9c2fb56561ff0fef059fcd05d7503a7e0f",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_supervision_tail.py": "8654f07719532216e839b3d077e08fab35f676c8421a1806895b2d4d1e8ef3c1",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+    "source_snapshot\\src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "source_snapshot\\src\\astar_d3qn\\agents\\ddqna_adapter.py": "12bdb6c4a2e37d1dac168cf9c4ec73e3c47cb5e00a1aeccfc0a4c5cb6317403b",
+    "source_snapshot\\src\\astar_d3qn\\agents\\dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+    "source_snapshot\\src\\astar_d3qn\\agents\\independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+    "source_snapshot\\src\\astar_d3qn\\agents\\networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+    "source_snapshot\\src\\astar_d3qn\\agents\\persistent_teaching.py": "ce6a3be5acb4ab0e4b1ebeb884c60d559cfc6ad981af9b2c1d1495680424d8d6",
+    "source_snapshot\\src\\astar_d3qn\\agents\\reward_study.py": "24d37c412e421cc82a46954c7a58b15d429307f8342e3e478e447a0c69690b1b",
+    "source_snapshot\\src\\astar_d3qn\\agents\\__init__.py": "bbdb02a0ed3b2750604cb9479b62a058e56d63ffacd162b7ffa3535540eb9f7f",
+    "source_snapshot\\src\\astar_d3qn\\core\\astar.py": "b1ae18017330ecda7e6db7f5172cd357cbfc89c0cf56e2065e2ba9ef876e5b95",
+    "source_snapshot\\src\\astar_d3qn\\core\\collisions.py": "db8ff782a290871c4eb05e312278ae4065fc6c08825e3eff7d3d0472baaaf78c",
+    "source_snapshot\\src\\astar_d3qn\\core\\grid.py": "bc1e7be80c1cedf36f27deb369d8d24594fc6b542279da4e80d034c7a2c4bee9",
+    "source_snapshot\\src\\astar_d3qn\\core\\metrics.py": "62c32138ded8199f373b5426fb59d7c9827dfafe27ab3d41b5859b8370b1f3e0",
+    "source_snapshot\\src\\astar_d3qn\\core\\path_progress.py": "6766e2ef4f7dad2f2b23ecf58b5119fc9c8e9da0f81e0873bcbdaca5cda20836",
+    "source_snapshot\\src\\astar_d3qn\\core\\trajectory.py": "88e9c63dbb7c94953c8796e4964792bc8caa8a7473bdb4706b2e9563122eee3d",
+    "source_snapshot\\src\\astar_d3qn\\core\\__init__.py": "9e50490d0f1631c78c388ff7d5044407a1f0b8b15bf63a2c8ca7873232bde071",
+    "source_snapshot\\src\\astar_d3qn\\envs\\dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+    "source_snapshot\\src\\astar_d3qn\\envs\\dynamic_scenarios.py": "b72bf3d597a83fbb9f57bbd915e6666cd0cbcd42c6738aaf18aa5befa6fcdc4e",
+    "source_snapshot\\src\\astar_d3qn\\envs\\path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+    "source_snapshot\\src\\astar_d3qn\\envs\\reward_study.py": "9a36a53c299a2e8c900402f079faa9de60f172b3e2640c84d6225d55adecbc68",
+    "source_snapshot\\src\\astar_d3qn\\envs\\spatial_scenarios.py": "b4c5a546a02261a5903139aa2e8f65a5bd2e64b3cd6f34e8de39f09412b4ba62",
+    "source_snapshot\\src\\astar_d3qn\\envs\\static_grid.py": "1a0c1d53dd4d55034a2e59fdb056f80354cecffeae33bbfd3c68761d4256b719",
+    "source_snapshot\\src\\astar_d3qn\\envs\\types.py": "c60213f0bcc22aa00629af3e537cb5b193f44ff203ca3f655f1bdbb235a5550f",
+    "source_snapshot\\src\\astar_d3qn\\envs\\whole_map_route_pool.py": "dde8eebd20dde08c8e522c7fd93b80ed65ed3dcc39ecef134bf50d3792937a13",
+    "source_snapshot\\src\\astar_d3qn\\envs\\__init__.py": "a632ae6cbda3c352e204465a10076d16dde6731ce1feea1d5e3977b020dccf35",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\behavior_oracle.py": "9b17c3ad4f831b26897ab1468be16cb9655377b10e631115243cb5febd10e6d7",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\checkpoints.py": "e60a7f70497c1e4c103554cb8d89bb54b443e1217be286538bd96314652c7e77",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\conflict.py": "a2f5bb05d0e5e2d1bdee7ab4c599925bb5b0f2998ed0193e9d1f1948c0e914b5",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\diagnostics.py": "373bd3b7779b61930894599eaccf9e879f1222930970eb63cacce736c3c86bfc",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\rollout.py": "7ebfef498b51923cd20bf806b057aa196c51c30a1a6ad60cb7d2a823c05c2b68",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\spatial_witness.py": "a445cf414f0e6ceabb4d6f1a05d23d0db60ba2f562bd690949d303a093d9bdd4",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\__init__.py": "041c5a7d7915aff4fd36058a81ddece471b0cb6f27b48dfcf9bf727f0b76af18",
+    "source_snapshot\\src\\astar_d3qn\\maps\\adaptation.py": "335df25986c1dc639c8ae60e9fd027a58eb7943422794a98bd79103eb87e085c",
+    "source_snapshot\\src\\astar_d3qn\\maps\\io.py": "cc67dd5c027d4441ff479bb86c87c9a202783361aac9b235c599bec322e4e941",
+    "source_snapshot\\src\\astar_d3qn\\maps\\problem.py": "1c160adebe974d0355a9bdfdaaa4f1d6e51d3632431d09bb1dd09169d2dff0a2",
+    "source_snapshot\\src\\astar_d3qn\\maps\\random_benchmark.py": "f21f32129c116b3e403a5aa971b6281549a9176495729f50944ea82a5449d3f4",
+    "source_snapshot\\src\\astar_d3qn\\maps\\render.py": "a704b35217fef382ed63bba7578256429a9a3c30c55859fee033db767f51a914",
+    "source_snapshot\\src\\astar_d3qn\\maps\\risk_handover.py": "73c2697aa4e9eda381710455d485abdef8c164e127455cae019889e390650dd8",
+    "source_snapshot\\src\\astar_d3qn\\maps\\structured.py": "d198d841d9d7f087497d09f8f054e14e1ce26a0c35103d58eace696a2b290fbf",
+    "source_snapshot\\src\\astar_d3qn\\maps\\__init__.py": "e8d123436babe2d57604c1c55e672591eaf85c274df884f9573cedb94b5a3edd",
+    "source_snapshot\\src\\astar_d3qn\\plotting\\training_plots.py": "64566acd388b608aa46090e212d67b24794d3ae199bfb9d86fd213c1f4dc575d",
+    "source_snapshot\\src\\astar_d3qn\\plotting\\__init__.py": "de16ca366f216cf7d6f64e92d9ca42c8ca47f1a991d7df464aca7ef2557f6da7",
+    "source_snapshot\\src\\astar_d3qn\\replay\\demo.py": "18dd392fcf2ca5fa9cde11d27f075b4bc49892111b906ebb3998e88c6c38c642",
+    "source_snapshot\\src\\astar_d3qn\\replay\\dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+    "source_snapshot\\src\\astar_d3qn\\replay\\prioritized.py": "5d19daf1ed4295f7536c053a6e575ae9f6e1c18e4d6fdddf1daae119f9bdf204",
+    "source_snapshot\\src\\astar_d3qn\\replay\\transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+    "source_snapshot\\src\\astar_d3qn\\replay\\uniform.py": "3134b49769ca3ebbcac5ad6e0777ef6ff7631fc1794a04aeb63c5e414556ce2c",
+    "source_snapshot\\src\\astar_d3qn\\replay\\__init__.py": "6ca34621d0f858df75da5ee5d9f67219f7b4256053af45096538ddfc9fb53420",
+    "source_snapshot\\src\\astar_d3qn\\training\\budget.py": "a805cd5838e21fcfde2b549dcf97cb5cfe9d89611556bdc7b1b81f7456401c4d",
+    "source_snapshot\\src\\astar_d3qn\\training\\demo_collector.py": "ce62513b5099ef26098517b053db4ba47ee9f7acaf9cc564b97e9e6e707c8362",
+    "source_snapshot\\src\\astar_d3qn\\training\\dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+    "source_snapshot\\src\\astar_d3qn\\training\\replay_adaptation.py": "ccd0f1c22af9cd2ee1410b4f5809def134dfc7010930f766bd28a8ab9c0c9184",
+    "source_snapshot\\src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+    "source_snapshot\\src\\astar_d3qn\\training\\__init__.py": "2433ff9c0b44c5fd713ad1d2314cafc3c5ecdf10fe71031fbfa19547d67de13a",
+    "source_snapshot\\src\\astar_d3qn\\utils\\config.py": "66259072dfbd1911ef0f23ecefb6ffde359ddc99ec1e135683ab46b6c56dff44",
+    "source_snapshot\\src\\astar_d3qn\\utils\\io.py": "414e06cdda617d0059cfd38b4d5a609defa62c01b986a62e76d42d06636f4be6",
+    "source_snapshot\\src\\astar_d3qn\\utils\\seed.py": "f24700aea18ae70f94638e1eecec7c0b01ffe6e4f1c6358b891cd85c3b682468",
+    "source_snapshot\\src\\astar_d3qn\\utils\\__init__.py": "4eca4a0dcb8d735ae590f678ff0ccbd48226769ec36be487f8b3fb4a15b83f89"
+  },
+  "checks": {
+    "passed": true,
+    "tests": 9,
+    "ast_audit": {
+      "non_supervision_statements_identical": true,
+      "td_actions": "unchanged Transition.action",
+      "new_temperature": 1.0,
+      "replaced_loss_blocks": 1
+    },
+    "pairs": [
+      {
+        "seed": 0,
+        "baseline_directory": "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0",
+        "initial_state_sha256": "429bc2dd153e0430f35478bec733f9170a6f7db9b9491bc6e788fe7821a41c20",
+        "baseline_model_sha256": "626050f4b70796500dd0d1db81d71296b7307dc83813e18a7fd5f5313483e949",
+        "baseline_curve_sha256": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+        "baseline_online_seconds": 4051.141347599856,
+        "initialization_cpu_cuda_verified": true
+      },
+      {
+        "seed": 1,
+        "baseline_directory": "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1",
+        "initial_state_sha256": "e8eae4157f268e7dbd0b1b1a8bcdbf816a7103a157033f846c122e47a313abcd",
+        "baseline_model_sha256": "269047fd17ac77ed1a9ff1fe532f99dc50083973aeb3207eba1022f993f224da",
+        "baseline_curve_sha256": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+        "baseline_online_seconds": 4045.1766491011367,
+        "initialization_cpu_cuda_verified": true
+      }
+    ],
+    "recovery": {
+      "passed": true,
+      "steps": 24,
+      "updates": 21,
+      "formal_training": false,
+      "source": "24-step CPU integration unit; not part of the two 200k runs",
+      "directory": "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\recovery"
+    },
+    "validation": {
+      "passed": true,
+      "formal_training_started": false,
+      "gradient_updates": 0,
+      "map": {
+        "map_id": "irregular_workcell_91701",
+        "seed": 91701,
+        "size": 40,
+        "start": [
+          3,
+          3
+        ],
+        "goal": [
+          36,
+          36
+        ],
+        "obstacle_count": 368,
+        "density": 0.23,
+        "astar_steps": 66,
+        "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+        "design": "synthetic irregular equipment islands",
+        "generation_attempt": 0,
+        "islands": [
+          {
+            "shape": "T",
+            "cells": [
+              [
+                24,
+                28
+              ],
+              [
+                24,
+                29
+              ],
+              [
+                24,
+                30
+              ],
+              [
+                24,
+                31
+              ],
+              [
+                24,
+                32
+              ],
+              [
+                24,
+                33
+              ],
+              [
+                25,
+                28
+              ],
+              [
+                25,
+                29
+              ],
+              [
+                25,
+                30
+              ],
+              [
+                25,
+                31
+              ],
+              [
+                25,
+                32
+              ],
+              [
+                25,
+                33
+              ],
+              [
+                26,
+                31
+              ],
+              [
+                27,
+                31
+              ],
+              [
+                28,
+                31
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                10,
+                4
+              ],
+              [
+                10,
+                5
+              ],
+              [
+                10,
+                6
+              ],
+              [
+                10,
+                7
+              ],
+              [
+                11,
+                4
+              ],
+              [
+                11,
+                5
+              ],
+              [
+                11,
+                6
+              ],
+              [
+                11,
+                7
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                12,
+                5
+              ],
+              [
+                12,
+                6
+              ],
+              [
+                12,
+                7
+              ],
+              [
+                13,
+                4
+              ],
+              [
+                13,
+                5
+              ],
+              [
+                13,
+                6
+              ],
+              [
+                13,
+                7
+              ],
+              [
+                14,
+                4
+              ],
+              [
+                14,
+                5
+              ],
+              [
+                14,
+                6
+              ],
+              [
+                14,
+                7
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                1,
+                22
+              ],
+              [
+                1,
+                23
+              ],
+              [
+                1,
+                24
+              ],
+              [
+                1,
+                25
+              ],
+              [
+                1,
+                26
+              ],
+              [
+                1,
+                27
+              ],
+              [
+                2,
+                22
+              ],
+              [
+                2,
+                23
+              ],
+              [
+                2,
+                24
+              ],
+              [
+                2,
+                25
+              ],
+              [
+                2,
+                26
+              ],
+              [
+                2,
+                27
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                32,
+                17
+              ],
+              [
+                32,
+                18
+              ],
+              [
+                32,
+                19
+              ],
+              [
+                33,
+                17
+              ],
+              [
+                33,
+                18
+              ],
+              [
+                33,
+                19
+              ],
+              [
+                34,
+                17
+              ],
+              [
+                34,
+                18
+              ],
+              [
+                34,
+                19
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                24,
+                36
+              ],
+              [
+                24,
+                37
+              ],
+              [
+                24,
+                38
+              ],
+              [
+                25,
+                36
+              ],
+              [
+                25,
+                37
+              ],
+              [
+                25,
+                38
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                17,
+                17
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                18,
+                17
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                19,
+                17
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                20,
+                17
+              ],
+              [
+                20,
+                18
+              ],
+              [
+                20,
+                19
+              ],
+              [
+                20,
+                20
+              ],
+              [
+                21,
+                17
+              ],
+              [
+                21,
+                18
+              ],
+              [
+                21,
+                19
+              ],
+              [
+                21,
+                20
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                22,
+                9
+              ],
+              [
+                22,
+                10
+              ],
+              [
+                22,
+                11
+              ],
+              [
+                22,
+                12
+              ],
+              [
+                22,
+                13
+              ],
+              [
+                22,
+                14
+              ],
+              [
+                23,
+                9
+              ],
+              [
+                23,
+                10
+              ],
+              [
+                23,
+                11
+              ],
+              [
+                23,
+                12
+              ],
+              [
+                23,
+                13
+              ],
+              [
+                23,
+                14
+              ],
+              [
+                24,
+                9
+              ],
+              [
+                24,
+                10
+              ],
+              [
+                24,
+                11
+              ],
+              [
+                24,
+                12
+              ],
+              [
+                24,
+                13
+              ],
+              [
+                24,
+                14
+              ],
+              [
+                25,
+                9
+              ],
+              [
+                25,
+                10
+              ],
+              [
+                25,
+                11
+              ],
+              [
+                25,
+                12
+              ],
+              [
+                25,
+                13
+              ],
+              [
+                25,
+                14
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                21,
+                2
+              ],
+              [
+                21,
+                3
+              ],
+              [
+                21,
+                4
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                22,
+                3
+              ],
+              [
+                22,
+                4
+              ],
+              [
+                23,
+                3
+              ],
+              [
+                24,
+                3
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                17,
+                25
+              ],
+              [
+                17,
+                26
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                17,
+                28
+              ],
+              [
+                18,
+                25
+              ],
+              [
+                18,
+                26
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                18,
+                28
+              ],
+              [
+                19,
+                25
+              ],
+              [
+                19,
+                26
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                19,
+                28
+              ],
+              [
+                20,
+                25
+              ],
+              [
+                20,
+                26
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                20,
+                28
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                4,
+                7
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                4,
+                9
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                5,
+                9
+              ],
+              [
+                6,
+                7
+              ],
+              [
+                6,
+                8
+              ],
+              [
+                6,
+                9
+              ],
+              [
+                7,
+                7
+              ],
+              [
+                7,
+                8
+              ],
+              [
+                7,
+                9
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                9,
+                33
+              ],
+              [
+                9,
+                34
+              ],
+              [
+                9,
+                35
+              ],
+              [
+                9,
+                36
+              ],
+              [
+                9,
+                37
+              ],
+              [
+                10,
+                33
+              ],
+              [
+                10,
+                34
+              ],
+              [
+                10,
+                35
+              ],
+              [
+                10,
+                36
+              ],
+              [
+                10,
+                37
+              ],
+              [
+                11,
+                33
+              ],
+              [
+                11,
+                34
+              ],
+              [
+                11,
+                35
+              ],
+              [
+                11,
+                36
+              ],
+              [
+                11,
+                37
+              ],
+              [
+                12,
+                33
+              ],
+              [
+                12,
+                34
+              ],
+              [
+                12,
+                35
+              ],
+              [
+                12,
+                36
+              ],
+              [
+                12,
+                37
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                26,
+                22
+              ],
+              [
+                26,
+                23
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                26,
+                25
+              ],
+              [
+                27,
+                22
+              ],
+              [
+                27,
+                23
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                27,
+                25
+              ],
+              [
+                28,
+                24
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                18,
+                11
+              ],
+              [
+                18,
+                12
+              ],
+              [
+                18,
+                13
+              ],
+              [
+                18,
+                14
+              ],
+              [
+                18,
+                15
+              ],
+              [
+                19,
+                11
+              ],
+              [
+                19,
+                12
+              ],
+              [
+                19,
+                13
+              ],
+              [
+                19,
+                14
+              ],
+              [
+                19,
+                15
+              ],
+              [
+                20,
+                13
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                11,
+                19
+              ],
+              [
+                11,
+                20
+              ],
+              [
+                11,
+                21
+              ],
+              [
+                11,
+                22
+              ],
+              [
+                11,
+                23
+              ],
+              [
+                12,
+                19
+              ],
+              [
+                12,
+                20
+              ],
+              [
+                12,
+                21
+              ],
+              [
+                12,
+                22
+              ],
+              [
+                12,
+                23
+              ],
+              [
+                13,
+                21
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                5,
+                12
+              ],
+              [
+                5,
+                13
+              ],
+              [
+                5,
+                14
+              ],
+              [
+                5,
+                15
+              ],
+              [
+                5,
+                16
+              ],
+              [
+                5,
+                17
+              ],
+              [
+                6,
+                12
+              ],
+              [
+                6,
+                13
+              ],
+              [
+                6,
+                14
+              ],
+              [
+                6,
+                15
+              ],
+              [
+                6,
+                16
+              ],
+              [
+                6,
+                17
+              ],
+              [
+                7,
+                12
+              ],
+              [
+                7,
+                13
+              ],
+              [
+                7,
+                14
+              ],
+              [
+                7,
+                15
+              ],
+              [
+                7,
+                16
+              ],
+              [
+                7,
+                17
+              ],
+              [
+                8,
+                12
+              ],
+              [
+                8,
+                13
+              ],
+              [
+                8,
+                14
+              ],
+              [
+                8,
+                15
+              ],
+              [
+                8,
+                16
+              ],
+              [
+                8,
+                17
+              ],
+              [
+                9,
+                12
+              ],
+              [
+                9,
+                13
+              ],
+              [
+                9,
+                14
+              ],
+              [
+                9,
+                15
+              ],
+              [
+                9,
+                16
+              ],
+              [
+                9,
+                17
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                30,
+                29
+              ],
+              [
+                30,
+                30
+              ],
+              [
+                30,
+                31
+              ],
+              [
+                30,
+                32
+              ],
+              [
+                30,
+                33
+              ],
+              [
+                31,
+                29
+              ],
+              [
+                31,
+                30
+              ],
+              [
+                31,
+                31
+              ],
+              [
+                31,
+                32
+              ],
+              [
+                31,
+                33
+              ],
+              [
+                32,
+                31
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                6,
+                27
+              ],
+              [
+                6,
+                28
+              ],
+              [
+                6,
+                29
+              ],
+              [
+                7,
+                27
+              ],
+              [
+                7,
+                28
+              ],
+              [
+                7,
+                29
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                27,
+                6
+              ],
+              [
+                27,
+                7
+              ],
+              [
+                27,
+                8
+              ],
+              [
+                27,
+                9
+              ],
+              [
+                27,
+                10
+              ],
+              [
+                28,
+                6
+              ],
+              [
+                28,
+                7
+              ],
+              [
+                28,
+                8
+              ],
+              [
+                28,
+                9
+              ],
+              [
+                28,
+                10
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                16,
+                3
+              ],
+              [
+                16,
+                4
+              ],
+              [
+                17,
+                3
+              ],
+              [
+                17,
+                4
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                33,
+                2
+              ],
+              [
+                33,
+                3
+              ],
+              [
+                33,
+                4
+              ],
+              [
+                33,
+                5
+              ],
+              [
+                33,
+                6
+              ],
+              [
+                33,
+                7
+              ],
+              [
+                34,
+                2
+              ],
+              [
+                34,
+                3
+              ],
+              [
+                34,
+                4
+              ],
+              [
+                34,
+                5
+              ],
+              [
+                34,
+                6
+              ],
+              [
+                34,
+                7
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                28,
+                19
+              ],
+              [
+                28,
+                20
+              ],
+              [
+                29,
+                19
+              ],
+              [
+                29,
+                20
+              ],
+              [
+                29,
+                21
+              ],
+              [
+                30,
+                19
+              ],
+              [
+                30,
+                20
+              ],
+              [
+                30,
+                21
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                17,
+                33
+              ],
+              [
+                17,
+                34
+              ],
+              [
+                17,
+                35
+              ],
+              [
+                17,
+                36
+              ],
+              [
+                17,
+                37
+              ],
+              [
+                18,
+                33
+              ],
+              [
+                18,
+                34
+              ],
+              [
+                18,
+                35
+              ],
+              [
+                18,
+                36
+              ],
+              [
+                18,
+                37
+              ],
+              [
+                19,
+                33
+              ],
+              [
+                19,
+                34
+              ],
+              [
+                19,
+                35
+              ],
+              [
+                19,
+                36
+              ],
+              [
+                19,
+                37
+              ],
+              [
+                20,
+                33
+              ],
+              [
+                20,
+                34
+              ],
+              [
+                20,
+                35
+              ],
+              [
+                20,
+                36
+              ],
+              [
+                20,
+                37
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                36,
+                18
+              ],
+              [
+                36,
+                19
+              ],
+              [
+                37,
+                18
+              ],
+              [
+                37,
+                19
+              ],
+              [
+                37,
+                20
+              ],
+              [
+                37,
+                21
+              ],
+              [
+                37,
+                22
+              ],
+              [
+                38,
+                18
+              ],
+              [
+                38,
+                19
+              ],
+              [
+                38,
+                20
+              ],
+              [
+                38,
+                21
+              ],
+              [
+                38,
+                22
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                13,
+                30
+              ],
+              [
+                13,
+                31
+              ],
+              [
+                14,
+                30
+              ],
+              [
+                14,
+                31
+              ],
+              [
+                14,
+                32
+              ],
+              [
+                15,
+                30
+              ],
+              [
+                15,
+                31
+              ],
+              [
+                15,
+                32
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                31,
+                23
+              ],
+              [
+                31,
+                24
+              ],
+              [
+                32,
+                23
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                33,
+                23
+              ],
+              [
+                33,
+                24
+              ],
+              [
+                33,
+                25
+              ],
+              [
+                33,
+                26
+              ],
+              [
+                33,
+                27
+              ],
+              [
+                34,
+                23
+              ],
+              [
+                34,
+                24
+              ],
+              [
+                34,
+                25
+              ],
+              [
+                34,
+                26
+              ],
+              [
+                34,
+                27
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                9,
+                25
+              ],
+              [
+                9,
+                26
+              ],
+              [
+                9,
+                27
+              ],
+              [
+                9,
+                28
+              ],
+              [
+                10,
+                25
+              ],
+              [
+                10,
+                26
+              ],
+              [
+                10,
+                27
+              ],
+              [
+                10,
+                28
+              ],
+              [
+                11,
+                25
+              ],
+              [
+                11,
+                26
+              ],
+              [
+                11,
+                27
+              ],
+              [
+                11,
+                28
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                2,
+                31
+              ],
+              [
+                2,
+                32
+              ],
+              [
+                2,
+                33
+              ],
+              [
+                2,
+                34
+              ],
+              [
+                3,
+                31
+              ],
+              [
+                3,
+                32
+              ],
+              [
+                3,
+                33
+              ],
+              [
+                3,
+                34
+              ],
+              [
+                4,
+                31
+              ],
+              [
+                4,
+                32
+              ],
+              [
+                4,
+                33
+              ],
+              [
+                4,
+                34
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                27,
+                2
+              ],
+              [
+                27,
+                3
+              ],
+              [
+                27,
+                4
+              ],
+              [
+                28,
+                2
+              ],
+              [
+                28,
+                3
+              ],
+              [
+                28,
+                4
+              ],
+              [
+                29,
+                2
+              ],
+              [
+                29,
+                3
+              ],
+              [
+                29,
+                4
+              ],
+              [
+                30,
+                2
+              ],
+              [
+                30,
+                3
+              ],
+              [
+                30,
+                4
+              ],
+              [
+                31,
+                2
+              ],
+              [
+                31,
+                3
+              ],
+              [
+                31,
+                4
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                29,
+                36
+              ],
+              [
+                29,
+                37
+              ],
+              [
+                29,
+                38
+              ],
+              [
+                30,
+                36
+              ],
+              [
+                30,
+                37
+              ],
+              [
+                30,
+                38
+              ],
+              [
+                31,
+                37
+              ]
+            ]
+          }
+        ],
+        "manhattan_steps": 66,
+        "static_detour_steps": 0,
+        "physical_scale": "abstract grid; no real-robot clearance claim"
+      },
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "observation_shape": [
+        5,
+        15,
+        15
+      ],
+      "scalar_dim": 4,
+      "validation_scene_count": 50,
+      "validation_scene_sha256": "ec60a3db3d79e41c608c16e53820d12f8ca86158f4c38a3fa0ef55130426a6d0",
+      "initializations": [
+        {
+          "seed": 0,
+          "initial_state_sha256": "b610b94c074ed9c2e60af0ffe6f3befab232933f7d36d9076c5b9b89fb083fec",
+          "paired_identical": true
+        },
+        {
+          "seed": 1,
+          "initial_state_sha256": "f84b867c1502833a20f7479cd8fb031e01024bd529956043acc0170312df00b0",
+          "paired_identical": true
+        }
+      ],
+      "existing_validation_reference": "outputs\\foundation_dynamic_ratios_91701_20261002_v1\\fixed_validation_scenarios.json",
+      "existing_validation_file_sha256": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+      "matches_existing_fixed_50_validation_scenes": true,
+      "original_dynamics_reward_and_masks_preserved": true,
+      "original_dynamics_and_masks_preserved": true,
+      "configured_rewards_identical_between_methods": true,
+      "reward": {
+        "step": -0.01,
+        "progress": 0.05,
+        "stay": 0.0,
+        "collision": -1.0,
+        "goal": 10.0
+      },
+      "only_progress_reward_removed": false,
+      "legacy_weight_compatible": false,
+      "scope": "Fixed original map/start/goal integration; no multi-goal or generalization claim."
+    },
+    "autonomous_evaluation": [
+      {
+        "seed": 0,
+        "episodes": 50,
+        "teacher_calls": 0,
+        "risk_calls": 0,
+        "updates": 0,
+        "learner_and_rng_unchanged": true,
+        "summary": {
+          "maps": 50,
+          "success_rate": 0.0,
+          "collision_rate": 0.0,
+          "mean_collision_count": 0.0,
+          "static_collision_rate": 0.0,
+          "mean_static_collision_count": 0.0,
+          "dynamic_collision_rate": 0.0,
+          "encounter_rate": 0.26493333333333335,
+          "conflict_opportunity_rate": 0.006533333333333334,
+          "encounter_episode_rate": 0.76,
+          "conflict_opportunity_episode_rate": 0.18,
+          "mean_dynamic_collision_count": 0.0,
+          "safe_success_rate": 0.0,
+          "collision_success_rate": 0.0,
+          "static_collision_success_rate": 0.0,
+          "dynamic_collision_success_rate": 0.0,
+          "dynamic_collision_free_success_rate": 0.0,
+          "mean_steps": 300.0,
+          "mean_wait_steps": 0.0,
+          "mean_wait_event_count": 0.0,
+          "mean_max_wait_streak": 0.0,
+          "mean_movement_steps": 300.0,
+          "mean_turn_count": 273.0,
+          "mean_turn_rate": 0.9130434782608695,
+          "mean_revisit_count": 2.0,
+          "mean_reward": -1.7000000000000015,
+          "mean_path_efficiency": null,
+          "mean_first_static_collision_step": null,
+          "mean_first_dynamic_collision_step": null,
+          "mean_action_latency_ms": 0.33911419382784513,
+          "timeout_rate": 1.0
+        }
+      },
+      {
+        "seed": 1,
+        "episodes": 50,
+        "teacher_calls": 0,
+        "risk_calls": 0,
+        "updates": 0,
+        "learner_and_rng_unchanged": true,
+        "summary": {
+          "maps": 50,
+          "success_rate": 0.0,
+          "collision_rate": 0.0,
+          "mean_collision_count": 0.0,
+          "static_collision_rate": 0.0,
+          "mean_static_collision_count": 0.0,
+          "dynamic_collision_rate": 0.0,
+          "encounter_rate": 0.5378666666666667,
+          "conflict_opportunity_rate": 0.0004,
+          "encounter_episode_rate": 0.66,
+          "conflict_opportunity_episode_rate": 0.06,
+          "mean_dynamic_collision_count": 0.0,
+          "safe_success_rate": 0.0,
+          "collision_success_rate": 0.0,
+          "static_collision_success_rate": 0.0,
+          "dynamic_collision_success_rate": 0.0,
+          "dynamic_collision_free_success_rate": 0.0,
+          "mean_steps": 300.0,
+          "mean_wait_steps": 0.0,
+          "mean_wait_event_count": 0.0,
+          "mean_max_wait_streak": 0.0,
+          "mean_movement_steps": 300.0,
+          "mean_turn_count": 288.0,
+          "mean_turn_rate": 0.9632107023411371,
+          "mean_revisit_count": 2.0,
+          "mean_reward": -2.400000000000002,
+          "mean_path_efficiency": null,
+          "mean_first_static_collision_step": null,
+          "mean_first_dynamic_collision_step": null,
+          "mean_action_latency_ms": 0.33282362673586857,
+          "timeout_rate": 1.0
+        }
+      }
+    ],
+    "map": {
+      "map_id": "irregular_workcell_91701",
+      "seed": 91701,
+      "size": 40,
+      "start": [
+        3,
+        3
+      ],
+      "goal": [
+        36,
+        36
+      ],
+      "obstacle_count": 368,
+      "density": 0.23,
+      "astar_steps": 66,
+      "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+      "design": "synthetic irregular equipment islands",
+      "generation_attempt": 0,
+      "islands": [
+        {
+          "shape": "T",
+          "cells": [
+            [
+              24,
+              28
+            ],
+            [
+              24,
+              29
+            ],
+            [
+              24,
+              30
+            ],
+            [
+              24,
+              31
+            ],
+            [
+              24,
+              32
+            ],
+            [
+              24,
+              33
+            ],
+            [
+              25,
+              28
+            ],
+            [
+              25,
+              29
+            ],
+            [
+              25,
+              30
+            ],
+            [
+              25,
+              31
+            ],
+            [
+              25,
+              32
+            ],
+            [
+              25,
+              33
+            ],
+            [
+              26,
+              31
+            ],
+            [
+              27,
+              31
+            ],
+            [
+              28,
+              31
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              10,
+              4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              10,
+              7
+            ],
+            [
+              11,
+              4
+            ],
+            [
+              11,
+              5
+            ],
+            [
+              11,
+              6
+            ],
+            [
+              11,
+              7
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              12,
+              5
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              12,
+              7
+            ],
+            [
+              13,
+              4
+            ],
+            [
+              13,
+              5
+            ],
+            [
+              13,
+              6
+            ],
+            [
+              13,
+              7
+            ],
+            [
+              14,
+              4
+            ],
+            [
+              14,
+              5
+            ],
+            [
+              14,
+              6
+            ],
+            [
+              14,
+              7
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              1,
+              22
+            ],
+            [
+              1,
+              23
+            ],
+            [
+              1,
+              24
+            ],
+            [
+              1,
+              25
+            ],
+            [
+              1,
+              26
+            ],
+            [
+              1,
+              27
+            ],
+            [
+              2,
+              22
+            ],
+            [
+              2,
+              23
+            ],
+            [
+              2,
+              24
+            ],
+            [
+              2,
+              25
+            ],
+            [
+              2,
+              26
+            ],
+            [
+              2,
+              27
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              32,
+              17
+            ],
+            [
+              32,
+              18
+            ],
+            [
+              32,
+              19
+            ],
+            [
+              33,
+              17
+            ],
+            [
+              33,
+              18
+            ],
+            [
+              33,
+              19
+            ],
+            [
+              34,
+              17
+            ],
+            [
+              34,
+              18
+            ],
+            [
+              34,
+              19
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              24,
+              36
+            ],
+            [
+              24,
+              37
+            ],
+            [
+              24,
+              38
+            ],
+            [
+              25,
+              36
+            ],
+            [
+              25,
+              37
+            ],
+            [
+              25,
+              38
+            ]
+          ]
+        },
+        {
+          "shape": "L",
+          "cells": [
+            [
+              17,
+              17
+            ],
+            [
+              17,
+              18
+            ],
+            [
+              18,
+              17
+            ],
+            [
+              18,
+              18
+            ],
+            [
+              19,
+              17
+            ],
+            [
+              19,
+              18
+            ],
+            [
+              20,
+              17
+            ],
+            [
+              20,
+              18
+            ],
+            [
+              20,
+              19
+            ],
+            [
+              20,
+              20
+            ],
+            [
+              21,
+              17
+            ],
+            [
+              21,
+              18
+            ],
+            [
+              21,
+              19
+            ],
+            [
+              21,
+              20
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              22,
+              9
+            ],
+            [
+              22,
+              10
+            ],
+            [
+              22,
+              11
+            ],
+            [
+              22,
+              12
+            ],
+            [
+              22,
+              13
+            ],
+            [
+              22,
+              14
+            ],
+            [
+              23,
+              9
+            ],
+            [
+              23,
+              10
+            ],
+            [
+              23,
+              11
+            ],
+            [
+              23,
+              12
+            ],
+            [
+              23,
+              13
+            ],
+            [
+              23,
+              14
+            ],
+            [
+              24,
+              9
+            ],
+            [
+              24,
+              10
+            ],
+            [
+              24,
+              11
+            ],
+            [
+              24,
+              12
+            ],
+            [
+              24,
+              13
+            ],
+            [
+              24,
+              14
+            ],
+            [
+              25,
+              9
+            ],
+            [
+              25,
+              10
+            ],
+            [
+              25,
+              11
+            ],
+            [
+              25,
+              12
+            ],
+            [
+              25,
+              13
+            ],
+            [
+              25,
+              14
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              21,
+              2
+            ],
+            [
+              21,
+              3
+            ],
+            [
+              21,
+              4
+            ],
+            [
+              22,
+              2
+            ],
+            [
+              22,
+              3
+            ],
+            [
+              22,
+              4
+            ],
+            [
+              23,
+              3
+            ],
+            [
+              24,
+              3
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              17,
+              25
+            ],
+            [
+              17,
+              26
+            ],
+            [
+              17,
+              27
+            ],
+            [
+              17,
+              28
+            ],
+            [
+              18,
+              25
+            ],
+            [
+              18,
+              26
+            ],
+            [
+              18,
+              27
+            ],
+            [
+              18,
+              28
+            ],
+            [
+              19,
+              25
+            ],
+            [
+              19,
+              26
+            ],
+            [
+              19,
+              27
+            ],
+            [
+              19,
+              28
+            ],
+            [
+              20,
+              25
+            ],
+            [
+              20,
+              26
+            ],
+            [
+              20,
+              27
+            ],
+            [
+              20,
+              28
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              4,
+              7
+            ],
+            [
+              4,
+              8
+            ],
+            [
+              4,
+              9
+            ],
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              8
+            ],
+            [
+              5,
+              9
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              6,
+              8
+            ],
+            [
+              6,
+              9
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              7,
+              8
+            ],
+            [
+              7,
+              9
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              9,
+              33
+            ],
+            [
+              9,
+              34
+            ],
+            [
+              9,
+              35
+            ],
+            [
+              9,
+              36
+            ],
+            [
+              9,
+              37
+            ],
+            [
+              10,
+              33
+            ],
+            [
+              10,
+              34
+            ],
+            [
+              10,
+              35
+            ],
+            [
+              10,
+              36
+            ],
+            [
+              10,
+              37
+            ],
+            [
+              11,
+              33
+            ],
+            [
+              11,
+              34
+            ],
+            [
+              11,
+              35
+            ],
+            [
+              11,
+              36
+            ],
+            [
+              11,
+              37
+            ],
+            [
+              12,
+              33
+            ],
+            [
+              12,
+              34
+            ],
+            [
+              12,
+              35
+            ],
+            [
+              12,
+              36
+            ],
+            [
+              12,
+              37
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              26,
+              22
+            ],
+            [
+              26,
+              23
+            ],
+            [
+              26,
+              24
+            ],
+            [
+              26,
+              25
+            ],
+            [
+              27,
+              22
+            ],
+            [
+              27,
+              23
+            ],
+            [
+              27,
+              24
+            ],
+            [
+              27,
+              25
+            ],
+            [
+              28,
+              24
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              18,
+              11
+            ],
+            [
+              18,
+              12
+            ],
+            [
+              18,
+              13
+            ],
+            [
+              18,
+              14
+            ],
+            [
+              18,
+              15
+            ],
+            [
+              19,
+              11
+            ],
+            [
+              19,
+              12
+            ],
+            [
+              19,
+              13
+            ],
+            [
+              19,
+              14
+            ],
+            [
+              19,
+              15
+            ],
+            [
+              20,
+              13
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              11,
+              19
+            ],
+            [
+              11,
+              20
+            ],
+            [
+              11,
+              21
+            ],
+            [
+              11,
+              22
+            ],
+            [
+              11,
+              23
+            ],
+            [
+              12,
+              19
+            ],
+            [
+              12,
+              20
+            ],
+            [
+              12,
+              21
+            ],
+            [
+              12,
+              22
+            ],
+            [
+              12,
+              23
+            ],
+            [
+              13,
+              21
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              5,
+              12
+            ],
+            [
+              5,
+              13
+            ],
+            [
+              5,
+              14
+            ],
+            [
+              5,
+              15
+            ],
+            [
+              5,
+              16
+            ],
+            [
+              5,
+              17
+            ],
+            [
+              6,
+              12
+            ],
+            [
+              6,
+              13
+            ],
+            [
+              6,
+              14
+            ],
+            [
+              6,
+              15
+            ],
+            [
+              6,
+              16
+            ],
+            [
+              6,
+              17
+            ],
+            [
+              7,
+              12
+            ],
+            [
+              7,
+              13
+            ],
+            [
+              7,
+              14
+            ],
+            [
+              7,
+              15
+            ],
+            [
+              7,
+              16
+            ],
+            [
+              7,
+              17
+            ],
+            [
+              8,
+              12
+            ],
+            [
+              8,
+              13
+            ],
+            [
+              8,
+              14
+            ],
+            [
+              8,
+              15
+            ],
+            [
+              8,
+              16
+            ],
+            [
+              8,
+              17
+            ],
+            [
+              9,
+              12
+            ],
+            [
+              9,
+              13
+            ],
+            [
+              9,
+              14
+            ],
+            [
+              9,
+              15
+            ],
+            [
+              9,
+              16
+            ],
+            [
+              9,
+              17
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              30,
+              29
+            ],
+            [
+              30,
+              30
+            ],
+            [
+              30,
+              31
+            ],
+            [
+              30,
+              32
+            ],
+            [
+              30,
+              33
+            ],
+            [
+              31,
+              29
+            ],
+            [
+              31,
+              30
+            ],
+            [
+              31,
+              31
+            ],
+            [
+              31,
+              32
+            ],
+            [
+              31,
+              33
+            ],
+            [
+              32,
+              31
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              6,
+              27
+            ],
+            [
+              6,
+              28
+            ],
+            [
+              6,
+              29
+            ],
+            [
+              7,
+              27
+            ],
+            [
+              7,
+              28
+            ],
+            [
+              7,
+              29
+            ]
+          ]
+        },
+        {
+          "shape": "L",
+          "cells": [
+            [
+              27,
+              6
+            ],
+            [
+              27,
+              7
+            ],
+            [
+              27,
+              8
+            ],
+            [
+              27,
+              9
+            ],
+            [
+              27,
+              10
+            ],
+            [
+              28,
+              6
+            ],
+            [
+              28,
+              7
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              28,
+              9
+            ],
+            [
+              28,
+              10
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              16,
+              3
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              17,
+              3
+            ],
+            [
+              17,
+              4
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              33,
+              2
+            ],
+            [
+              33,
+              3
+            ],
+            [
+              33,
+              4
+            ],
+            [
+              33,
+              5
+            ],
+            [
+              33,
+              6
+            ],
+            [
+              33,
+              7
+            ],
+            [
+              34,
+              2
+            ],
+            [
+              34,
+              3
+            ],
+            [
+              34,
+              4
+            ],
+            [
+              34,
+              5
+            ],
+            [
+              34,
+              6
+            ],
+            [
+              34,
+              7
+            ]
+          ]
+        },
+        {
+          "shape": "L",
+          "cells": [
+            [
+              28,
+              19
+            ],
+            [
+              28,
+              20
+            ],
+            [
+              29,
+              19
+            ],
+            [
+              29,
+              20
+            ],
+            [
+              29,
+              21
+            ],
+            [
+              30,
+              19
+            ],
+            [
+              30,
+              20
+            ],
+            [
+              30,
+              21
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              17,
+              33
+            ],
+            [
+              17,
+              34
+            ],
+            [
+              17,
+              35
+            ],
+            [
+              17,
+              36
+            ],
+            [
+              17,
+              37
+            ],
+            [
+              18,
+              33
+            ],
+            [
+              18,
+              34
+            ],
+            [
+              18,
+              35
+            ],
+            [
+              18,
+              36
+            ],
+            [
+              18,
+              37
+            ],
+            [
+              19,
+              33
+            ],
+            [
+              19,
+              34
+            ],
+            [
+              19,
+              35
+            ],
+            [
+              19,
+              36
+            ],
+            [
+              19,
+              37
+            ],
+            [
+              20,
+              33
+            ],
+            [
+              20,
+              34
+            ],
+            [
+              20,
+              35
+            ],
+            [
+              20,
+              36
+            ],
+            [
+              20,
+              37
+            ]
+          ]
+        },
+        {
+          "shape": "L",
+          "cells": [
+            [
+              36,
+              18
+            ],
+            [
+              36,
+              19
+            ],
+            [
+              37,
+              18
+            ],
+            [
+              37,
+              19
+            ],
+            [
+              37,
+              20
+            ],
+            [
+              37,
+              21
+            ],
+            [
+              37,
+              22
+            ],
+            [
+              38,
+              18
+            ],
+            [
+              38,
+              19
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              38,
+              21
+            ],
+            [
+              38,
+              22
+            ]
+          ]
+        },
+        {
+          "shape": "L",
+          "cells": [
+            [
+              13,
+              30
+            ],
+            [
+              13,
+              31
+            ],
+            [
+              14,
+              30
+            ],
+            [
+              14,
+              31
+            ],
+            [
+              14,
+              32
+            ],
+            [
+              15,
+              30
+            ],
+            [
+              15,
+              31
+            ],
+            [
+              15,
+              32
+            ]
+          ]
+        },
+        {
+          "shape": "L",
+          "cells": [
+            [
+              31,
+              23
+            ],
+            [
+              31,
+              24
+            ],
+            [
+              32,
+              23
+            ],
+            [
+              32,
+              24
+            ],
+            [
+              33,
+              23
+            ],
+            [
+              33,
+              24
+            ],
+            [
+              33,
+              25
+            ],
+            [
+              33,
+              26
+            ],
+            [
+              33,
+              27
+            ],
+            [
+              34,
+              23
+            ],
+            [
+              34,
+              24
+            ],
+            [
+              34,
+              25
+            ],
+            [
+              34,
+              26
+            ],
+            [
+              34,
+              27
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              9,
+              25
+            ],
+            [
+              9,
+              26
+            ],
+            [
+              9,
+              27
+            ],
+            [
+              9,
+              28
+            ],
+            [
+              10,
+              25
+            ],
+            [
+              10,
+              26
+            ],
+            [
+              10,
+              27
+            ],
+            [
+              10,
+              28
+            ],
+            [
+              11,
+              25
+            ],
+            [
+              11,
+              26
+            ],
+            [
+              11,
+              27
+            ],
+            [
+              11,
+              28
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              2,
+              31
+            ],
+            [
+              2,
+              32
+            ],
+            [
+              2,
+              33
+            ],
+            [
+              2,
+              34
+            ],
+            [
+              3,
+              31
+            ],
+            [
+              3,
+              32
+            ],
+            [
+              3,
+              33
+            ],
+            [
+              3,
+              34
+            ],
+            [
+              4,
+              31
+            ],
+            [
+              4,
+              32
+            ],
+            [
+              4,
+              33
+            ],
+            [
+              4,
+              34
+            ]
+          ]
+        },
+        {
+          "shape": "rectangle",
+          "cells": [
+            [
+              27,
+              2
+            ],
+            [
+              27,
+              3
+            ],
+            [
+              27,
+              4
+            ],
+            [
+              28,
+              2
+            ],
+            [
+              28,
+              3
+            ],
+            [
+              28,
+              4
+            ],
+            [
+              29,
+              2
+            ],
+            [
+              29,
+              3
+            ],
+            [
+              29,
+              4
+            ],
+            [
+              30,
+              2
+            ],
+            [
+              30,
+              3
+            ],
+            [
+              30,
+              4
+            ],
+            [
+              31,
+              2
+            ],
+            [
+              31,
+              3
+            ],
+            [
+              31,
+              4
+            ]
+          ]
+        },
+        {
+          "shape": "T",
+          "cells": [
+            [
+              29,
+              36
+            ],
+            [
+              29,
+              37
+            ],
+            [
+              29,
+              38
+            ],
+            [
+              30,
+              36
+            ],
+            [
+              30,
+              37
+            ],
+            [
+              30,
+              38
+            ],
+            [
+              31,
+              37
+            ]
+          ]
+        }
+      ],
+      "manhattan_steps": 66,
+      "static_detour_steps": 0,
+      "physical_scale": "abstract grid; no real-robot clearance claim"
+    },
+    "training_runs_authorized": 2,
+    "steps_per_run": 200000,
+    "updates_per_run": 199501,
+    "old_group_retrained": false,
+    "independent500_used": false,
+    "pretraining_updates": 0,
+    "explanation": "CE is the only loss intervention; same eligible labels and true-action TD. Historical boundary-time validation retained."
+  },
+  "created": "2026-10-30T00:21:44.992173"
+}
