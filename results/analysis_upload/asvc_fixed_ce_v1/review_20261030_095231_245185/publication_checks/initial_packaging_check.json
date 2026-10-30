@@ -1,0 +1,12 @@
+{
+  "type": "publication_check_only_not_training_failure",
+  "failed_archive_preserved_locally": "results/analysis_upload/asvc_fixed_ce_v1/review_20261030_095117_980142",
+  "failed_manifest_sha256": "b99924ac48aacb2088770196a91047ff3daf752751dcca279db874030063e2ba",
+  "error": "Statistic differs: CE loss sum",
+  "reason": "Initial packager used 1e-10 tolerance for a GPU float32 total versus separately aggregated Python-float loss components.",
+  "observed_max_absolute_discrepancy": {
+    "seed0": 1.7534942942099008e-09,
+    "seed1": 1.649279060544906e-09
+  },
+  "correction": "Only CE loss-sum check uses rel_tol=2e-7 and abs_tol=1e-8; scientific records, source freezes, AULC checks and all training outputs unchanged."
+}
