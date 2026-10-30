@@ -1,0 +1,24 @@
+inherits: asvc_fixed_ce_v1.yaml
+experiment:
+  name: asvc_fixed_ce_five_seeds_v1
+  protocol: unchanged_fixed_task_ce_extend_seeds234_v1
+  output_root: outputs/asvc_fixed_ce_five_seeds_v1
+  check_root: results/asvc_fixed_ce_five_seeds_v1
+ce_control:
+  seeds: [2, 3, 4]
+  maximum_new_training_runs: 3
+  registration_root: data/asvc_fixed_ce_five_seeds_v1
+  statistics: paired_five_seed_mean_and_sample_sd
+ce_five_seed_extension:
+  pooled_seeds: [0, 1, 2, 3, 4]
+  reused_ce_seeds: [0, 1]
+  reused_ce_root: outputs/asvc_fixed_ce_v1
+  new_ce_seeds: [2, 3, 4]
+  baseline_registration: data/asvc_current_method.json
+  baseline_retrained: false
+  additional_environment_steps: 600000
+  additional_gradient_updates: 598503
+  independent500_used: false
+  parameter_changes: none
+  analysis_unit: paired_training_seed
+  decision: report_all_five_without_selecting_seeds_or_checkpoints

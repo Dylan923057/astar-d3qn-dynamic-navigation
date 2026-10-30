@@ -1,5 +1,16 @@
 # GitHub同步范围
 
+最新批次（2026-10-30）：[固定任务CE最终500确认与QDagger两seed](ASVC_FIXED_SUPPLEMENTS_UPLOAD.zh-CN.md) · [完整阅读包](../results/analysis_upload/asvc_fixed_paper_supplements_v1/LATEST.md)。仅新增QDagger两个200000步训练及CE2500回合确认，复用14个旧训练与原组2500回合确认。两类口径分开，不混入50万步多任务。原结果和旧资料包保留。
+
+```powershell
+# 只读校验与上传预览
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_fixed_paper_supplements_github.ps1 -Preview
+# 用户自行提交和推送；默认直连
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_fixed_paper_supplements_github.ps1
+```
+
+包含完整曲线/逐场景/失败轨迹、冻结源码、示范成本、Q/TD/蒸馏日志与恢复审计。模型/回放留本地，上传范围不含根README、根Git属性或其他研究；以下历史批次不覆盖。
+
 最新批次（2026-10-29）：[TD-only控制与完整循环证据](TD_CONTROL_GITHUB_UPLOAD.zh-CN.md) · [五方法阅读包](../results/analysis_upload/asvc_multitask_td_control_v1/LATEST.md)。新增2次TD控制、复用8次运行；所有训练和诊断已完成。TD-only平均成功14%→31%，C为74%，C−TD-only是教学组合差。包含25500条验证、1000份完整配对轨迹、五动作Q与教师/风险事后诊断、64000个目标样本及80000条最终回放审计；旧包保留，其他训练和测试池未启动。
 
 本批限定范围命令，预览只读：

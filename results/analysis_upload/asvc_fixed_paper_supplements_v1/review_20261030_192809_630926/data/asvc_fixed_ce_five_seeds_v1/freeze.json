@@ -1,0 +1,2955 @@
+{
+  "config": {
+    "experiment": {
+      "name": "asvc_fixed_ce_five_seeds_v1",
+      "output_root": "outputs/asvc_fixed_ce_five_seeds_v1",
+      "run_name_prefix": "whole_map_pool_91701_7obs",
+      "protocol": "unchanged_fixed_task_ce_extend_seeds234_v1",
+      "check_root": "results/asvc_fixed_ce_five_seeds_v1",
+      "initialization": "paired_random"
+    },
+    "dataset": {
+      "source_manifest": "data/risk_handover_v1/manifest.json",
+      "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+      "route_pool_protocol": "dynamic_route_pool_v2",
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "map_id": "irregular_workcell_91701",
+      "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+      "validation_reference": "outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json"
+    },
+    "dynamic_route_pool": {
+      "composition": {
+        "high_interaction": 2,
+        "alternative_branch": 2,
+        "background": 1
+      },
+      "move_every": 1,
+      "sampling_trials_per_episode": 1000,
+      "training_sampling_seed_offset": 91701000,
+      "validation_sampling_seed": 91701999,
+      "validation_episodes": 50,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ]
+    },
+    "environment": {
+      "window_size": 15,
+      "spatial_channels": 4,
+      "action_count": 5,
+      "max_steps": 300,
+      "terminate_on_collision": true,
+      "mask_static_invalid_actions": true
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto"
+    },
+    "training": {
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "replay_strategy": "uniform",
+      "episodes": 1000000,
+      "max_environment_steps": 200000,
+      "replay_capacity": 10000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 1000000,
+      "epsilon_decay_environment_steps": 150000,
+      "validation_interval_environment_steps": 10000,
+      "demo_fraction": 0.0
+    },
+    "guidance": {
+      "methods": [
+        "unguided",
+        "path_guided"
+      ],
+      "lookahead_steps": 4,
+      "projection": "nearest_manhattan_earliest_tie",
+      "path_source": "frozen_nominal_static_astar",
+      "added_spatial_channels": 1,
+      "added_scalar_dim": 2,
+      "control": "zero_added_inputs_same_network"
+    },
+    "rule_baseline": {
+      "method": "astar_replan_wait",
+      "information": "known_static_map_and_current_local_dynamic_frame"
+    },
+    "integration": {
+      "steps_per_branch": 8,
+      "batch_size": 4,
+      "learning_starts": 4,
+      "device": "cpu"
+    },
+    "training_advice": {
+      "methods": [
+        "unguided",
+        "astar_fixed",
+        "astar_decay",
+        "astar_risk_decay",
+        "astar_budget_matched"
+      ],
+      "probability": 0.8,
+      "decay_environment_steps": 100000,
+      "risk_radius": 1,
+      "rng_seed_offset": 730000,
+      "teacher": "static_astar_replan_from_current_position",
+      "risk_information": "current_and_two_previous_observed_dynamic_frames",
+      "evaluation_advice": false,
+      "observation_guidance": false
+    },
+    "value_repair": {
+      "methods": [
+        "unguided_raw",
+        "unguided_bound",
+        "advice_raw",
+        "advice_bound",
+        "advice_margin",
+        "advice_bound_margin"
+      ],
+      "target_lower": -6.0,
+      "target_upper": 10.0,
+      "margin": 0.8,
+      "margin_weight": 1.0,
+      "margin_decay_environment_steps": 100000,
+      "labels": "matching_executed_astar_action_observed_risk_clear_noncollision",
+      "competitor_mask": "static_valid_only",
+      "evaluation_advice": false,
+      "probe_environment_steps": 2000,
+      "probe_device": "cpu",
+      "probe_epsilon_decay_environment_steps": 150000
+    },
+    "execution_consistency": {
+      "method": "advice_bound_margin_all_eligible",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "require_executed_teacher_match": false,
+      "registration_root": "data/whole_map_91701_execution_consistency_v1",
+      "teacher_action_separate_from_transition_action": true,
+      "reweight_or_resample": false,
+      "use_independent500": false,
+      "pretraining_updates": 0,
+      "offline_demonstrations": 0
+    },
+    "persistent_teaching": {
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "registration_root": "data/asvc_persistent_teaching_v1",
+      "baseline_root": "outputs/whole_map_91701_execution_consistency_v1/advice_bound_margin_all_eligible",
+      "environment_steps": 200000,
+      "schedule": "maximum_of_original_schedule_and_floor",
+      "variants": {
+        "supervision_floor": {
+          "advice_floor": 0.0,
+          "supervision_floor": 0.1
+        },
+        "advice_floor": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.0
+        },
+        "both_floors": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.1
+        }
+      },
+      "evaluation_advice": false,
+      "independent500_used": false
+    },
+    "ce_control": {
+      "seeds": [
+        2,
+        3,
+        4
+      ],
+      "maximum_new_training_runs": 3,
+      "environment_steps": 200000,
+      "expected_gradient_updates": 199501,
+      "registration_root": "data/asvc_fixed_ce_five_seeds_v1",
+      "baseline_root": "outputs/asvc_persistent_teaching_v1/supervision_floor",
+      "baseline_variant": "supervision_floor",
+      "supervision_loss": "masked_cross_entropy",
+      "temperature": 1.0,
+      "supervision_floor": 0.1,
+      "advice_floor": 0.0,
+      "initialization": "fresh_random_paired_with_existing_margin_seed",
+      "evaluation": "original_frozen50_every_10000_crossing_at_episode_end",
+      "evaluation_advice": false,
+      "independent500_used": false,
+      "pretraining_updates": 0,
+      "soft_risk_weight": false,
+      "model_selection": "final_200000_only",
+      "aulc_intervals": [
+        [
+          0,
+          50000
+        ],
+        [
+          0,
+          200000
+        ],
+        [
+          100000,
+          200000
+        ]
+      ],
+      "aulc_rule": "piecewise_linear_in_actual_environment_steps_normalized_by_interval_length",
+      "statistics": "paired_five_seed_mean_and_sample_sd"
+    },
+    "ce_five_seed_extension": {
+      "pooled_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "reused_ce_seeds": [
+        0,
+        1
+      ],
+      "reused_ce_root": "outputs/asvc_fixed_ce_v1",
+      "new_ce_seeds": [
+        2,
+        3,
+        4
+      ],
+      "baseline_registration": "data/asvc_current_method.json",
+      "baseline_retrained": false,
+      "additional_environment_steps": 600000,
+      "additional_gradient_updates": 598503,
+      "independent500_used": false,
+      "parameter_changes": "none",
+      "analysis_unit": "paired_training_seed",
+      "decision": "report_all_five_without_selecting_seeds_or_checkpoints"
+    }
+  },
+  "source_sha256": {
+    "scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+    "configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+    "configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+    "src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+    "src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+    "configs\\whole_map_91701_execution_consistency_v1.yaml": "b8f87daf55d0eb6504a5508407393cf4d1984567b9354a4db660c57d6a9ab055",
+    "scripts\\run_execution_consistency.py": "7cb0dcefc504852fed2076643347846da743082fd1f570b7d706c1e30a8c586c",
+    "scripts\\replication_recovery.py": "a1f27e10adbba320378d690ae3205fb70d6054ecacaf25e95ce7ebfc6ff74139",
+    "scripts\\teaching_efficiency_common.py": "05759e62b6f8c81754db6d1b90013a729704c8437a5e6be92736eb868053cce0",
+    "src\\astar_d3qn\\agents\\independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+    "src\\astar_d3qn\\agents\\astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+    "tests\\test_execution_consistency.py": "c1a528a7d5bc3f1fa45b4c87aa6927c16df87b191a8e4c77c96862867f74c24f",
+    "configs\\asvc_persistent_teaching_v1.yaml": "1aab447027ee307ba3c72ca86e2a9b79b54ac83c2141d77c2ea610af071dfc6f",
+    "scripts\\run_persistent_teaching.py": "f8735c52aaed2cb7ecaea3fc49606eff1366b8fdacb7dfbd592aa6a59ed8254e",
+    "tests\\test_persistent_teaching.py": "e43140fab068acd90e49634ed5aa7defec7bdb98f4ff796bcfa25211c4cf3ddb",
+    "src\\astar_d3qn\\__init__.py": "910a064605b486657aeaa25f9d0f072326e38e80db1fb9b21feeb0309e5412ad",
+    "src\\astar_d3qn\\agents\\__init__.py": "bbdb02a0ed3b2750604cb9479b62a058e56d63ffacd162b7ffa3535540eb9f7f",
+    "src\\astar_d3qn\\agents\\all_eligible_module_ablation.py": "866cf34025b9779b7de4ed2687bbc9b7c34c469affa5af01d2135fc0995f8600",
+    "src\\astar_d3qn\\agents\\astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+    "src\\astar_d3qn\\agents\\astar_replan_wait.py": "7f1fff6f4476436fc3f13ffe579936b5c19343143d3d42dca60043f0e10f1fd3",
+    "src\\astar_d3qn\\agents\\astar_staged_withdrawal.py": "33d087ce6bfad0995663429703e37d06a93896e422e440cfb8f9242bb255e775",
+    "src\\astar_d3qn\\agents\\astar_supervision_only.py": "40d212f4fe6bdc8fc61abd0f13df7c9c2fb56561ff0fef059fcd05d7503a7e0f",
+    "src\\astar_d3qn\\agents\\astar_supervision_tail.py": "8654f07719532216e839b3d077e08fab35f676c8421a1806895b2d4d1e8ef3c1",
+    "src\\astar_d3qn\\agents\\ddqna_adapter.py": "12bdb6c4a2e37d1dac168cf9c4ec73e3c47cb5e00a1aeccfc0a4c5cb6317403b",
+    "src\\astar_d3qn\\agents\\dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+    "src\\astar_d3qn\\agents\\networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+    "src\\astar_d3qn\\agents\\persistent_teaching.py": "ce6a3be5acb4ab0e4b1ebeb884c60d559cfc6ad981af9b2c1d1495680424d8d6",
+    "src\\astar_d3qn\\agents\\reward_study.py": "24d37c412e421cc82a46954c7a58b15d429307f8342e3e478e447a0c69690b1b",
+    "src\\astar_d3qn\\core\\__init__.py": "9e50490d0f1631c78c388ff7d5044407a1f0b8b15bf63a2c8ca7873232bde071",
+    "src\\astar_d3qn\\core\\astar.py": "b1ae18017330ecda7e6db7f5172cd357cbfc89c0cf56e2065e2ba9ef876e5b95",
+    "src\\astar_d3qn\\core\\collisions.py": "db8ff782a290871c4eb05e312278ae4065fc6c08825e3eff7d3d0472baaaf78c",
+    "src\\astar_d3qn\\core\\grid.py": "bc1e7be80c1cedf36f27deb369d8d24594fc6b542279da4e80d034c7a2c4bee9",
+    "src\\astar_d3qn\\core\\metrics.py": "62c32138ded8199f373b5426fb59d7c9827dfafe27ab3d41b5859b8370b1f3e0",
+    "src\\astar_d3qn\\core\\path_progress.py": "6766e2ef4f7dad2f2b23ecf58b5119fc9c8e9da0f81e0873bcbdaca5cda20836",
+    "src\\astar_d3qn\\core\\trajectory.py": "88e9c63dbb7c94953c8796e4964792bc8caa8a7473bdb4706b2e9563122eee3d",
+    "src\\astar_d3qn\\envs\\__init__.py": "a632ae6cbda3c352e204465a10076d16dde6731ce1feea1d5e3977b020dccf35",
+    "src\\astar_d3qn\\envs\\dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+    "src\\astar_d3qn\\envs\\dynamic_scenarios.py": "b72bf3d597a83fbb9f57bbd915e6666cd0cbcd42c6738aaf18aa5befa6fcdc4e",
+    "src\\astar_d3qn\\envs\\path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+    "src\\astar_d3qn\\envs\\reward_study.py": "9a36a53c299a2e8c900402f079faa9de60f172b3e2640c84d6225d55adecbc68",
+    "src\\astar_d3qn\\envs\\spatial_scenarios.py": "b4c5a546a02261a5903139aa2e8f65a5bd2e64b3cd6f34e8de39f09412b4ba62",
+    "src\\astar_d3qn\\envs\\static_grid.py": "1a0c1d53dd4d55034a2e59fdb056f80354cecffeae33bbfd3c68761d4256b719",
+    "src\\astar_d3qn\\envs\\types.py": "c60213f0bcc22aa00629af3e537cb5b193f44ff203ca3f655f1bdbb235a5550f",
+    "src\\astar_d3qn\\envs\\whole_map_route_pool.py": "dde8eebd20dde08c8e522c7fd93b80ed65ed3dcc39ecef134bf50d3792937a13",
+    "src\\astar_d3qn\\evaluation\\__init__.py": "041c5a7d7915aff4fd36058a81ddece471b0cb6f27b48dfcf9bf727f0b76af18",
+    "src\\astar_d3qn\\evaluation\\behavior_oracle.py": "9b17c3ad4f831b26897ab1468be16cb9655377b10e631115243cb5febd10e6d7",
+    "src\\astar_d3qn\\evaluation\\checkpoints.py": "e60a7f70497c1e4c103554cb8d89bb54b443e1217be286538bd96314652c7e77",
+    "src\\astar_d3qn\\evaluation\\conflict.py": "a2f5bb05d0e5e2d1bdee7ab4c599925bb5b0f2998ed0193e9d1f1948c0e914b5",
+    "src\\astar_d3qn\\evaluation\\diagnostics.py": "373bd3b7779b61930894599eaccf9e879f1222930970eb63cacce736c3c86bfc",
+    "src\\astar_d3qn\\evaluation\\rollout.py": "7ebfef498b51923cd20bf806b057aa196c51c30a1a6ad60cb7d2a823c05c2b68",
+    "src\\astar_d3qn\\evaluation\\spatial_witness.py": "a445cf414f0e6ceabb4d6f1a05d23d0db60ba2f562bd690949d303a093d9bdd4",
+    "src\\astar_d3qn\\maps\\__init__.py": "e8d123436babe2d57604c1c55e672591eaf85c274df884f9573cedb94b5a3edd",
+    "src\\astar_d3qn\\maps\\adaptation.py": "335df25986c1dc639c8ae60e9fd027a58eb7943422794a98bd79103eb87e085c",
+    "src\\astar_d3qn\\maps\\io.py": "cc67dd5c027d4441ff479bb86c87c9a202783361aac9b235c599bec322e4e941",
+    "src\\astar_d3qn\\maps\\problem.py": "1c160adebe974d0355a9bdfdaaa4f1d6e51d3632431d09bb1dd09169d2dff0a2",
+    "src\\astar_d3qn\\maps\\random_benchmark.py": "f21f32129c116b3e403a5aa971b6281549a9176495729f50944ea82a5449d3f4",
+    "src\\astar_d3qn\\maps\\render.py": "a704b35217fef382ed63bba7578256429a9a3c30c55859fee033db767f51a914",
+    "src\\astar_d3qn\\maps\\risk_handover.py": "73c2697aa4e9eda381710455d485abdef8c164e127455cae019889e390650dd8",
+    "src\\astar_d3qn\\maps\\structured.py": "d198d841d9d7f087497d09f8f054e14e1ce26a0c35103d58eace696a2b290fbf",
+    "src\\astar_d3qn\\plotting\\__init__.py": "de16ca366f216cf7d6f64e92d9ca42c8ca47f1a991d7df464aca7ef2557f6da7",
+    "src\\astar_d3qn\\plotting\\training_plots.py": "64566acd388b608aa46090e212d67b24794d3ae199bfb9d86fd213c1f4dc575d",
+    "src\\astar_d3qn\\replay\\__init__.py": "6ca34621d0f858df75da5ee5d9f67219f7b4256053af45096538ddfc9fb53420",
+    "src\\astar_d3qn\\replay\\demo.py": "18dd392fcf2ca5fa9cde11d27f075b4bc49892111b906ebb3998e88c6c38c642",
+    "src\\astar_d3qn\\replay\\dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+    "src\\astar_d3qn\\replay\\prioritized.py": "5d19daf1ed4295f7536c053a6e575ae9f6e1c18e4d6fdddf1daae119f9bdf204",
+    "src\\astar_d3qn\\replay\\transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+    "src\\astar_d3qn\\replay\\uniform.py": "3134b49769ca3ebbcac5ad6e0777ef6ff7631fc1794a04aeb63c5e414556ce2c",
+    "src\\astar_d3qn\\training\\__init__.py": "2433ff9c0b44c5fd713ad1d2314cafc3c5ecdf10fe71031fbfa19547d67de13a",
+    "src\\astar_d3qn\\training\\budget.py": "a805cd5838e21fcfde2b549dcf97cb5cfe9d89611556bdc7b1b81f7456401c4d",
+    "src\\astar_d3qn\\training\\demo_collector.py": "ce62513b5099ef26098517b053db4ba47ee9f7acaf9cc564b97e9e6e707c8362",
+    "src\\astar_d3qn\\training\\dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+    "src\\astar_d3qn\\training\\replay_adaptation.py": "ccd0f1c22af9cd2ee1410b4f5809def134dfc7010930f766bd28a8ab9c0c9184",
+    "src\\astar_d3qn\\utils\\__init__.py": "4eca4a0dcb8d735ae590f678ff0ccbd48226769ec36be487f8b3fb4a15b83f89",
+    "src\\astar_d3qn\\utils\\config.py": "66259072dfbd1911ef0f23ecefb6ffde359ddc99ec1e135683ab46b6c56dff44",
+    "src\\astar_d3qn\\utils\\io.py": "414e06cdda617d0059cfd38b4d5a609defa62c01b986a62e76d42d06636f4be6",
+    "src\\astar_d3qn\\utils\\seed.py": "f24700aea18ae70f94638e1eecec7c0b01ffe6e4f1c6358b891cd85c3b682468",
+    "configs\\asvc_fixed_ce_v1.yaml": "78077faef029bff8ebaf15387df02df2d078f57d466a0a03441f54d4142db4e4",
+    "tests\\test_fixed_ce.py": "82d6b18ebcaf5b269e7787cabf4e8607b2f534ec5e95fa59fb04c93cee8e1487",
+    "docs\\ASVC_FIXED_CE.zh-CN.md": "be1b75c8eef53d3881607d9736e9afd587058f8d753c7ec46fbbe43fa8acf126",
+    "scripts\\start_fixed_ce.ps1": "a7063e749fb149fd9c90c06ee0704c94ee3bf2a6938f4e40c490c75b02faeb34",
+    "scripts\\analyze_fixed_ce.py": "80a93351aca7b5c9e0a2c42ecab82816fcc6e618602c4fb0b0349ff0d34bc61c",
+    "scripts\\run_fixed_ce.py": "b5cf34a1f0b3a669f2272f45da1cd79292482e871e3a3698c1ccfb4721cd8db5",
+    "scripts\\fixed_ce_agent.py": "062aa570813d34067d3359f95d2e7ce5c35237e1ad4f759ed4d63d020d5965c5",
+    "scripts\\fixed_ce_common.py": "5c92425052e194a90f20fb75e515930fd9f2f90e49ddc871a83984b1113ade9c",
+    "configs/asvc_persistent_supervision_five_seeds_v1.yaml": "07299674c04f3c48b3b8c6a1eee68f58b3411eb301507e3802d730595d55352a",
+    "scripts/run_persistent_supervision_five_seeds.py": "93c20e924101bb9ed7a6039d8a4527adddc406e953f1960c6bb7feb9a1ad6d37",
+    "configs/asvc_fixed_ce_five_seeds_v1.yaml": "ba8758f85c59c0d7202a88558e20291dde6909e322984b182440edd13403e39a",
+    "scripts/fixed_ce_five_common.py": "6c5648fcd21dc3fed86c637a0fd888ab25bf360bc6e28af229e0415d70af1fb2",
+    "scripts/run_fixed_ce_five.py": "839f4bf3e923362d40bea3861f1805e5f64ecb6148916903270c7c0d66de609f",
+    "scripts/analyze_fixed_ce_five.py": "155439dc46562aeb924f7a6e81c3c069381bc3a7c863d12abbbc54599b840427",
+    "scripts/start_fixed_ce_five.ps1": "14727bebae3f8273dea5277843f20491b40894df30218c6ca5f6e255562f058f",
+    "tests/test_fixed_ce_five.py": "459197aaa46317f3066d1ed271947db1f7d0cee0fd7051669011a1f628d88c1e",
+    "docs/ASVC_FIXED_CE_FIVE_SEEDS.zh-CN.md": "a91a2320d4f7c2befacb83ea058aac18f080ccb6a1ef67847267af7f53435601"
+  },
+  "protected_files_sha256": {
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\advice_budget.csv": "21d57c2435d449e0083c4cb0210e3ff094c9b121f034d5a7d5aa8eaef623c1de",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\failure_behaviors.csv": "fbac59fd2ea85dbb065b9aea55a031088fd7e43e5003b80e9c0e7ea78a9864b8",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_final.pth": "626050f4b70796500dd0d1db81d71296b7307dc83813e18a7fd5f5313483e949",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_000000.pth": "065362931a1a6a13484e7edf05a83e621daa69084d71535e9f24957b3503f968",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_010062.pth": "65df48ad31aea9b66544f6dd7c1220e9a55676e8bece7512382036969469b371",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_020066.pth": "fd085ce65fe927fc330305760cd1ff429fe7152b95ceaeaf5422921b989fa80c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_030092.pth": "74f41c98eadb189352387bfa81e33eee90c5a60cb26598d32987a0e6321104ea",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_040017.pth": "578222c59788896b824253c9d010224222fc8a50cf60db29285eff205f646527",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_050053.pth": "ab6bda8ddf0c7a9da552c9ce9bb66a34ab06019f9ad7f8916b83279ccc0047a5",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_060100.pth": "d34507515ebe266daf5d6145edb2630b8873c0b95034d6cb68f07499345cbb75",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_070011.pth": "6e76cc128cfa44443093f48421a2eec0f9f00779c2b0aadc5698b1b7120d37a3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_080062.pth": "a0d3092daf1389039ed630fa39841a08a408bd4d9cb2693a82fc96f3ca0f52ff",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_090028.pth": "3bd0b769c5762e1028613c89f1d9eeac0e2b20275e43660155838296e5a5034a",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_100025.pth": "a45e3ecff81240655c1e9f114ec5d0802746a920d605305989110d99e0f50758",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_110078.pth": "577f9e35f06eb1d6ecaca86274c2277c7a55e75906d7015ebcbc1e548be5085b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_120068.pth": "33e85b77bd4fec6c53d3914adde8d9b047afa178da58f5ba988bf90a03e49aa1",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_130025.pth": "dfe9d6c9e0b5c97baecf772350ab80bc989bf9ceeb82dbb1cfb2cd9cb6e5fabb",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_140043.pth": "5ee1f91ef44f86e4313f85ee17ed709e84f302a42e34ae1056c7461f27a9f785",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_150053.pth": "bbb78613ae45fcb8c749a579cb279f1bd98ece4f6888b732d6b4d77db6eab8c7",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_160020.pth": "58ceaeb67bca28af029c432581f77427fca68ac8c766bad9b17e593b2f135c7e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_170070.pth": "ed8f444e34c380e5c0710e8ad99909ea55c99864944603f2bef106c131c51006",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_180030.pth": "2b1cd2897190bdcc0ef2eba10835328c86aa69324b274890bdd63606b20ef198",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_190038.pth": "5bfc607c53c7be56986dd8e5957fffea3df5432b519cafa8370f12a8b5516e35",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\model_step_200000.pth": "53d29b644b3487b3e59ed899b9f7741ed1c6ebc0ebce2c8a141846163429533b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\prefix_parity.json": "3b2070880a56a7275e67918846342f29cc902fcffd842b9377de32b273f66d91",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\recovery_latest.pth": "43870140f1ae8ca72db1d74453a47723e92fd8eb11c93ddead804106f9dee78b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\result.json": "8960066a27b31be7dff564d2a1c0af8c8afa609f90a3c3be842ef1f6b5ff8a45",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\run_manifest.json": "6c8c33f6bf33682e2ce14dba2b605c5662cad0ee78cc1220a55ec02e8381d542",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\supervision_alignment.csv": "abcb1025a3962ff41eb1b9a635f3ff565f2169b80b7d01ba7a7c278f795aa1e0",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\training.csv": "8718ba5b3c648877c7e4fe34417d8fc2f9327dfc91fb757aa7e838cb09308448",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_curve.csv": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_details.csv": "bc16ba61a31d8c62b44bc98785d820c783ea36f667abd03f3220a6ebfe800d02",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_000000.json": "dada31427a857b091ec36b2894e57762fd0dd875af03ff5d535405c58a460490",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_010062.json": "08695e88ea0083dda31e88c8100aa26a6068a6ca210635c17de3d7f75efcdc4e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_020066.json": "3a6d8f2ca2e7ddb0ffc38763aaadb78bf140c8ff1425e40a1b356996663cafd6",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_030092.json": "f9f51bf308d0a338177b79bc4191b56b7d2b401829ed1dc883a1c821ae177e40",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_040017.json": "12c82e7bb3773d4c1fb36d6a6d99ba9cb32c508729fccbbd1113e90919c49d4a",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_050053.json": "33e2f4b3e98f0a64c3f862e2dd2f4cd1a228510f551637b3703c35d694d705fe",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_060100.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_070011.json": "9c1882a76e228fc5704f6e5540e6bdc947bd913453c27094dcaa092ad56552e3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_080062.json": "a4da9e7b367bbdb82143c87ce52baa032d58ab724518a4218d26658921be5c9b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_090028.json": "e6cdaaa58fdf0a9776540e134e3e137c40a4e1048131d0a4d53b1ef256f8cffb",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_100025.json": "ec90187260e50df33d54cbddffcd2c9a8b89a1ea98270a225b5fefaa80b7c5ec",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_110078.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_120068.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_130025.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_140043.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_150053.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_160020.json": "dffc0797568059baf366fb03ed016f888996fe42d1a4ac26e43d8e6d1df93c69",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_170070.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_180030.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_190038.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0\\value_learning.csv": "504411e161cdb673a68bf548d1998b5719368bb7cf8b5f9af1a94920e439ef1f",
+    "data\\asvc_persistent_teaching_v1\\freeze_manifest.json": "97b3b56e94f7b61ae5356ef2c8dc66018f62c4e26239154817df1a121b7c524d",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\advice_budget.csv": "d694b34edd18ff7c99048eb60df8c1864a1127b11c094ff597f13e8bd4e94beb",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\failure_behaviors.csv": "849f915baaf3ffe2c65b507ed9403279c0a6794fca0374714f42577370610eb7",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_final.pth": "269047fd17ac77ed1a9ff1fe532f99dc50083973aeb3207eba1022f993f224da",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_000000.pth": "00f33e4a2a566ca6abd0109821529f7198d5bf3ab365cb0a5c3232dd0b85855e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_010014.pth": "64c9fde19ae921ac58a57220369f053ac8cbdc5494f24d583ac65a08a7def1f9",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_020084.pth": "5c057e1491c50c53249203a8ec7ae00617eba75a728af3beac25f0602204ab32",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_030040.pth": "ee6026cd790815c7837cac27d7ecff5c26a30396f05a29d81476ada0d23ad72e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_040058.pth": "86afef18f1b5533c18a040d862683304c5f342c0a67193277d4d9a657de180b3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_050105.pth": "1c0bca91f760e96b90ab1ea955f8f463aad412097b7552d9d3454df2f4a9ad6c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_060059.pth": "d4fd7346481caed1541de3fd1ed4731e3897f273654aab8fd606d9fc6b992f45",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_070015.pth": "62c20f3bc12a7de26c862b7bbdae9748ef4200726d94a9c46a46109827a720c0",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_080067.pth": "231635fc50e17aa79934d61befb8a27a5c4974c81fe8ca6df2c5ce1f84dfce30",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_090013.pth": "4c598229b1d2719c411d45de00683d5ac8b44465a257a21d86ab0352ca3685fd",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_100097.pth": "56d1aa0f8c1718b375bf8af16ae02dcfb0958cae01b849afad79d5ec3aa000c2",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_110033.pth": "d4bd641a7b5a8c1cbf8ef544df0138b99bf621cac995b32bd4fe84365fa726ff",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_120038.pth": "b6d3075724d13b32ad06139e0e62cdf5d295a41c1c599967de6f7bdca54d7469",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_130039.pth": "f52d41bb114f56318d5eacc361d52cfc848a32d1b008cd3ce2da573d8ccda976",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_140011.pth": "402109234748115086cb4703cf84656223777f0a5fa1061345c6b36972ba0c54",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_150068.pth": "79f3d6863e745cb56bdb78751b2364ef0aab64116775830363ab8eeca44931bf",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_160033.pth": "93064a8409b6f0f8717f8d9ce1f1fac7425a0ebc0c3dc46c191159811f9ab112",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_170042.pth": "705d982aed44b041eedeae809469a5c90c3841ea5a37aee4ef8573ce832d486c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_180004.pth": "9ba5caceb8898fc3c6ff2741a5a7ec447993af60da1e764a492d3fbcd99e8a87",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_190026.pth": "472b96ed94878e29641aa15fafc85a593673f2e4e3c5c73248b5ff7539770b6d",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\model_step_200000.pth": "afc38970686bfd94f60ec8e9fc9be4f0e1a9e30996eaa04925a340c9dbb5f166",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\prefix_parity.json": "dc80cf03f1e40055a1049e316e8c244ee32fb8e5e365200bd5ceb8f4a2027750",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\recovery_latest.pth": "392f7229bb1d192821b7bc4ebada355bd2626be9b841a34235dd367a8e4d5760",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\result.json": "802055ba6d9a58ec2dfd411f345eabcf902b97f8353d988a043dbb5d927db56d",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\run_manifest.json": "b11c413cfb5a6e29a9f2f2aaa33a102bd1df55187bd2746202261911bb9770f3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\supervision_alignment.csv": "3c7f79695be10871cc8eb8fd20a8c7882f3abf015ad1eb19f7bface67efdfae3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\training.csv": "deb8ca08f7038425a5b78ff603448cf051350bfaa5d2bc58f0b70f70540d2733",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_curve.csv": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_details.csv": "88e69d368205d04b0835a6b2d9500f3b76c838efd1f8cbbaebc4abd1bf12981a",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_000000.json": "ec88e55f33acd66e9cecb530c7755074dc67b1a6857c4127316e1c4725568509",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_010014.json": "cec7b2f32d4918668015521113dad8abcf08f22806c3323c8876f4fb5e974298",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_020084.json": "0f6935aaeb244f67f7b74751c989878f01c18631f8feb69354a660ac9e41761f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_030040.json": "60c89998093d10d8d9f4277274926aeff1c0a20c4a3db99f89729bc980900610",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_040058.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_050105.json": "4e140b2928c84a2eb340af996cd2c186f1b4a7cb6aa47d4ba53ea5586cdc59cc",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_060059.json": "3e2a63758d7f869c6cad6ae920f6764aa8cd7be9dfd30af8729e67f38b2ca6e5",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_070015.json": "32569affd35a3782cfc218e462a505860c6e9d65e634161ec3283f8675e931b8",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_080067.json": "7dd461ad79f92cbe1f5b01e29d31f606630820b53de72097bd72a80c8144e3e1",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_090013.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_100097.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_110033.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_120038.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_130039.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_140011.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_150068.json": "eec8cb48d0329c26fd1c71a172507797931198fadbed3cccaa2d6c6ddce96d00",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_160033.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_170042.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_180004.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_190026.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1\\value_learning.csv": "9c88875f03eacbe3fb4b7e641aada243d940416239b81f91b35a984bd85a5287",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\advice_budget.csv": "d25567cc6bb854d4a16024438666ccaf5f0e457e207503e35dc67a0c6194619b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\failure_behaviors.csv": "266cc89d1370152d577ba1e639fb95176f17dc0f4fab1af6327bb568f9369104",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_final.pth": "f479fe33f6929a22f130f49a2000bce98e27e93b5da78152ddc556cde6ee20dd",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_000000.pth": "127845fc59cb3c8a00dca81cc84f7d7a034d11db8818a65f1d66620051aba4c3",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_010071.pth": "6f0ff7ac15ef7197c27233b66ebde824f1c11c5182611043374ab2277913577c",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_020053.pth": "0982a24355a90b23e2185d5c3c026e8f4d87c7ede49a38cb9c69860919ad240e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_030061.pth": "c1252d7aa53befe9f4466b76d3b6de6d13069c6c86d617c6dd66a78b177e8e78",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_040096.pth": "cfb81dbaee0ba88b197b2a7114414eee170963c748442e79670a30fd647c698f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_050048.pth": "618d2b7dabd5c51b4d999570c8275dfecb9b421356fa451216336f634333a7c0",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_060013.pth": "1feacbcde1746519d9213c082cd62fb9dbd8c147907cd63e80cd8d7db54b2201",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_070102.pth": "b537f4f1c2ff7ff4718d43967492b9a451a13b106f605163f656a23dc5851de7",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_080104.pth": "2953f66b93b24ff1d03818d16ee81ea3aa8c76fad985a9092734e9dfda4579a9",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_090115.pth": "f17c46a12a4e0fb5b214bd921492035f446930a26339e48d48628e7b778c6592",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_100083.pth": "49256c2c72908631549b2a4903517488327a230c41f112270620770c602c702f",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_110051.pth": "43a8fd7bc7e2980efa01171bdfd0460d4ad723fa1ba22013b3fdb8e5ea7a9c20",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_120065.pth": "0c1af8a40f28850eb1af33040bcad3adca981c3fd6cc8776e743c0db17b664cc",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_130044.pth": "f6883cec5f3c936a106d696890d326b1c19161994a3427a0a5654eaa2ba43db1",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_140036.pth": "a805bf2ccd5936b697446120998f2e17564f3b1b1ea5a182c4502b5de3ea6cbe",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_150065.pth": "50f91ca9b0e30077c34a2b4eeaa8fe11ee7814b3d0836452fa66e1394db4a456",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_160051.pth": "1a8ed2d5c209149185a09cc5334bc8909f1d340310f0c5899de8b29aa13afcf6",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_170063.pth": "9c548ee3d44f76cddf8ed5906a888446c2b814c3fcc315cda8a671376ced30cf",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_180027.pth": "3e89b4e037cc3ebeb0d436cf2ca26ad19a1311481ba36cea14b68f470d609fca",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_190037.pth": "d82cb2ad39ece8830c0e1595fa6884ee39e998bbd7d6f66bb4cd864304595cc2",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\model_step_200000.pth": "732b22018c2c732a83a4e6c20355382dd3cd5f576520027f1f0b3a5ab79a1842",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\prefix_parity.json": "7f8c8909298a09fdedacc637d00cd4389e04eee8faf12eb20ab89599b71cc9d6",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\recovery_latest.pth": "a29f3398816a2ecd915b7f308c37c74395a0370cd6e05097f4c92fd411f7a397",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\result.json": "96076b4c9cbc4a3b3647644fcd5e6d156d71035559c0974a584614ef443f369e",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\run_manifest.json": "562e78f64d96bc2fc53b7763f06b6bb6facfb59a17c898797a12a757b83723aa",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\supervision_alignment.csv": "d16d27ff3658555c2d50598a0b16a7b40a2de589c2a627390f178b348c450dfc",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\training.csv": "92f987228cd572f8791d5b4ab09977cd8f3b59e5776af25c352576ae1f792676",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_curve.csv": "d1043e52174ede45f63c92cdd3706d0b8bb8e3b1936b79a9ab5bfa6fff9b865b",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_details.csv": "1296194d10ca25797c325eb5c516ce021dbe2da8e1bf94a3c323b95d6ed30243",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_000000.json": "d75c6b9dbcfb14b33c80dbf2853df782ffafb308f9eef89de46a14f4e6099d82",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_010071.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_020053.json": "8b4ebe2189f6b5687539444ee361d96d888cfccf318199088a26f4db59498d91",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_030061.json": "5e9c3be502ba3585fff88fad1af3bb8668d475c1b1efb18029f454c17e668215",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_040096.json": "eec8cb48d0329c26fd1c71a172507797931198fadbed3cccaa2d6c6ddce96d00",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_050048.json": "3172bac43b86fdc06bddcd0a1eb07d8444ac6f266b772a032683fc22e01128a2",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_060013.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_070102.json": "d95c3b30511f4d2bf7fa1503d5c48f473eb7ed665cde9b170967be8b37e412de",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_080104.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_090115.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_100083.json": "de3ff655091969718efe2cacd14628d2b2fad55dc6958ded98e99fb9ad2039de",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_110051.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_120065.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_130044.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_140036.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_150065.json": "399a0814b0aa010d76ea6064c5745c43d83726f1eebe144fe4fe65089d371b36",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_160051.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_170063.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_180027.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_190037.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2\\value_learning.csv": "67f455247fba9c2082bec4052479e5776c63eb8b0bbae255ecc633fe535a7b93",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\advice_budget.csv": "2a5a1d0b8c7d77cc731da141d6923c5bea0c38140da671c8d0de5e727c589090",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\failure_behaviors.csv": "5085e20168403ce3b26197d71599c2ce1dfbc78df5ea86d45a7778bc77e74566",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_final.pth": "d9c5668ebfbb7b41e2893556d7b8ab74af543be6e325d44203f16da901c74782",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_000000.pth": "60731217f16bf784ea14661cab3ca233c93e007e15883a91a73c5825acb1c240",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_010074.pth": "344808b0a578da4d3eef77fd4334937857e62adf1dd634a60142f0aa328f22ab",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_020070.pth": "e415fce07021b5e035688d355c87d80da646c4a85ab2b573c1e452ffcd50bd88",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_030090.pth": "21ef816c13b2d5c674678129bb01a93f413e996cc06fae15e27a605552f58830",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_040007.pth": "584117050ab03465677206a97ced23f4dfe651d6b0795263f505790cfa4fd797",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_050023.pth": "71e232d94b388fbbb1fe851cd06d155ad4ac400963c707987720898f5f18b126",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_060074.pth": "35fba207b72628628d2f57dd019fa9b5862608dddfa7fe91c33507ecd79669fb",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_070024.pth": "4aa44f3e151844cf2e9dedbd65b54a20f440aa502e85cced5f0d344fd167d54f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_080021.pth": "3f18a3de857b7c662d86ba64e65aae9a338033f363d182a9f1402b7b4ba9a36f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_090103.pth": "a51822cf2af88f975565e35084478e6f3ccc2b1ed76731a96b21a8d1361cae90",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_100091.pth": "91a84095bc47d04e8f8b84fd5e838a2e174adcfb47db66fcec02bbb8487ec931",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_110038.pth": "e06e3cc5ce363c543bcf6f762737b9b337516aee7de09750780502f0069a67a4",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_120044.pth": "d2802be67f617b4056afac343c1169af3f1039a0bfcb1f77c9022bf7e14e55f8",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_130010.pth": "22e1873fcfafc6cdd6c8681ee0c05e1b68e292db11ec54f74c850d45f9182240",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_140063.pth": "ed1fbb5c6b11edcc4d3f821fb9afa019292ab2a8bb8ba37cad4d9861deb0f296",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_150049.pth": "8818ff1762cddd0b6cceb34c9db8f708942d73da7b5ea080bf634d46c78986f2",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_160008.pth": "5a3aeb4b482182a16119f021bef706ce583af4a9e9576aa2683f4920cffc25c0",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_170007.pth": "82c86dc8a1f8cfffdade19b84d07a0d5414bc20841bef436913862759510abae",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_180005.pth": "c1bcb95b0f7b5f13e4e6f936fee4b32f4f2ae0576793f1341523cec9f8e8748f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_190039.pth": "9c332aa55f033124a879e5f9ab22883f9b6c3352b5e6ec2f73bd4139c51f7a1e",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\model_step_200000.pth": "7e58a366ccefd9384ca25a11a3a089fce0a2d23aa597abd4dea411f89f54fdc2",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\prefix_parity.json": "ab75113959815fa43e4ffd225f7cce823ac4f347699e3e0f5810e58cdcfdf7b1",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\recovery_latest.pth": "e4154667694a18a020dd340016dd8cf222d25d54b91b0f6fb34cb6afa90cdf59",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\result.json": "e52103fa1686c8413e594aef77e4bfd9cc0584cf0f66168c74d30b5d52ef7f8e",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\run_manifest.json": "baef0e9098bfdd9361b124a3be9d1dd0b27c8d1b31b33ca59d6f9b111f6b9773",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\supervision_alignment.csv": "d23d75b967a1580b3fb84fde069e29d98d1d9f553c1d3729beb7ff097f27e710",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\training.csv": "8ec3ffd89c00c584369d4571875e061115380c067b6bd736f68e7a12add92195",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_curve.csv": "7bb66f6c81aa291546b887fbd9e6fc5e2cf3217e6f79d70e9e35e11e12b6dec6",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_details.csv": "2f57da25825c0c8ae43f9493e78510d4f932d083769fedab4b3c03a15e4391f7",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_000000.json": "31a3eaf393fdd2bd1f079cbfdd26af1eaa7d8823f78f44686a07053937c8e75e",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_010074.json": "4f6b0aef84f5911b704fae417b1bea79acb99d325b09f8eee6fd7f5ec9ce2f34",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_020070.json": "32ee86b49c6ef3f78717f3f75176790f1c464402bd56fb0b249cfdcc7752a55f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_030090.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_040007.json": "308d0bc02283776e532a72d3b3886a8d4636e3381a80a295284f2df4e24470d6",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_050023.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_060074.json": "18701fb50dbc99862b7880d7bb65c9618f4e681432784d2c5a1e2aecc71fc2e9",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_070024.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_080021.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_090103.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_100091.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_110038.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_120044.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_130010.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_140063.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_150049.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_160008.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_170007.json": "637303a491e4425bf321f1da25144f5a1ca6633f1d2a4d35f5a78c93ad44141d",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_180005.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_190039.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3\\value_learning.csv": "07c26877305e9fc579d761cc28da1659f49b53e43a1877e4f99d58a0a981b189",
+    "data\\asvc_persistent_supervision_five_seeds_v1\\freeze_manifest.json": "fb272a41794604663277d157f4319fc09859b7b5c22673d648d3eaa5d5368b9b",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\advice_budget.csv": "9c0c7f6427bbf6d26b49f3551c364985ffe6cf2235cf8aef3b99b9e4d3558518",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\failure_behaviors.csv": "028db2d9079a869129496b4b102d3b476bc5b9178f4b33f3972b9c1321fca19f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_final.pth": "3077acfa6202a2bcc27e59df9affdfc4e4297cea9675e7ded7b1b5bbec904290",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_000000.pth": "8434516d90685e9dda66aea8d36807d0ea56281b9cfdbd0c2109ce0438887154",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_010016.pth": "2d4172094a05c4889529027bef2e66087ea2854152f12b2da49e9381292aced3",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_020056.pth": "3f0a9d16f2d43e58fb89b9a6a9267c8157f51c0275b4a0b0f8191f36f63f00b2",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_030038.pth": "7776bc375a4b59b24aff4f55d2e3f8d4ffc0336568d58c2bf26377e067cc1c06",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_040043.pth": "7681208ce7c2f626a23489c477ac8fa0ed7a2162e37bf6b594c885081f40b171",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_050107.pth": "31be0714ab04e0ba27033f4ac466abdaf1198fe574c4de1448daf733a3804806",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_060051.pth": "3e300574f6506aaa96d8fe3d3852a2c0b28d9d54a7fcc8d7123bf2067f10bbef",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_070100.pth": "38d42ef86da9a35309f3a1dc9f57b50e885aa34b2e16bf01ea13f76ae44182ff",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_080093.pth": "18fe50231818723f1fa175bf0061e009fc72cd648898f21b2f7ea20e238a73f1",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_090000.pth": "3f24f40f618ba1f43d27ea73ab46c8489f075da2c7fc6b6ad7729bdb958903d0",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_100070.pth": "4e27e0f9692642984f5299e548c44317a52e95887fdecc6c4e08b4c5472ff3a3",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_110080.pth": "f2456c578a9f64a5a40e484c5fea5cb0bddfc7b3fcbdc428e9ea76ae5314f225",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_120043.pth": "92e235e5dc55d2215393d43d7c905d6a67bbe467f14628425d23abddb13e508e",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_130072.pth": "55e4d680cd62052b306f3d4acd77bdd4858a2c52c6e8ef4d05db4ce8be8a1a03",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_140072.pth": "288441c85d2f1a6d3d5e3ba1eaaf0fd209a52a76fe58534b1a8e39484d4d6f8c",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_150069.pth": "f683b19fa63e1e66d79cfc0880931618132aeccba571ef9f796ffc23aa1c1291",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_160030.pth": "032c4bfc587ed3cc9cf5d1764e5540328bde0bd5a30712908d29c86f3d892c54",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_170038.pth": "ac5d58d77d13a7036e67d0f83e75774dc8568b74321d0424ec619aa15006c6db",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_180051.pth": "b5dd89850f9ff73fb96738b0796e83c7eb6d189b81b333d4ebf47e656aba969f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_190006.pth": "35a4b4e766f8ecd3855a83c0086d6db282b4d647c13905c5afdc2220c7555752",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\model_step_200000.pth": "577567e24daea68f2876b40b6854089b9e30f920b46e07e29803ea8102403d79",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\prefix_parity.json": "c738074e4dd02b01c15e80110849a137adfbaf98d2f32dcb5713b3302268864d",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\recovery_latest.pth": "3e90854ce31f49d5582eff5b6f9fda5f7af72dd899f1597bb7a87b638ee3dce9",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\result.json": "32d87a6834246d91697fb03246940dd22a52fb044117608c8c5c798af80aabc9",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\run_manifest.json": "336be0a52da22e2b79d39ccc9742624ab6ddc794e5baaea43d5fc2a1b764e89b",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\status.json": "ce818aa8d00ea8f78e2fca8c4f2e69d9156a1ec20edcef585673e4133118134b",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\supervision_alignment.csv": "7c31e4c82590cdc9b00ae6d5edb2060e7fd618de44fca3a77c2cc5a3ed3a4596",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\training.csv": "30dc19748b0a7c3cee31edc5a8ae737b675f8eed0097d49d53a71ab38355eee2",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_curve.csv": "af645ed709b656de5a94f226c466654ae88c865f4f7a199fb26cbfe2b41e17aa",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_details.csv": "3b9810b3aaea2d6608a5b97205fa2be15548d217b79ab2dc58e5a8a00710480a",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_000000.json": "41e7602959eb6fd408f20eacd035a8a3394fc59d73eb61f0e0ea4e9f887ecc6e",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_010016.json": "44a3b6678475cf69302818447d092fa5eec4c4188ad6287de0e6b348df84e31f",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_020056.json": "38d00f0b3637b58c9fc22d4098d1c8ed59e272738426f1161ee4b3eb68b24d65",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_030038.json": "6c6584cd34827d10534dea25b0860293a9e11578ddcf63c73fcc778b7c1603cd",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_040043.json": "85ee305042e75d7ad11328ecb3d30c9ef048ce4437732001101cfaf247943f1b",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_050107.json": "a8cc615f23d6667fbf61505830baa479aeb876fe5a9eb6afb4954af88c8720f5",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_060051.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_070100.json": "eca9139e2d1198baa8d1b327f7f6bb0dbe4e1de2f94b946d0b51493097cec725",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_080093.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_090000.json": "2223914a442389e90dfc1e6a6a1fc70ce9bb595ce47cb59c2c2d177eba95b814",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_100070.json": "cc8bbcf555816e6c76d7d92711f9da4c688b84af9a1133a29cf7d8ead08add28",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_110080.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_120043.json": "fdc6dd54bcdb3535af8550af3097146aa8fe6126fc639111ab5c6bd35d1fdaef",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_130072.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_140072.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_150069.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_160030.json": "308fa91147a0d5a2a71ab3ad72a8d62797d3f6f2aed57807c16269bd39e2405e",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_170038.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_180051.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_190006.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4\\value_learning.csv": "246612f9ad9a0891d68d7cea71b4bf23faad98a8f91bd479a1a4a9d905e05035",
+    "data\\asvc_fixed_ce_v1\\.gitattributes": "48747480eddba024928d03be9bf83dc579e5515768647507a767e8187a85c9ab",
+    "data\\asvc_fixed_ce_v1\\fixed_validation_scenarios.json": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+    "data\\asvc_fixed_ce_v1\\freeze.json": "758db7acd4004922e9da211ca8146ec8f5cb9baa84a9d946aacc520f8d765fca",
+    "data\\asvc_fixed_ce_v1\\generated_ce_train_batch.py.txt": "0b1fea8481b9cbd200a5e910faed64fa4979f6cd32881a866c6a567dbdbc62f1",
+    "data\\asvc_fixed_ce_v1\\generated_teacher_wrapper.py.txt": "79794bd85f32ee247da4bfe41d95e8f2eb2448627dc4aa328c7563cdd7f11878",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\advice_budget.csv": "21d57c2435d449e0083c4cb0210e3ff094c9b121f034d5a7d5aa8eaef623c1de",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\result.json": "8960066a27b31be7dff564d2a1c0af8c8afa609f90a3c3be842ef1f6b5ff8a45",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\run_manifest.json": "6c8c33f6bf33682e2ce14dba2b605c5662cad0ee78cc1220a55ec02e8381d542",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\supervision_alignment.csv": "abcb1025a3962ff41eb1b9a635f3ff565f2169b80b7d01ba7a7c278f795aa1e0",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\validation_curve.csv": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\validation_details.csv": "bc16ba61a31d8c62b44bc98785d820c783ea36f667abd03f3220a6ebfe800d02",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_0\\value_learning.csv": "504411e161cdb673a68bf548d1998b5719368bb7cf8b5f9af1a94920e439ef1f",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\advice_budget.csv": "d694b34edd18ff7c99048eb60df8c1864a1127b11c094ff597f13e8bd4e94beb",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\result.json": "802055ba6d9a58ec2dfd411f345eabcf902b97f8353d988a043dbb5d927db56d",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\run_manifest.json": "b11c413cfb5a6e29a9f2f2aaa33a102bd1df55187bd2746202261911bb9770f3",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\supervision_alignment.csv": "3c7f79695be10871cc8eb8fd20a8c7882f3abf015ad1eb19f7bface67efdfae3",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\validation_curve.csv": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\validation_details.csv": "88e69d368205d04b0835a6b2d9500f3b76c838efd1f8cbbaebc4abd1bf12981a",
+    "data\\asvc_fixed_ce_v1\\baseline_snapshots\\seed_1\\value_learning.csv": "9c88875f03eacbe3fb4b7e641aada243d940416239b81f91b35a984bd85a5287",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\configs\\asvc_fixed_ce_v1.yaml": "78077faef029bff8ebaf15387df02df2d078f57d466a0a03441f54d4142db4e4",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\configs\\asvc_persistent_teaching_v1.yaml": "1aab447027ee307ba3c72ca86e2a9b79b54ac83c2141d77c2ea610af071dfc6f",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\configs\\whole_map_91701_execution_consistency_v1.yaml": "b8f87daf55d0eb6504a5508407393cf4d1984567b9354a4db660c57d6a9ab055",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\docs\\ASVC_FIXED_CE.zh-CN.md": "be1b75c8eef53d3881607d9736e9afd587058f8d753c7ec46fbbe43fa8acf126",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\analyze_fixed_ce.py": "80a93351aca7b5c9e0a2c42ecab82816fcc6e618602c4fb0b0349ff0d34bc61c",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\fixed_ce_agent.py": "062aa570813d34067d3359f95d2e7ce5c35237e1ad4f759ed4d63d020d5965c5",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\fixed_ce_common.py": "5c92425052e194a90f20fb75e515930fd9f2f90e49ddc871a83984b1113ade9c",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\replication_recovery.py": "a1f27e10adbba320378d690ae3205fb70d6054ecacaf25e95ce7ebfc6ff74139",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\run_execution_consistency.py": "7cb0dcefc504852fed2076643347846da743082fd1f570b7d706c1e30a8c586c",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\run_fixed_ce.py": "b5cf34a1f0b3a669f2272f45da1cd79292482e871e3a3698c1ccfb4721cd8db5",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\run_persistent_teaching.py": "f8735c52aaed2cb7ecaea3fc49606eff1366b8fdacb7dfbd592aa6a59ed8254e",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\start_fixed_ce.ps1": "a7063e749fb149fd9c90c06ee0704c94ee3bf2a6938f4e40c490c75b02faeb34",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\scripts\\teaching_efficiency_common.py": "05759e62b6f8c81754db6d1b90013a729704c8437a5e6be92736eb868053cce0",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\tests\\test_execution_consistency.py": "c1a528a7d5bc3f1fa45b4c87aa6927c16df87b191a8e4c77c96862867f74c24f",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\tests\\test_fixed_ce.py": "82d6b18ebcaf5b269e7787cabf4e8607b2f534ec5e95fa59fb04c93cee8e1487",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\tests\\test_persistent_teaching.py": "e43140fab068acd90e49634ed5aa7defec7bdb98f4ff796bcfa25211c4cf3ddb",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\__init__.py": "910a064605b486657aeaa25f9d0f072326e38e80db1fb9b21feeb0309e5412ad",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\all_eligible_module_ablation.py": "866cf34025b9779b7de4ed2687bbc9b7c34c469affa5af01d2135fc0995f8600",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_replan_wait.py": "7f1fff6f4476436fc3f13ffe579936b5c19343143d3d42dca60043f0e10f1fd3",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_staged_withdrawal.py": "33d087ce6bfad0995663429703e37d06a93896e422e440cfb8f9242bb255e775",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_supervision_only.py": "40d212f4fe6bdc8fc61abd0f13df7c9c2fb56561ff0fef059fcd05d7503a7e0f",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_supervision_tail.py": "8654f07719532216e839b3d077e08fab35f676c8421a1806895b2d4d1e8ef3c1",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\ddqna_adapter.py": "12bdb6c4a2e37d1dac168cf9c4ec73e3c47cb5e00a1aeccfc0a4c5cb6317403b",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\persistent_teaching.py": "ce6a3be5acb4ab0e4b1ebeb884c60d559cfc6ad981af9b2c1d1495680424d8d6",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\reward_study.py": "24d37c412e421cc82a46954c7a58b15d429307f8342e3e478e447a0c69690b1b",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\agents\\__init__.py": "bbdb02a0ed3b2750604cb9479b62a058e56d63ffacd162b7ffa3535540eb9f7f",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\astar.py": "b1ae18017330ecda7e6db7f5172cd357cbfc89c0cf56e2065e2ba9ef876e5b95",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\collisions.py": "db8ff782a290871c4eb05e312278ae4065fc6c08825e3eff7d3d0472baaaf78c",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\grid.py": "bc1e7be80c1cedf36f27deb369d8d24594fc6b542279da4e80d034c7a2c4bee9",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\metrics.py": "62c32138ded8199f373b5426fb59d7c9827dfafe27ab3d41b5859b8370b1f3e0",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\path_progress.py": "6766e2ef4f7dad2f2b23ecf58b5119fc9c8e9da0f81e0873bcbdaca5cda20836",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\trajectory.py": "88e9c63dbb7c94953c8796e4964792bc8caa8a7473bdb4706b2e9563122eee3d",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\core\\__init__.py": "9e50490d0f1631c78c388ff7d5044407a1f0b8b15bf63a2c8ca7873232bde071",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\dynamic_scenarios.py": "b72bf3d597a83fbb9f57bbd915e6666cd0cbcd42c6738aaf18aa5befa6fcdc4e",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\reward_study.py": "9a36a53c299a2e8c900402f079faa9de60f172b3e2640c84d6225d55adecbc68",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\spatial_scenarios.py": "b4c5a546a02261a5903139aa2e8f65a5bd2e64b3cd6f34e8de39f09412b4ba62",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\static_grid.py": "1a0c1d53dd4d55034a2e59fdb056f80354cecffeae33bbfd3c68761d4256b719",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\types.py": "c60213f0bcc22aa00629af3e537cb5b193f44ff203ca3f655f1bdbb235a5550f",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\whole_map_route_pool.py": "dde8eebd20dde08c8e522c7fd93b80ed65ed3dcc39ecef134bf50d3792937a13",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\envs\\__init__.py": "a632ae6cbda3c352e204465a10076d16dde6731ce1feea1d5e3977b020dccf35",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\behavior_oracle.py": "9b17c3ad4f831b26897ab1468be16cb9655377b10e631115243cb5febd10e6d7",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\checkpoints.py": "e60a7f70497c1e4c103554cb8d89bb54b443e1217be286538bd96314652c7e77",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\conflict.py": "a2f5bb05d0e5e2d1bdee7ab4c599925bb5b0f2998ed0193e9d1f1948c0e914b5",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\diagnostics.py": "373bd3b7779b61930894599eaccf9e879f1222930970eb63cacce736c3c86bfc",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\rollout.py": "7ebfef498b51923cd20bf806b057aa196c51c30a1a6ad60cb7d2a823c05c2b68",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\spatial_witness.py": "a445cf414f0e6ceabb4d6f1a05d23d0db60ba2f562bd690949d303a093d9bdd4",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\evaluation\\__init__.py": "041c5a7d7915aff4fd36058a81ddece471b0cb6f27b48dfcf9bf727f0b76af18",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\adaptation.py": "335df25986c1dc639c8ae60e9fd027a58eb7943422794a98bd79103eb87e085c",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\io.py": "cc67dd5c027d4441ff479bb86c87c9a202783361aac9b235c599bec322e4e941",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\problem.py": "1c160adebe974d0355a9bdfdaaa4f1d6e51d3632431d09bb1dd09169d2dff0a2",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\random_benchmark.py": "f21f32129c116b3e403a5aa971b6281549a9176495729f50944ea82a5449d3f4",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\render.py": "a704b35217fef382ed63bba7578256429a9a3c30c55859fee033db767f51a914",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\risk_handover.py": "73c2697aa4e9eda381710455d485abdef8c164e127455cae019889e390650dd8",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\structured.py": "d198d841d9d7f087497d09f8f054e14e1ce26a0c35103d58eace696a2b290fbf",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\maps\\__init__.py": "e8d123436babe2d57604c1c55e672591eaf85c274df884f9573cedb94b5a3edd",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\plotting\\training_plots.py": "64566acd388b608aa46090e212d67b24794d3ae199bfb9d86fd213c1f4dc575d",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\plotting\\__init__.py": "de16ca366f216cf7d6f64e92d9ca42c8ca47f1a991d7df464aca7ef2557f6da7",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\replay\\demo.py": "18dd392fcf2ca5fa9cde11d27f075b4bc49892111b906ebb3998e88c6c38c642",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\replay\\dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\replay\\prioritized.py": "5d19daf1ed4295f7536c053a6e575ae9f6e1c18e4d6fdddf1daae119f9bdf204",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\replay\\transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\replay\\uniform.py": "3134b49769ca3ebbcac5ad6e0777ef6ff7631fc1794a04aeb63c5e414556ce2c",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\replay\\__init__.py": "6ca34621d0f858df75da5ee5d9f67219f7b4256053af45096538ddfc9fb53420",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\training\\budget.py": "a805cd5838e21fcfde2b549dcf97cb5cfe9d89611556bdc7b1b81f7456401c4d",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\training\\demo_collector.py": "ce62513b5099ef26098517b053db4ba47ee9f7acaf9cc564b97e9e6e707c8362",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\training\\dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\training\\replay_adaptation.py": "ccd0f1c22af9cd2ee1410b4f5809def134dfc7010930f766bd28a8ab9c0c9184",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\training\\__init__.py": "2433ff9c0b44c5fd713ad1d2314cafc3c5ecdf10fe71031fbfa19547d67de13a",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\utils\\config.py": "66259072dfbd1911ef0f23ecefb6ffde359ddc99ec1e135683ab46b6c56dff44",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\utils\\io.py": "414e06cdda617d0059cfd38b4d5a609defa62c01b986a62e76d42d06636f4be6",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\utils\\seed.py": "f24700aea18ae70f94638e1eecec7c0b01ffe6e4f1c6358b891cd85c3b682468",
+    "data\\asvc_fixed_ce_v1\\source_snapshot\\src\\astar_d3qn\\utils\\__init__.py": "4eca4a0dcb8d735ae590f678ff0ccbd48226769ec36be487f8b3fb4a15b83f89",
+    "outputs\\asvc_fixed_ce_v1\\queue_logs\\20261030_002312_349_stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "outputs\\asvc_fixed_ce_v1\\queue_logs\\20261030_002312_349_stdout.log": "a302162ad4ad14026981a6b3b6b733aa6af36dd09a5fab08dd420b246a395802",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\advice_budget.csv": "66768ad301247122f5801920a8c37a8ccb0cdd1b19fffdc60ad4f6e7a5c3b17d",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\completion.json": "75859e965834488e54e73a27866513bffba2c7d653943679ea4bb68502e7f0c6",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\failure_behaviors.csv": "143732f5fde25cb908f9adbae9102bda16f68c8409a6ec4e51e7b36c31fdabfc",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_final.pth": "730adb30bb02e136b3abc81dd94be76bda8327f1b3cc6b9dac11d34db88bdd0f",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_000000.pth": "065362931a1a6a13484e7edf05a83e621daa69084d71535e9f24957b3503f968",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_010015.pth": "7332ec6541656042d041456fc4d3020e7ce42a9f15b1db29dc61c919f3574f61",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_020027.pth": "c517c17b994f29f6552f08566965e1aa303ed8ff2217d8cc50c7095f8f6a6e52",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_030052.pth": "1be1b887c1f046adff1a48ff17fcc1c4b79ea1ac1c0431f800405b5c81ece20a",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_040104.pth": "b55ebd8aeb5c7929468db1d05fbb484eb4e329d20097fd35d3d5ef4bcff417ae",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_050036.pth": "7c9919ccf1982157817fa64ac4d4a90394ce1e5530436d4e7209f8d975636933",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_060071.pth": "95ebeacf150926365dcae76251d07417456026428d23f5090b1bcd0fb9581b28",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_070093.pth": "b482b6371d9b9c79f1ca80fa0155c694bfb163db439675fffd0253fce5abf8ee",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_080005.pth": "28edb7181ba86f0a24c14a263e29c1d4bc29d3d7b542f3f6e17fb225350e5bdf",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_090106.pth": "25ff21de606dcf5e0324f8b7745411bcd0dba2eb60ee932abf951700e9de1acf",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_100014.pth": "297e692418dfae80198434d91fbf24ff418a5121777231aab94f030d1352d36f",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_110005.pth": "13202992601068a3c9b7dda3f091e9e6c008c369cf2434f327db59090c0672fb",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_120033.pth": "34866453fa306d16940cadea4916eb639a5bc443f3a9d3e2708141d1331d67aa",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_130048.pth": "dccbc515043ef10b3c4605d7951da38114a63805c2f5a51cae984b2af56519af",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_140039.pth": "7559691bdcf1b8c92f3361765c758a0e12e71581bbef132f4e80bff884a2f390",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_150049.pth": "d6b0d36e0f904119da56721bcc5d15ef010635f4c852b39c0d6eb92848df3bf0",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_160013.pth": "0c07c95c9901ccb163730ef11dc77106e9818e56afda71f19494daeb0e474c28",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_170069.pth": "44c05a72af60d4d5a96cbb2426b3cc29b71c336980d4b073c2aee1cdf04eea6e",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_180045.pth": "f23b6ad9a8a787b22c67214dde5b56a8ca226de23930c9ae310b133d6a3c51cd",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_190044.pth": "10e20ba5c98cd970ca9029d18fde335011b05dc20d14b41d42c756c4738a881a",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\model_step_200000.pth": "729c660a5020e86270749040b61b66013e37dab3aba4bf148dac1f0091556449",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\recovery_latest.pth": "849d689aa4a80d91c2a8ffd1a2dad1325a240f57e6811d602fca2d72fdec72e0",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\result.json": "a6d036454560a4ccd42c01828369843dcbe185c178dbca5499d707770ad81179",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\run_manifest.json": "57c939d57dd6d0dfb9672753a13d0a6b54f3669f6507c2f88ae27b8231102f61",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\status.json": "cfdc06cf7e5c5d232ddd8c1d2ce2641aa09a837f18477497986aa1d16925f78b",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\supervision_alignment.csv": "83928e1e4f801477a7dd0766e4bec3882e4282b48a1bba4281caf0c23454daf7",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\training.csv": "172de72bd2fc1491dcaed522c6ba371b086c546b37a276bdd64395278e1229c8",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_curve.csv": "3e7853c7444f6cb3268e4984cce349fe25e82140ee6307633808905a18f74e7c",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_details.csv": "37305976b2d6802c4df1efcb66178f8ce9772c0e5234c1c747a751fa6d526289",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_000000.json": "dada31427a857b091ec36b2894e57762fd0dd875af03ff5d535405c58a460490",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_010015.json": "6b7bb04a0b39fb880212060cdafb9840697a50af9ed45f4f07f5360159065351",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_020027.json": "df4dee7fd2b52e6a1bf4008661531e4fe3a469e1e79fc92d501f276c503ab42a",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_030052.json": "35cf6474c0f26a82e1635a5fd7a12b7548105e472aff3399632ab46fd9691662",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_040104.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_050036.json": "2ee9649c6fb4f325e29e47359672df0671de8c282af189cf6828592b09d3e6fd",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_060071.json": "e7ad240ae182879eeb1b9a1c3a2db8e8aad30c43df8f2f0d46404406f09b834f",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_070093.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_080005.json": "7099f855efdc004b906218c8e0a597e8eae8ce0d27b4122b0933ce4e667dc0ef",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_090106.json": "4ca42fe4a1de1c2a0f335f94f870999c03d83b52f501bea64ac801fa126da436",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_100014.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_110005.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_120033.json": "0956f280da8b0747b3134f8273e0e627dc39495daba0cae23ee2bc3c40912b3e",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_130048.json": "5afc86c40b3ff8a1a35e18e514d11472b06a47d766c307a26f66a1a095122a7e",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_140039.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_150049.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_160013.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_170069.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_180045.json": "d6bb514ae9752564f8ca48a28151362d7dfc624e7fbae9592ffd4edd59eaf527",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_190044.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\validation_failures_200000.json": "09ce43eee307d79e155a490eccad8041decde4ce67466ce4f5ee9361434f8a65",
+    "outputs\\asvc_fixed_ce_v1\\seed_0\\value_learning.csv": "5195180c41ea28ae0fd46030b0c37f8b31de266ff9f78591412c0510bdebd1c6",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\advice_budget.csv": "736e8b5b39fe2280096184d9dbe47c3132b54a03b4438029903ce595114dd56b",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\completion.json": "75859e965834488e54e73a27866513bffba2c7d653943679ea4bb68502e7f0c6",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\failure_behaviors.csv": "696ca9277d9d93de356aceb7eaafc641643c43f797cbd99307ace95ff58748ca",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_final.pth": "018de62088d08863b40a94845cb57e2a6cc5ee3305fd6e1355582af979082153",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_000000.pth": "00f33e4a2a566ca6abd0109821529f7198d5bf3ab365cb0a5c3232dd0b85855e",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_010031.pth": "087110f5cf7494db7ab28a929614cab1102a66028beb9332496b8d58be224a19",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_020001.pth": "3a4aa1c655a8850b65b463135143bb71e1bb9b59d9d70cf15bb686d1e0295230",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_030055.pth": "085cae83e5f1e30d147c42ff1b25fa61035dfa68d8795431ee418e0f01f6fe12",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_040020.pth": "bbd3aba47806227d9b4b857a4175ef362d7e406b0e2c72d028bbe08950e6a630",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_050005.pth": "6ba639519c4b92b16883cf850bebd26232a3a74ea82072cb05b1aa40f1c95fa6",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_060007.pth": "0f9896c803481f04a501baf552591e04b80f49615d4c910665cc474e0db83423",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_070064.pth": "e2877b7adbbc99b5c383b15b640f6c7273fd84229bbcf0654ee0af68f0f93419",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_080071.pth": "0bab133c71864af023efd693e11bdc256876fa4e03b5dc339a2a66e7797ae86c",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_090045.pth": "cbb51135c20d0aeb2b04ff72aca15c29734afe412f14b8e11174146410d33652",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_100053.pth": "80eb021c829130526adcc56dd66f46cb5a613ee78f5825b0d508932df369a453",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_110077.pth": "8433846881a3989cc63643d29afa21d83bc8e60bb33846280a72eb656adf78da",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_120083.pth": "f7574b28762c4e3677b8c660443a57f64e62f23c00dc1591c6820519fbd148b8",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_130074.pth": "c24d32abf61590f07d868b245e7fb2612f55daddf398638ad48511223fcce9e7",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_140058.pth": "7702c1621763a5fb1b2bc15e8283087823536e22017126a3ef25e836934581cf",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_150001.pth": "cacd5665633c757f7c1fed9497cd75d46640b361929291dd14e5dca8c1051269",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_160002.pth": "80343f4ab70389cd65d782bccced6b76f07e73b7a699fc5e9c840e5da326452f",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_170009.pth": "af0e0a8a60b0b5335018d9def00b00f487666947b63d2c4a02fcfee9c6249a48",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_180071.pth": "7db22ec0e7995a14de0993257f67c6532368240f15e6e71e6d749943a1925fc5",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_190009.pth": "7857c1a210c0dd0fe972f4fdcbb64126e9ca3838cdaf21d82fda4214d00e13a9",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\model_step_200000.pth": "a36093a6b10318a218d706604e41df7475bb26a81a278362ad956bd89a96a865",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\recovery_latest.pth": "203f34c9309cd8e987589fa36e67d296b76629c66b18a4ae1fbfec84ee40f039",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\result.json": "abedc7645232607f4c3c75d8ea872b727ad82e78487824a8ff959cb310f26814",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\run_manifest.json": "49a03c5e2eb6d3d4e64c2d59987b73fbeda393ad454aaa69c15fa2cc5d3d2961",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\status.json": "cfdc06cf7e5c5d232ddd8c1d2ce2641aa09a837f18477497986aa1d16925f78b",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\supervision_alignment.csv": "754d8b2a4dfe487f914cd0c04f403d3af27e3a288e7d1d2346cd4ae73da088eb",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\training.csv": "d77a75f3abae69811bc93e0730d212f6465829eae6e2ac73dd509b5c59b1a040",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_curve.csv": "16960fd74a96023dabb709d3fac8c14efd2d69510f97fde7f6be44ea8e34ceb6",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_details.csv": "6072de8aabeeec8b17852d88d14cad7ac5e1215c1867846684dce9b518028865",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_000000.json": "ec88e55f33acd66e9cecb530c7755074dc67b1a6857c4127316e1c4725568509",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_010031.json": "4aa7bc8eb40ac6668f46e2c63fae2202893f12060177652d623376fecf322b59",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_020001.json": "66c85485f9035ccfdad4ad342368a7b03cb25e4c81cf335e8e7d792d00a4536e",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_030055.json": "7fed0a01b0a585badf8afacb84a2752be60c4571b84515a068d43a895d8e3624",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_040020.json": "503536defd3dc63af564e7d0ab77204c154d363c56e9d7a501122804de62d23c",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_050005.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_060007.json": "603cb6edc01ad43d428f55c20a9c818aca4aad46a03b114411ca524f188ce99b",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_070064.json": "1eb683672d6b110925210bd9e7a6d84d650e922401334114ebba30a2869737f5",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_080071.json": "1c61b1d0f10631b12b3f4fa2c2161ae0d4227704cb05a9f1aa48db98917ffab8",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_090045.json": "0a1b233526799fb8172a64c067e4eb27f631c441b84fffa5d2a4bdb5bd71f70b",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_100053.json": "eec8cb48d0329c26fd1c71a172507797931198fadbed3cccaa2d6c6ddce96d00",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_110077.json": "78f1c83a6df4bd7d527aa6d27a7a0676226be405f16db4af6189ce1ecd347c8e",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_120083.json": "eec8cb48d0329c26fd1c71a172507797931198fadbed3cccaa2d6c6ddce96d00",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_130074.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_140058.json": "0bafa985f4dc866b33bff4182984a10cf1f0993dcded245724c3ec07a7747119",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_150001.json": "da2a953896035104fdca82acc3794c3c713b8e1225743dd8b1c21174d77ae941",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_160002.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_170009.json": "9665f6473e639ab894b17aba47f4b98cea2b08bc6460cfc815feb40366111067",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_180071.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_190009.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\validation_failures_200000.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "outputs\\asvc_fixed_ce_v1\\seed_1\\value_learning.csv": "361d150b219facf0103766571c432509047ba8a54a2e8c69975a0c525f3dd15b",
+    "results\\asvc_fixed_ce_v1\\analysis_status.json": "e9fd2e88327ce792776e7f9c31f4503a03c0ba26d133e532e2a571bb4dd91480",
+    "results\\asvc_fixed_ce_v1\\launch.json": "22c8b97501b1a69a6b4a98e79f2d9913fd045db8a73485d3b1ce63675247693e",
+    "results\\asvc_fixed_ce_v1\\learning_curves.pdf": "26f259d40e9a9c9991c93d71a1b3b57a5c20af9321b2f15024a504bf7b302ab3",
+    "results\\asvc_fixed_ce_v1\\learning_curves.png": "18664f5d02879232b3ff652514748d5291855f286dd7a4cd26ecddf39bd34cb0",
+    "results\\asvc_fixed_ce_v1\\mean_sample_sd.csv": "3ecd22dbf959ce0f912ace86d42e9b445b1211ede312c8821bfb7039e73cca67",
+    "results\\asvc_fixed_ce_v1\\paired_mean_sample_sd.csv": "165083936869732d888da6c0a56bd5b8250d60eaac6928519616578d10d50c7e",
+    "results\\asvc_fixed_ce_v1\\paired_seed_differences.csv": "6c28cd18ce78c3e720ae22104d0c78811c9fdbcaaa313ab54f9b07edfbd2c196",
+    "results\\asvc_fixed_ce_v1\\per_seed_metrics.csv": "ebcf28b717e2b119b265596fba7df862b86f784c1a2a68006dc37aaa39881c03",
+    "results\\asvc_fixed_ce_v1\\preflight.json": "bcc884c3f4d187ec5f52ff8d9698907203cc98492037dbcf917ce3921d965bc7",
+    "results\\asvc_fixed_ce_v1\\queue_status.json": "37f6c9df735b320d83d5b4400a766d71dab081bc216b64d8d13f075d2d9b1f54",
+    "results\\asvc_fixed_ce_v1\\REPORT.zh-CN.md": "9ca5a14017568c8dced960151e22fcb3c7936cae4f7f3e4f5c2405fe95b1d40e",
+    "results\\asvc_fixed_ce_v1\\value_loss_diagnostics.pdf": "6ec0be45dce1d14bc0de75edc992692f08d49301ce8f292334f529c78091629a",
+    "results\\asvc_fixed_ce_v1\\value_loss_diagnostics.png": "093a84b46c08cbf3e3a495fa83b6a96b46c21a74917f005356af3dc55631e818",
+    "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\initial50_seed_0.csv": "5bbe336ed28d995f9c02f41a71b993fbb537b72b59b5040457c2c9822bb2a0e3",
+    "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\initial50_seed_1.csv": "228b0dd528b68dfd6d312b5e4b3351cd6e5f6ab84e7657cc87fd2429adda6cb5",
+    "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\passed.json": "bcc884c3f4d187ec5f52ff8d9698907203cc98492037dbcf917ce3921d965bc7",
+    "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\unit_tests.log": "cce3389a1f06b69cc5ea3b74ec2af78da563e6c3ad5cb6c3be4b39216580c1f8",
+    "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\recovery\\plain\\recovery_latest.pth": "a7cf327515d7685efee7a91e087e84ad836bb40eb7f831777949db2edfdadac1",
+    "results\\asvc_fixed_ce_v1\\preflight_attempts\\20261030_002122\\recovery\\resumed\\recovery_latest.pth": "6c2fb105eb08ba5239fb7765079c3bb41b11e9668cc4e1e43729e5375dc1af3f",
+    "data\\asvc_current_method.json": "e5bb91d34806b799f15f5325498e4a7fcb8f45be09f60f2ef34d8007c69805d0",
+    "docs\\ASVC_CURRENT.zh-CN.md": "8c6407284471b4679d6cf81d31cd1bf82b7a8957c3e781ab3b6432d9be6562fc",
+    "outputs\\foundation_dynamic_ratios_91701_20261002_v1\\fixed_validation_scenarios.json": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+    "data\\risk_handover_v1\\manifest.json": "34e62ae1f01f0d6d7f53aaf8db663f4d7cf3fd49a5d074eb693f7bbff00e55b3",
+    "data\\dynamic_route_pool_v2\\manifest.json": "2e43b58b834d830b014ebdee8c6f5ba4396786736133b3150433fd22a2ce8049"
+  },
+  "copied_input_sha256": {
+    "fixed_validation_scenarios.json": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+    "baseline_snapshots\\seed_0\\advice_budget.csv": "21d57c2435d449e0083c4cb0210e3ff094c9b121f034d5a7d5aa8eaef623c1de",
+    "baseline_snapshots\\seed_0\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_0\\result.json": "8960066a27b31be7dff564d2a1c0af8c8afa609f90a3c3be842ef1f6b5ff8a45",
+    "baseline_snapshots\\seed_0\\run_manifest.json": "6c8c33f6bf33682e2ce14dba2b605c5662cad0ee78cc1220a55ec02e8381d542",
+    "baseline_snapshots\\seed_0\\supervision_alignment.csv": "abcb1025a3962ff41eb1b9a635f3ff565f2169b80b7d01ba7a7c278f795aa1e0",
+    "baseline_snapshots\\seed_0\\validation_curve.csv": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+    "baseline_snapshots\\seed_0\\validation_details.csv": "bc16ba61a31d8c62b44bc98785d820c783ea36f667abd03f3220a6ebfe800d02",
+    "baseline_snapshots\\seed_0\\value_learning.csv": "504411e161cdb673a68bf548d1998b5719368bb7cf8b5f9af1a94920e439ef1f",
+    "baseline_snapshots\\seed_1\\advice_budget.csv": "d694b34edd18ff7c99048eb60df8c1864a1127b11c094ff597f13e8bd4e94beb",
+    "baseline_snapshots\\seed_1\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_1\\result.json": "802055ba6d9a58ec2dfd411f345eabcf902b97f8353d988a043dbb5d927db56d",
+    "baseline_snapshots\\seed_1\\run_manifest.json": "b11c413cfb5a6e29a9f2f2aaa33a102bd1df55187bd2746202261911bb9770f3",
+    "baseline_snapshots\\seed_1\\supervision_alignment.csv": "3c7f79695be10871cc8eb8fd20a8c7882f3abf015ad1eb19f7bface67efdfae3",
+    "baseline_snapshots\\seed_1\\validation_curve.csv": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+    "baseline_snapshots\\seed_1\\validation_details.csv": "88e69d368205d04b0835a6b2d9500f3b76c838efd1f8cbbaebc4abd1bf12981a",
+    "baseline_snapshots\\seed_1\\value_learning.csv": "9c88875f03eacbe3fb4b7e641aada243d940416239b81f91b35a984bd85a5287",
+    "baseline_snapshots\\seed_2\\advice_budget.csv": "d25567cc6bb854d4a16024438666ccaf5f0e457e207503e35dc67a0c6194619b",
+    "baseline_snapshots\\seed_2\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_2\\result.json": "96076b4c9cbc4a3b3647644fcd5e6d156d71035559c0974a584614ef443f369e",
+    "baseline_snapshots\\seed_2\\run_manifest.json": "562e78f64d96bc2fc53b7763f06b6bb6facfb59a17c898797a12a757b83723aa",
+    "baseline_snapshots\\seed_2\\supervision_alignment.csv": "d16d27ff3658555c2d50598a0b16a7b40a2de589c2a627390f178b348c450dfc",
+    "baseline_snapshots\\seed_2\\validation_curve.csv": "d1043e52174ede45f63c92cdd3706d0b8bb8e3b1936b79a9ab5bfa6fff9b865b",
+    "baseline_snapshots\\seed_2\\validation_details.csv": "1296194d10ca25797c325eb5c516ce021dbe2da8e1bf94a3c323b95d6ed30243",
+    "baseline_snapshots\\seed_2\\value_learning.csv": "67f455247fba9c2082bec4052479e5776c63eb8b0bbae255ecc633fe535a7b93",
+    "baseline_snapshots\\seed_3\\advice_budget.csv": "2a5a1d0b8c7d77cc731da141d6923c5bea0c38140da671c8d0de5e727c589090",
+    "baseline_snapshots\\seed_3\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_3\\result.json": "e52103fa1686c8413e594aef77e4bfd9cc0584cf0f66168c74d30b5d52ef7f8e",
+    "baseline_snapshots\\seed_3\\run_manifest.json": "baef0e9098bfdd9361b124a3be9d1dd0b27c8d1b31b33ca59d6f9b111f6b9773",
+    "baseline_snapshots\\seed_3\\supervision_alignment.csv": "d23d75b967a1580b3fb84fde069e29d98d1d9f553c1d3729beb7ff097f27e710",
+    "baseline_snapshots\\seed_3\\validation_curve.csv": "7bb66f6c81aa291546b887fbd9e6fc5e2cf3217e6f79d70e9e35e11e12b6dec6",
+    "baseline_snapshots\\seed_3\\validation_details.csv": "2f57da25825c0c8ae43f9493e78510d4f932d083769fedab4b3c03a15e4391f7",
+    "baseline_snapshots\\seed_3\\value_learning.csv": "07c26877305e9fc579d761cc28da1659f49b53e43a1877e4f99d58a0a981b189",
+    "baseline_snapshots\\seed_4\\advice_budget.csv": "9c0c7f6427bbf6d26b49f3551c364985ffe6cf2235cf8aef3b99b9e4d3558518",
+    "baseline_snapshots\\seed_4\\completion.json": "f54bf7277f24753e7cb145d43967bee3edc38d2061ae43341ce777d2e1e80718",
+    "baseline_snapshots\\seed_4\\result.json": "32d87a6834246d91697fb03246940dd22a52fb044117608c8c5c798af80aabc9",
+    "baseline_snapshots\\seed_4\\run_manifest.json": "336be0a52da22e2b79d39ccc9742624ab6ddc794e5baaea43d5fc2a1b764e89b",
+    "baseline_snapshots\\seed_4\\supervision_alignment.csv": "7c31e4c82590cdc9b00ae6d5edb2060e7fd618de44fca3a77c2cc5a3ed3a4596",
+    "baseline_snapshots\\seed_4\\validation_curve.csv": "af645ed709b656de5a94f226c466654ae88c865f4f7a199fb26cbfe2b41e17aa",
+    "baseline_snapshots\\seed_4\\validation_details.csv": "3b9810b3aaea2d6608a5b97205fa2be15548d217b79ab2dc58e5a8a00710480a",
+    "baseline_snapshots\\seed_4\\value_learning.csv": "246612f9ad9a0891d68d7cea71b4bf23faad98a8f91bd479a1a4a9d905e05035",
+    "reused_ce_snapshots\\seed_0\\advice_budget.csv": "66768ad301247122f5801920a8c37a8ccb0cdd1b19fffdc60ad4f6e7a5c3b17d",
+    "reused_ce_snapshots\\seed_0\\completion.json": "75859e965834488e54e73a27866513bffba2c7d653943679ea4bb68502e7f0c6",
+    "reused_ce_snapshots\\seed_0\\result.json": "a6d036454560a4ccd42c01828369843dcbe185c178dbca5499d707770ad81179",
+    "reused_ce_snapshots\\seed_0\\run_manifest.json": "57c939d57dd6d0dfb9672753a13d0a6b54f3669f6507c2f88ae27b8231102f61",
+    "reused_ce_snapshots\\seed_0\\supervision_alignment.csv": "83928e1e4f801477a7dd0766e4bec3882e4282b48a1bba4281caf0c23454daf7",
+    "reused_ce_snapshots\\seed_0\\validation_curve.csv": "3e7853c7444f6cb3268e4984cce349fe25e82140ee6307633808905a18f74e7c",
+    "reused_ce_snapshots\\seed_0\\validation_details.csv": "37305976b2d6802c4df1efcb66178f8ce9772c0e5234c1c747a751fa6d526289",
+    "reused_ce_snapshots\\seed_0\\value_learning.csv": "5195180c41ea28ae0fd46030b0c37f8b31de266ff9f78591412c0510bdebd1c6",
+    "reused_ce_snapshots\\seed_1\\advice_budget.csv": "736e8b5b39fe2280096184d9dbe47c3132b54a03b4438029903ce595114dd56b",
+    "reused_ce_snapshots\\seed_1\\completion.json": "75859e965834488e54e73a27866513bffba2c7d653943679ea4bb68502e7f0c6",
+    "reused_ce_snapshots\\seed_1\\result.json": "abedc7645232607f4c3c75d8ea872b727ad82e78487824a8ff959cb310f26814",
+    "reused_ce_snapshots\\seed_1\\run_manifest.json": "49a03c5e2eb6d3d4e64c2d59987b73fbeda393ad454aaa69c15fa2cc5d3d2961",
+    "reused_ce_snapshots\\seed_1\\supervision_alignment.csv": "754d8b2a4dfe487f914cd0c04f403d3af27e3a288e7d1d2346cd4ae73da088eb",
+    "reused_ce_snapshots\\seed_1\\validation_curve.csv": "16960fd74a96023dabb709d3fac8c14efd2d69510f97fde7f6be44ea8e34ceb6",
+    "reused_ce_snapshots\\seed_1\\validation_details.csv": "6072de8aabeeec8b17852d88d14cad7ac5e1215c1867846684dce9b518028865",
+    "reused_ce_snapshots\\seed_1\\value_learning.csv": "361d150b219facf0103766571c432509047ba8a54a2e8c69975a0c525f3dd15b",
+    "source_snapshot\\configs\\asvc_fixed_ce_five_seeds_v1.yaml": "ba8758f85c59c0d7202a88558e20291dde6909e322984b182440edd13403e39a",
+    "source_snapshot\\configs\\asvc_fixed_ce_v1.yaml": "78077faef029bff8ebaf15387df02df2d078f57d466a0a03441f54d4142db4e4",
+    "source_snapshot\\configs\\asvc_persistent_supervision_five_seeds_v1.yaml": "07299674c04f3c48b3b8c6a1eee68f58b3411eb301507e3802d730595d55352a",
+    "source_snapshot\\configs\\asvc_persistent_teaching_v1.yaml": "1aab447027ee307ba3c72ca86e2a9b79b54ac83c2141d77c2ea610af071dfc6f",
+    "source_snapshot\\configs\\whole_map_91701_execution_consistency_v1.yaml": "b8f87daf55d0eb6504a5508407393cf4d1984567b9354a4db660c57d6a9ab055",
+    "source_snapshot\\configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+    "source_snapshot\\configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+    "source_snapshot\\docs\\ASVC_FIXED_CE.zh-CN.md": "be1b75c8eef53d3881607d9736e9afd587058f8d753c7ec46fbbe43fa8acf126",
+    "source_snapshot\\docs\\ASVC_FIXED_CE_FIVE_SEEDS.zh-CN.md": "a91a2320d4f7c2befacb83ea058aac18f080ccb6a1ef67847267af7f53435601",
+    "source_snapshot\\scripts\\analyze_fixed_ce.py": "80a93351aca7b5c9e0a2c42ecab82816fcc6e618602c4fb0b0349ff0d34bc61c",
+    "source_snapshot\\scripts\\analyze_fixed_ce_five.py": "155439dc46562aeb924f7a6e81c3c069381bc3a7c863d12abbbc54599b840427",
+    "source_snapshot\\scripts\\fixed_ce_agent.py": "062aa570813d34067d3359f95d2e7ce5c35237e1ad4f759ed4d63d020d5965c5",
+    "source_snapshot\\scripts\\fixed_ce_common.py": "5c92425052e194a90f20fb75e515930fd9f2f90e49ddc871a83984b1113ade9c",
+    "source_snapshot\\scripts\\fixed_ce_five_common.py": "6c5648fcd21dc3fed86c637a0fd888ab25bf360bc6e28af229e0415d70af1fb2",
+    "source_snapshot\\scripts\\replication_recovery.py": "a1f27e10adbba320378d690ae3205fb70d6054ecacaf25e95ce7ebfc6ff74139",
+    "source_snapshot\\scripts\\run_execution_consistency.py": "7cb0dcefc504852fed2076643347846da743082fd1f570b7d706c1e30a8c586c",
+    "source_snapshot\\scripts\\run_fixed_ce.py": "b5cf34a1f0b3a669f2272f45da1cd79292482e871e3a3698c1ccfb4721cd8db5",
+    "source_snapshot\\scripts\\run_fixed_ce_five.py": "839f4bf3e923362d40bea3861f1805e5f64ecb6148916903270c7c0d66de609f",
+    "source_snapshot\\scripts\\run_persistent_supervision_five_seeds.py": "93c20e924101bb9ed7a6039d8a4527adddc406e953f1960c6bb7feb9a1ad6d37",
+    "source_snapshot\\scripts\\run_persistent_teaching.py": "f8735c52aaed2cb7ecaea3fc49606eff1366b8fdacb7dfbd592aa6a59ed8254e",
+    "source_snapshot\\scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+    "source_snapshot\\scripts\\start_fixed_ce.ps1": "a7063e749fb149fd9c90c06ee0704c94ee3bf2a6938f4e40c490c75b02faeb34",
+    "source_snapshot\\scripts\\start_fixed_ce_five.ps1": "14727bebae3f8273dea5277843f20491b40894df30218c6ca5f6e255562f058f",
+    "source_snapshot\\scripts\\teaching_efficiency_common.py": "05759e62b6f8c81754db6d1b90013a729704c8437a5e6be92736eb868053cce0",
+    "source_snapshot\\tests\\test_execution_consistency.py": "c1a528a7d5bc3f1fa45b4c87aa6927c16df87b191a8e4c77c96862867f74c24f",
+    "source_snapshot\\tests\\test_fixed_ce.py": "82d6b18ebcaf5b269e7787cabf4e8607b2f534ec5e95fa59fb04c93cee8e1487",
+    "source_snapshot\\tests\\test_fixed_ce_five.py": "459197aaa46317f3066d1ed271947db1f7d0cee0fd7051669011a1f628d88c1e",
+    "source_snapshot\\tests\\test_persistent_teaching.py": "e43140fab068acd90e49634ed5aa7defec7bdb98f4ff796bcfa25211c4cf3ddb",
+    "source_snapshot\\src\\astar_d3qn\\__init__.py": "910a064605b486657aeaa25f9d0f072326e38e80db1fb9b21feeb0309e5412ad",
+    "source_snapshot\\src\\astar_d3qn\\agents\\all_eligible_module_ablation.py": "866cf34025b9779b7de4ed2687bbc9b7c34c469affa5af01d2135fc0995f8600",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_all_eligible_supervision.py": "6d7be95563a541550736390ab8aefc874a4b676effa392d1ef519ca9e690e143",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_replan_wait.py": "7f1fff6f4476436fc3f13ffe579936b5c19343143d3d42dca60043f0e10f1fd3",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_staged_withdrawal.py": "33d087ce6bfad0995663429703e37d06a93896e422e440cfb8f9242bb255e775",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_supervision_only.py": "40d212f4fe6bdc8fc61abd0f13df7c9c2fb56561ff0fef059fcd05d7503a7e0f",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_supervision_tail.py": "8654f07719532216e839b3d077e08fab35f676c8421a1806895b2d4d1e8ef3c1",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+    "source_snapshot\\src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+    "source_snapshot\\src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+    "source_snapshot\\src\\astar_d3qn\\agents\\ddqna_adapter.py": "12bdb6c4a2e37d1dac168cf9c4ec73e3c47cb5e00a1aeccfc0a4c5cb6317403b",
+    "source_snapshot\\src\\astar_d3qn\\agents\\dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+    "source_snapshot\\src\\astar_d3qn\\agents\\independent_teacher_actions.py": "b7d00a835e198156f2859d8aa92fb5f023ed980451589756bc5ec11fabf0a247",
+    "source_snapshot\\src\\astar_d3qn\\agents\\networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+    "source_snapshot\\src\\astar_d3qn\\agents\\persistent_teaching.py": "ce6a3be5acb4ab0e4b1ebeb884c60d559cfc6ad981af9b2c1d1495680424d8d6",
+    "source_snapshot\\src\\astar_d3qn\\agents\\reward_study.py": "24d37c412e421cc82a46954c7a58b15d429307f8342e3e478e447a0c69690b1b",
+    "source_snapshot\\src\\astar_d3qn\\agents\\__init__.py": "bbdb02a0ed3b2750604cb9479b62a058e56d63ffacd162b7ffa3535540eb9f7f",
+    "source_snapshot\\src\\astar_d3qn\\core\\astar.py": "b1ae18017330ecda7e6db7f5172cd357cbfc89c0cf56e2065e2ba9ef876e5b95",
+    "source_snapshot\\src\\astar_d3qn\\core\\collisions.py": "db8ff782a290871c4eb05e312278ae4065fc6c08825e3eff7d3d0472baaaf78c",
+    "source_snapshot\\src\\astar_d3qn\\core\\grid.py": "bc1e7be80c1cedf36f27deb369d8d24594fc6b542279da4e80d034c7a2c4bee9",
+    "source_snapshot\\src\\astar_d3qn\\core\\metrics.py": "62c32138ded8199f373b5426fb59d7c9827dfafe27ab3d41b5859b8370b1f3e0",
+    "source_snapshot\\src\\astar_d3qn\\core\\path_progress.py": "6766e2ef4f7dad2f2b23ecf58b5119fc9c8e9da0f81e0873bcbdaca5cda20836",
+    "source_snapshot\\src\\astar_d3qn\\core\\trajectory.py": "88e9c63dbb7c94953c8796e4964792bc8caa8a7473bdb4706b2e9563122eee3d",
+    "source_snapshot\\src\\astar_d3qn\\core\\__init__.py": "9e50490d0f1631c78c388ff7d5044407a1f0b8b15bf63a2c8ca7873232bde071",
+    "source_snapshot\\src\\astar_d3qn\\envs\\dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+    "source_snapshot\\src\\astar_d3qn\\envs\\dynamic_scenarios.py": "b72bf3d597a83fbb9f57bbd915e6666cd0cbcd42c6738aaf18aa5befa6fcdc4e",
+    "source_snapshot\\src\\astar_d3qn\\envs\\path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+    "source_snapshot\\src\\astar_d3qn\\envs\\reward_study.py": "9a36a53c299a2e8c900402f079faa9de60f172b3e2640c84d6225d55adecbc68",
+    "source_snapshot\\src\\astar_d3qn\\envs\\spatial_scenarios.py": "b4c5a546a02261a5903139aa2e8f65a5bd2e64b3cd6f34e8de39f09412b4ba62",
+    "source_snapshot\\src\\astar_d3qn\\envs\\static_grid.py": "1a0c1d53dd4d55034a2e59fdb056f80354cecffeae33bbfd3c68761d4256b719",
+    "source_snapshot\\src\\astar_d3qn\\envs\\types.py": "c60213f0bcc22aa00629af3e537cb5b193f44ff203ca3f655f1bdbb235a5550f",
+    "source_snapshot\\src\\astar_d3qn\\envs\\whole_map_route_pool.py": "dde8eebd20dde08c8e522c7fd93b80ed65ed3dcc39ecef134bf50d3792937a13",
+    "source_snapshot\\src\\astar_d3qn\\envs\\__init__.py": "a632ae6cbda3c352e204465a10076d16dde6731ce1feea1d5e3977b020dccf35",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\behavior_oracle.py": "9b17c3ad4f831b26897ab1468be16cb9655377b10e631115243cb5febd10e6d7",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\checkpoints.py": "e60a7f70497c1e4c103554cb8d89bb54b443e1217be286538bd96314652c7e77",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\conflict.py": "a2f5bb05d0e5e2d1bdee7ab4c599925bb5b0f2998ed0193e9d1f1948c0e914b5",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\diagnostics.py": "373bd3b7779b61930894599eaccf9e879f1222930970eb63cacce736c3c86bfc",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\rollout.py": "7ebfef498b51923cd20bf806b057aa196c51c30a1a6ad60cb7d2a823c05c2b68",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\spatial_witness.py": "a445cf414f0e6ceabb4d6f1a05d23d0db60ba2f562bd690949d303a093d9bdd4",
+    "source_snapshot\\src\\astar_d3qn\\evaluation\\__init__.py": "041c5a7d7915aff4fd36058a81ddece471b0cb6f27b48dfcf9bf727f0b76af18",
+    "source_snapshot\\src\\astar_d3qn\\maps\\adaptation.py": "335df25986c1dc639c8ae60e9fd027a58eb7943422794a98bd79103eb87e085c",
+    "source_snapshot\\src\\astar_d3qn\\maps\\io.py": "cc67dd5c027d4441ff479bb86c87c9a202783361aac9b235c599bec322e4e941",
+    "source_snapshot\\src\\astar_d3qn\\maps\\problem.py": "1c160adebe974d0355a9bdfdaaa4f1d6e51d3632431d09bb1dd09169d2dff0a2",
+    "source_snapshot\\src\\astar_d3qn\\maps\\random_benchmark.py": "f21f32129c116b3e403a5aa971b6281549a9176495729f50944ea82a5449d3f4",
+    "source_snapshot\\src\\astar_d3qn\\maps\\render.py": "a704b35217fef382ed63bba7578256429a9a3c30c55859fee033db767f51a914",
+    "source_snapshot\\src\\astar_d3qn\\maps\\risk_handover.py": "73c2697aa4e9eda381710455d485abdef8c164e127455cae019889e390650dd8",
+    "source_snapshot\\src\\astar_d3qn\\maps\\structured.py": "d198d841d9d7f087497d09f8f054e14e1ce26a0c35103d58eace696a2b290fbf",
+    "source_snapshot\\src\\astar_d3qn\\maps\\__init__.py": "e8d123436babe2d57604c1c55e672591eaf85c274df884f9573cedb94b5a3edd",
+    "source_snapshot\\src\\astar_d3qn\\plotting\\training_plots.py": "64566acd388b608aa46090e212d67b24794d3ae199bfb9d86fd213c1f4dc575d",
+    "source_snapshot\\src\\astar_d3qn\\plotting\\__init__.py": "de16ca366f216cf7d6f64e92d9ca42c8ca47f1a991d7df464aca7ef2557f6da7",
+    "source_snapshot\\src\\astar_d3qn\\replay\\demo.py": "18dd392fcf2ca5fa9cde11d27f075b4bc49892111b906ebb3998e88c6c38c642",
+    "source_snapshot\\src\\astar_d3qn\\replay\\dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+    "source_snapshot\\src\\astar_d3qn\\replay\\prioritized.py": "5d19daf1ed4295f7536c053a6e575ae9f6e1c18e4d6fdddf1daae119f9bdf204",
+    "source_snapshot\\src\\astar_d3qn\\replay\\transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+    "source_snapshot\\src\\astar_d3qn\\replay\\uniform.py": "3134b49769ca3ebbcac5ad6e0777ef6ff7631fc1794a04aeb63c5e414556ce2c",
+    "source_snapshot\\src\\astar_d3qn\\replay\\__init__.py": "6ca34621d0f858df75da5ee5d9f67219f7b4256053af45096538ddfc9fb53420",
+    "source_snapshot\\src\\astar_d3qn\\training\\budget.py": "a805cd5838e21fcfde2b549dcf97cb5cfe9d89611556bdc7b1b81f7456401c4d",
+    "source_snapshot\\src\\astar_d3qn\\training\\demo_collector.py": "ce62513b5099ef26098517b053db4ba47ee9f7acaf9cc564b97e9e6e707c8362",
+    "source_snapshot\\src\\astar_d3qn\\training\\dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+    "source_snapshot\\src\\astar_d3qn\\training\\replay_adaptation.py": "ccd0f1c22af9cd2ee1410b4f5809def134dfc7010930f766bd28a8ab9c0c9184",
+    "source_snapshot\\src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f",
+    "source_snapshot\\src\\astar_d3qn\\training\\__init__.py": "2433ff9c0b44c5fd713ad1d2314cafc3c5ecdf10fe71031fbfa19547d67de13a",
+    "source_snapshot\\src\\astar_d3qn\\utils\\config.py": "66259072dfbd1911ef0f23ecefb6ffde359ddc99ec1e135683ab46b6c56dff44",
+    "source_snapshot\\src\\astar_d3qn\\utils\\io.py": "414e06cdda617d0059cfd38b4d5a609defa62c01b986a62e76d42d06636f4be6",
+    "source_snapshot\\src\\astar_d3qn\\utils\\seed.py": "f24700aea18ae70f94638e1eecec7c0b01ffe6e4f1c6358b891cd85c3b682468",
+    "source_snapshot\\src\\astar_d3qn\\utils\\__init__.py": "4eca4a0dcb8d735ae590f678ff0ccbd48226769ec36be487f8b3fb4a15b83f89"
+  },
+  "checks": {
+    "passed": true,
+    "tests": 13,
+    "pairs": [
+      {
+        "seed": 0,
+        "baseline_directory": "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_0",
+        "initial_state_sha256": "429bc2dd153e0430f35478bec733f9170a6f7db9b9491bc6e788fe7821a41c20",
+        "baseline_model_sha256": "626050f4b70796500dd0d1db81d71296b7307dc83813e18a7fd5f5313483e949",
+        "baseline_curve_sha256": "30e84cb142c01d313300d0cb7c711c37b6423534d9cbda56099b151bab28061f",
+        "baseline_online_seconds": 4051.141347599856,
+        "initialization_devices_verified": [
+          "cpu",
+          "cuda"
+        ]
+      },
+      {
+        "seed": 1,
+        "baseline_directory": "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_1",
+        "initial_state_sha256": "e8eae4157f268e7dbd0b1b1a8bcdbf816a7103a157033f846c122e47a313abcd",
+        "baseline_model_sha256": "269047fd17ac77ed1a9ff1fe532f99dc50083973aeb3207eba1022f993f224da",
+        "baseline_curve_sha256": "01b79ba0a53aba207dbdae702fcbd584dd6a1219ea0065ab0dc727410c9b56b8",
+        "baseline_online_seconds": 4045.1766491011367,
+        "initialization_devices_verified": [
+          "cpu",
+          "cuda"
+        ]
+      },
+      {
+        "seed": 2,
+        "baseline_directory": "outputs\\asvc_persistent_teaching_v1\\supervision_floor\\seed_2",
+        "initial_state_sha256": "f3292333a12cfca2366443e41f6dfdb7d5bde1aaae61bf21cdc8c969a49b1b54",
+        "baseline_model_sha256": "f479fe33f6929a22f130f49a2000bce98e27e93b5da78152ddc556cde6ee20dd",
+        "baseline_curve_sha256": "d1043e52174ede45f63c92cdd3706d0b8bb8e3b1936b79a9ab5bfa6fff9b865b",
+        "baseline_online_seconds": 4053.5988447000855,
+        "initialization_devices_verified": [
+          "cpu",
+          "cuda"
+        ]
+      },
+      {
+        "seed": 3,
+        "baseline_directory": "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_3",
+        "initial_state_sha256": "e97ddeac9e809765ff0935b7951b36901eb7707503ab15f3a4ad257a47accedc",
+        "baseline_model_sha256": "d9c5668ebfbb7b41e2893556d7b8ab74af543be6e325d44203f16da901c74782",
+        "baseline_curve_sha256": "7bb66f6c81aa291546b887fbd9e6fc5e2cf3217e6f79d70e9e35e11e12b6dec6",
+        "baseline_online_seconds": 3104.5119481009315,
+        "initialization_devices_verified": [
+          "cpu",
+          "cuda"
+        ]
+      },
+      {
+        "seed": 4,
+        "baseline_directory": "outputs\\asvc_persistent_supervision_five_seeds_v1\\supervision_floor\\seed_4",
+        "initial_state_sha256": "658e231027e16fac64dbb58377d45d17d3b3fc48bc4f5ed89cc253900a8bd53c",
+        "baseline_model_sha256": "3077acfa6202a2bcc27e59df9affdfc4e4297cea9675e7ded7b1b5bbec904290",
+        "baseline_curve_sha256": "af645ed709b656de5a94f226c466654ae88c865f4f7a199fb26cbfe2b41e17aa",
+        "baseline_online_seconds": 3106.620788500004,
+        "initialization_devices_verified": [
+          "cpu",
+          "cuda"
+        ]
+      }
+    ],
+    "reused_ce": [
+      {
+        "seed": 0,
+        "directory": "outputs\\asvc_fixed_ce_v1\\seed_0",
+        "model_sha256": "730adb30bb02e136b3abc81dd94be76bda8327f1b3cc6b9dac11d34db88bdd0f",
+        "result_sha256": "a6d036454560a4ccd42c01828369843dcbe185c178dbca5499d707770ad81179",
+        "curve_sha256": "3e7853c7444f6cb3268e4984cce349fe25e82140ee6307633808905a18f74e7c"
+      },
+      {
+        "seed": 1,
+        "directory": "outputs\\asvc_fixed_ce_v1\\seed_1",
+        "model_sha256": "018de62088d08863b40a94845cb57e2a6cc5ee3305fd6e1355582af979082153",
+        "result_sha256": "abedc7645232607f4c3c75d8ea872b727ad82e78487824a8ff959cb310f26814",
+        "curve_sha256": "16960fd74a96023dabb709d3fac8c14efd2d69510f97fde7f6be44ea8e34ceb6"
+      }
+    ],
+    "validation": {
+      "passed": true,
+      "formal_training_started": false,
+      "gradient_updates": 0,
+      "map": {
+        "map_id": "irregular_workcell_91701",
+        "seed": 91701,
+        "size": 40,
+        "start": [
+          3,
+          3
+        ],
+        "goal": [
+          36,
+          36
+        ],
+        "obstacle_count": 368,
+        "density": 0.23,
+        "astar_steps": 66,
+        "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+        "design": "synthetic irregular equipment islands",
+        "generation_attempt": 0,
+        "islands": [
+          {
+            "shape": "T",
+            "cells": [
+              [
+                24,
+                28
+              ],
+              [
+                24,
+                29
+              ],
+              [
+                24,
+                30
+              ],
+              [
+                24,
+                31
+              ],
+              [
+                24,
+                32
+              ],
+              [
+                24,
+                33
+              ],
+              [
+                25,
+                28
+              ],
+              [
+                25,
+                29
+              ],
+              [
+                25,
+                30
+              ],
+              [
+                25,
+                31
+              ],
+              [
+                25,
+                32
+              ],
+              [
+                25,
+                33
+              ],
+              [
+                26,
+                31
+              ],
+              [
+                27,
+                31
+              ],
+              [
+                28,
+                31
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                10,
+                4
+              ],
+              [
+                10,
+                5
+              ],
+              [
+                10,
+                6
+              ],
+              [
+                10,
+                7
+              ],
+              [
+                11,
+                4
+              ],
+              [
+                11,
+                5
+              ],
+              [
+                11,
+                6
+              ],
+              [
+                11,
+                7
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                12,
+                5
+              ],
+              [
+                12,
+                6
+              ],
+              [
+                12,
+                7
+              ],
+              [
+                13,
+                4
+              ],
+              [
+                13,
+                5
+              ],
+              [
+                13,
+                6
+              ],
+              [
+                13,
+                7
+              ],
+              [
+                14,
+                4
+              ],
+              [
+                14,
+                5
+              ],
+              [
+                14,
+                6
+              ],
+              [
+                14,
+                7
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                1,
+                22
+              ],
+              [
+                1,
+                23
+              ],
+              [
+                1,
+                24
+              ],
+              [
+                1,
+                25
+              ],
+              [
+                1,
+                26
+              ],
+              [
+                1,
+                27
+              ],
+              [
+                2,
+                22
+              ],
+              [
+                2,
+                23
+              ],
+              [
+                2,
+                24
+              ],
+              [
+                2,
+                25
+              ],
+              [
+                2,
+                26
+              ],
+              [
+                2,
+                27
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                32,
+                17
+              ],
+              [
+                32,
+                18
+              ],
+              [
+                32,
+                19
+              ],
+              [
+                33,
+                17
+              ],
+              [
+                33,
+                18
+              ],
+              [
+                33,
+                19
+              ],
+              [
+                34,
+                17
+              ],
+              [
+                34,
+                18
+              ],
+              [
+                34,
+                19
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                24,
+                36
+              ],
+              [
+                24,
+                37
+              ],
+              [
+                24,
+                38
+              ],
+              [
+                25,
+                36
+              ],
+              [
+                25,
+                37
+              ],
+              [
+                25,
+                38
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                17,
+                17
+              ],
+              [
+                17,
+                18
+              ],
+              [
+                18,
+                17
+              ],
+              [
+                18,
+                18
+              ],
+              [
+                19,
+                17
+              ],
+              [
+                19,
+                18
+              ],
+              [
+                20,
+                17
+              ],
+              [
+                20,
+                18
+              ],
+              [
+                20,
+                19
+              ],
+              [
+                20,
+                20
+              ],
+              [
+                21,
+                17
+              ],
+              [
+                21,
+                18
+              ],
+              [
+                21,
+                19
+              ],
+              [
+                21,
+                20
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                22,
+                9
+              ],
+              [
+                22,
+                10
+              ],
+              [
+                22,
+                11
+              ],
+              [
+                22,
+                12
+              ],
+              [
+                22,
+                13
+              ],
+              [
+                22,
+                14
+              ],
+              [
+                23,
+                9
+              ],
+              [
+                23,
+                10
+              ],
+              [
+                23,
+                11
+              ],
+              [
+                23,
+                12
+              ],
+              [
+                23,
+                13
+              ],
+              [
+                23,
+                14
+              ],
+              [
+                24,
+                9
+              ],
+              [
+                24,
+                10
+              ],
+              [
+                24,
+                11
+              ],
+              [
+                24,
+                12
+              ],
+              [
+                24,
+                13
+              ],
+              [
+                24,
+                14
+              ],
+              [
+                25,
+                9
+              ],
+              [
+                25,
+                10
+              ],
+              [
+                25,
+                11
+              ],
+              [
+                25,
+                12
+              ],
+              [
+                25,
+                13
+              ],
+              [
+                25,
+                14
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                21,
+                2
+              ],
+              [
+                21,
+                3
+              ],
+              [
+                21,
+                4
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                22,
+                3
+              ],
+              [
+                22,
+                4
+              ],
+              [
+                23,
+                3
+              ],
+              [
+                24,
+                3
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                17,
+                25
+              ],
+              [
+                17,
+                26
+              ],
+              [
+                17,
+                27
+              ],
+              [
+                17,
+                28
+              ],
+              [
+                18,
+                25
+              ],
+              [
+                18,
+                26
+              ],
+              [
+                18,
+                27
+              ],
+              [
+                18,
+                28
+              ],
+              [
+                19,
+                25
+              ],
+              [
+                19,
+                26
+              ],
+              [
+                19,
+                27
+              ],
+              [
+                19,
+                28
+              ],
+              [
+                20,
+                25
+              ],
+              [
+                20,
+                26
+              ],
+              [
+                20,
+                27
+              ],
+              [
+                20,
+                28
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                4,
+                7
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                4,
+                9
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                5,
+                9
+              ],
+              [
+                6,
+                7
+              ],
+              [
+                6,
+                8
+              ],
+              [
+                6,
+                9
+              ],
+              [
+                7,
+                7
+              ],
+              [
+                7,
+                8
+              ],
+              [
+                7,
+                9
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                9,
+                33
+              ],
+              [
+                9,
+                34
+              ],
+              [
+                9,
+                35
+              ],
+              [
+                9,
+                36
+              ],
+              [
+                9,
+                37
+              ],
+              [
+                10,
+                33
+              ],
+              [
+                10,
+                34
+              ],
+              [
+                10,
+                35
+              ],
+              [
+                10,
+                36
+              ],
+              [
+                10,
+                37
+              ],
+              [
+                11,
+                33
+              ],
+              [
+                11,
+                34
+              ],
+              [
+                11,
+                35
+              ],
+              [
+                11,
+                36
+              ],
+              [
+                11,
+                37
+              ],
+              [
+                12,
+                33
+              ],
+              [
+                12,
+                34
+              ],
+              [
+                12,
+                35
+              ],
+              [
+                12,
+                36
+              ],
+              [
+                12,
+                37
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                26,
+                22
+              ],
+              [
+                26,
+                23
+              ],
+              [
+                26,
+                24
+              ],
+              [
+                26,
+                25
+              ],
+              [
+                27,
+                22
+              ],
+              [
+                27,
+                23
+              ],
+              [
+                27,
+                24
+              ],
+              [
+                27,
+                25
+              ],
+              [
+                28,
+                24
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                18,
+                11
+              ],
+              [
+                18,
+                12
+              ],
+              [
+                18,
+                13
+              ],
+              [
+                18,
+                14
+              ],
+              [
+                18,
+                15
+              ],
+              [
+                19,
+                11
+              ],
+              [
+                19,
+                12
+              ],
+              [
+                19,
+                13
+              ],
+              [
+                19,
+                14
+              ],
+              [
+                19,
+                15
+              ],
+              [
+                20,
+                13
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                11,
+                19
+              ],
+              [
+                11,
+                20
+              ],
+              [
+                11,
+                21
+              ],
+              [
+                11,
+                22
+              ],
+              [
+                11,
+                23
+              ],
+              [
+                12,
+                19
+              ],
+              [
+                12,
+                20
+              ],
+              [
+                12,
+                21
+              ],
+              [
+                12,
+                22
+              ],
+              [
+                12,
+                23
+              ],
+              [
+                13,
+                21
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                5,
+                12
+              ],
+              [
+                5,
+                13
+              ],
+              [
+                5,
+                14
+              ],
+              [
+                5,
+                15
+              ],
+              [
+                5,
+                16
+              ],
+              [
+                5,
+                17
+              ],
+              [
+                6,
+                12
+              ],
+              [
+                6,
+                13
+              ],
+              [
+                6,
+                14
+              ],
+              [
+                6,
+                15
+              ],
+              [
+                6,
+                16
+              ],
+              [
+                6,
+                17
+              ],
+              [
+                7,
+                12
+              ],
+              [
+                7,
+                13
+              ],
+              [
+                7,
+                14
+              ],
+              [
+                7,
+                15
+              ],
+              [
+                7,
+                16
+              ],
+              [
+                7,
+                17
+              ],
+              [
+                8,
+                12
+              ],
+              [
+                8,
+                13
+              ],
+              [
+                8,
+                14
+              ],
+              [
+                8,
+                15
+              ],
+              [
+                8,
+                16
+              ],
+              [
+                8,
+                17
+              ],
+              [
+                9,
+                12
+              ],
+              [
+                9,
+                13
+              ],
+              [
+                9,
+                14
+              ],
+              [
+                9,
+                15
+              ],
+              [
+                9,
+                16
+              ],
+              [
+                9,
+                17
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                30,
+                29
+              ],
+              [
+                30,
+                30
+              ],
+              [
+                30,
+                31
+              ],
+              [
+                30,
+                32
+              ],
+              [
+                30,
+                33
+              ],
+              [
+                31,
+                29
+              ],
+              [
+                31,
+                30
+              ],
+              [
+                31,
+                31
+              ],
+              [
+                31,
+                32
+              ],
+              [
+                31,
+                33
+              ],
+              [
+                32,
+                31
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                6,
+                27
+              ],
+              [
+                6,
+                28
+              ],
+              [
+                6,
+                29
+              ],
+              [
+                7,
+                27
+              ],
+              [
+                7,
+                28
+              ],
+              [
+                7,
+                29
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                27,
+                6
+              ],
+              [
+                27,
+                7
+              ],
+              [
+                27,
+                8
+              ],
+              [
+                27,
+                9
+              ],
+              [
+                27,
+                10
+              ],
+              [
+                28,
+                6
+              ],
+              [
+                28,
+                7
+              ],
+              [
+                28,
+                8
+              ],
+              [
+                28,
+                9
+              ],
+              [
+                28,
+                10
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                16,
+                3
+              ],
+              [
+                16,
+                4
+              ],
+              [
+                17,
+                3
+              ],
+              [
+                17,
+                4
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                33,
+                2
+              ],
+              [
+                33,
+                3
+              ],
+              [
+                33,
+                4
+              ],
+              [
+                33,
+                5
+              ],
+              [
+                33,
+                6
+              ],
+              [
+                33,
+                7
+              ],
+              [
+                34,
+                2
+              ],
+              [
+                34,
+                3
+              ],
+              [
+                34,
+                4
+              ],
+              [
+                34,
+                5
+              ],
+              [
+                34,
+                6
+              ],
+              [
+                34,
+                7
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                28,
+                19
+              ],
+              [
+                28,
+                20
+              ],
+              [
+                29,
+                19
+              ],
+              [
+                29,
+                20
+              ],
+              [
+                29,
+                21
+              ],
+              [
+                30,
+                19
+              ],
+              [
+                30,
+                20
+              ],
+              [
+                30,
+                21
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                17,
+                33
+              ],
+              [
+                17,
+                34
+              ],
+              [
+                17,
+                35
+              ],
+              [
+                17,
+                36
+              ],
+              [
+                17,
+                37
+              ],
+              [
+                18,
+                33
+              ],
+              [
+                18,
+                34
+              ],
+              [
+                18,
+                35
+              ],
+              [
+                18,
+                36
+              ],
+              [
+                18,
+                37
+              ],
+              [
+                19,
+                33
+              ],
+              [
+                19,
+                34
+              ],
+              [
+                19,
+                35
+              ],
+              [
+                19,
+                36
+              ],
+              [
+                19,
+                37
+              ],
+              [
+                20,
+                33
+              ],
+              [
+                20,
+                34
+              ],
+              [
+                20,
+                35
+              ],
+              [
+                20,
+                36
+              ],
+              [
+                20,
+                37
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                36,
+                18
+              ],
+              [
+                36,
+                19
+              ],
+              [
+                37,
+                18
+              ],
+              [
+                37,
+                19
+              ],
+              [
+                37,
+                20
+              ],
+              [
+                37,
+                21
+              ],
+              [
+                37,
+                22
+              ],
+              [
+                38,
+                18
+              ],
+              [
+                38,
+                19
+              ],
+              [
+                38,
+                20
+              ],
+              [
+                38,
+                21
+              ],
+              [
+                38,
+                22
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                13,
+                30
+              ],
+              [
+                13,
+                31
+              ],
+              [
+                14,
+                30
+              ],
+              [
+                14,
+                31
+              ],
+              [
+                14,
+                32
+              ],
+              [
+                15,
+                30
+              ],
+              [
+                15,
+                31
+              ],
+              [
+                15,
+                32
+              ]
+            ]
+          },
+          {
+            "shape": "L",
+            "cells": [
+              [
+                31,
+                23
+              ],
+              [
+                31,
+                24
+              ],
+              [
+                32,
+                23
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                33,
+                23
+              ],
+              [
+                33,
+                24
+              ],
+              [
+                33,
+                25
+              ],
+              [
+                33,
+                26
+              ],
+              [
+                33,
+                27
+              ],
+              [
+                34,
+                23
+              ],
+              [
+                34,
+                24
+              ],
+              [
+                34,
+                25
+              ],
+              [
+                34,
+                26
+              ],
+              [
+                34,
+                27
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                9,
+                25
+              ],
+              [
+                9,
+                26
+              ],
+              [
+                9,
+                27
+              ],
+              [
+                9,
+                28
+              ],
+              [
+                10,
+                25
+              ],
+              [
+                10,
+                26
+              ],
+              [
+                10,
+                27
+              ],
+              [
+                10,
+                28
+              ],
+              [
+                11,
+                25
+              ],
+              [
+                11,
+                26
+              ],
+              [
+                11,
+                27
+              ],
+              [
+                11,
+                28
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                2,
+                31
+              ],
+              [
+                2,
+                32
+              ],
+              [
+                2,
+                33
+              ],
+              [
+                2,
+                34
+              ],
+              [
+                3,
+                31
+              ],
+              [
+                3,
+                32
+              ],
+              [
+                3,
+                33
+              ],
+              [
+                3,
+                34
+              ],
+              [
+                4,
+                31
+              ],
+              [
+                4,
+                32
+              ],
+              [
+                4,
+                33
+              ],
+              [
+                4,
+                34
+              ]
+            ]
+          },
+          {
+            "shape": "rectangle",
+            "cells": [
+              [
+                27,
+                2
+              ],
+              [
+                27,
+                3
+              ],
+              [
+                27,
+                4
+              ],
+              [
+                28,
+                2
+              ],
+              [
+                28,
+                3
+              ],
+              [
+                28,
+                4
+              ],
+              [
+                29,
+                2
+              ],
+              [
+                29,
+                3
+              ],
+              [
+                29,
+                4
+              ],
+              [
+                30,
+                2
+              ],
+              [
+                30,
+                3
+              ],
+              [
+                30,
+                4
+              ],
+              [
+                31,
+                2
+              ],
+              [
+                31,
+                3
+              ],
+              [
+                31,
+                4
+              ]
+            ]
+          },
+          {
+            "shape": "T",
+            "cells": [
+              [
+                29,
+                36
+              ],
+              [
+                29,
+                37
+              ],
+              [
+                29,
+                38
+              ],
+              [
+                30,
+                36
+              ],
+              [
+                30,
+                37
+              ],
+              [
+                30,
+                38
+              ],
+              [
+                31,
+                37
+              ]
+            ]
+          }
+        ],
+        "manhattan_steps": 66,
+        "static_detour_steps": 0,
+        "physical_scale": "abstract grid; no real-robot clearance claim"
+      },
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "observation_shape": [
+        5,
+        15,
+        15
+      ],
+      "scalar_dim": 4,
+      "validation_scene_count": 50,
+      "validation_scene_sha256": "ec60a3db3d79e41c608c16e53820d12f8ca86158f4c38a3fa0ef55130426a6d0",
+      "initializations": [
+        {
+          "seed": 2,
+          "initial_state_sha256": "692b020ab5e2a5b198aaf75bd2c0270d5b77a3ceba88f8831510cc4df1adf11a",
+          "paired_identical": true
+        },
+        {
+          "seed": 3,
+          "initial_state_sha256": "234666d5b8e43955ba643e590cc524b69c59a478ae5d2352fca5a9ee37409a66",
+          "paired_identical": true
+        },
+        {
+          "seed": 4,
+          "initial_state_sha256": "6a5014302f9c00ccc739db9c339b7748309b899694f906fc0b638866dab8c13f",
+          "paired_identical": true
+        }
+      ],
+      "existing_validation_reference": "outputs\\foundation_dynamic_ratios_91701_20261002_v1\\fixed_validation_scenarios.json",
+      "existing_validation_file_sha256": "c041acd39e0b3f765d99c90f1015f1dc50542b51666261668b8b99cf697bd0bf",
+      "matches_existing_fixed_50_validation_scenes": true,
+      "original_dynamics_reward_and_masks_preserved": true,
+      "original_dynamics_and_masks_preserved": true,
+      "configured_rewards_identical_between_methods": true,
+      "reward": {
+        "step": -0.01,
+        "progress": 0.05,
+        "stay": 0.0,
+        "collision": -1.0,
+        "goal": 10.0
+      },
+      "only_progress_reward_removed": false,
+      "legacy_weight_compatible": false,
+      "scope": "Fixed original map/start/goal integration; no multi-goal or generalization claim."
+    },
+    "autonomous_evaluation": [
+      {
+        "seed": 2,
+        "episodes": 50,
+        "summary": {
+          "maps": 50,
+          "success_rate": 0.0,
+          "collision_rate": 0.0,
+          "mean_collision_count": 0.0,
+          "static_collision_rate": 0.0,
+          "mean_static_collision_count": 0.0,
+          "dynamic_collision_rate": 0.0,
+          "encounter_rate": 0.0624,
+          "conflict_opportunity_rate": 0.0,
+          "encounter_episode_rate": 0.42,
+          "conflict_opportunity_episode_rate": 0.0,
+          "mean_dynamic_collision_count": 0.0,
+          "safe_success_rate": 0.0,
+          "collision_success_rate": 0.0,
+          "static_collision_success_rate": 0.0,
+          "dynamic_collision_success_rate": 0.0,
+          "dynamic_collision_free_success_rate": 0.0,
+          "mean_steps": 300.0,
+          "mean_wait_steps": 297.0,
+          "mean_wait_event_count": 1.0,
+          "mean_max_wait_streak": 297.0,
+          "mean_movement_steps": 3.0,
+          "mean_turn_count": 0.0,
+          "mean_turn_rate": 0.0,
+          "mean_revisit_count": 0.0,
+          "mean_reward": -3.149999999999977,
+          "mean_path_efficiency": null,
+          "mean_first_static_collision_step": null,
+          "mean_first_dynamic_collision_step": null,
+          "mean_action_latency_ms": 0.329268713388592,
+          "timeout_rate": 1.0
+        },
+        "teacher_calls": 0,
+        "risk_calls": 0,
+        "updates": 0,
+        "learner_and_rng_unchanged": true
+      },
+      {
+        "seed": 3,
+        "episodes": 50,
+        "summary": {
+          "maps": 50,
+          "success_rate": 0.0,
+          "collision_rate": 0.0,
+          "mean_collision_count": 0.0,
+          "static_collision_rate": 0.0,
+          "mean_static_collision_count": 0.0,
+          "dynamic_collision_rate": 0.0,
+          "encounter_rate": 0.0314,
+          "conflict_opportunity_rate": 0.0004,
+          "encounter_episode_rate": 0.74,
+          "conflict_opportunity_episode_rate": 0.06,
+          "mean_dynamic_collision_count": 0.0,
+          "safe_success_rate": 0.0,
+          "collision_success_rate": 0.0,
+          "static_collision_success_rate": 0.0,
+          "dynamic_collision_success_rate": 0.0,
+          "dynamic_collision_free_success_rate": 0.0,
+          "mean_steps": 300.0,
+          "mean_wait_steps": 0.0,
+          "mean_wait_event_count": 0.0,
+          "mean_max_wait_streak": 0.0,
+          "mean_movement_steps": 300.0,
+          "mean_turn_count": 266.0,
+          "mean_turn_rate": 0.8896321070234113,
+          "mean_revisit_count": 2.0,
+          "mean_reward": -1.6000000000000014,
+          "mean_path_efficiency": null,
+          "mean_first_static_collision_step": null,
+          "mean_first_dynamic_collision_step": null,
+          "mean_action_latency_ms": 0.3213238333584741,
+          "timeout_rate": 1.0
+        },
+        "teacher_calls": 0,
+        "risk_calls": 0,
+        "updates": 0,
+        "learner_and_rng_unchanged": true
+      },
+      {
+        "seed": 4,
+        "episodes": 50,
+        "summary": {
+          "maps": 50,
+          "success_rate": 0.0,
+          "collision_rate": 0.0,
+          "mean_collision_count": 0.0,
+          "static_collision_rate": 0.0,
+          "mean_static_collision_count": 0.0,
+          "dynamic_collision_rate": 0.0,
+          "encounter_rate": 0.38266666666666665,
+          "conflict_opportunity_rate": 0.0,
+          "encounter_episode_rate": 0.52,
+          "conflict_opportunity_episode_rate": 0.0,
+          "mean_dynamic_collision_count": 0.0,
+          "safe_success_rate": 0.0,
+          "collision_success_rate": 0.0,
+          "static_collision_success_rate": 0.0,
+          "dynamic_collision_success_rate": 0.0,
+          "dynamic_collision_free_success_rate": 0.0,
+          "mean_steps": 300.0,
+          "mean_wait_steps": 0.0,
+          "mean_wait_event_count": 0.0,
+          "mean_max_wait_streak": 0.0,
+          "mean_movement_steps": 300.0,
+          "mean_turn_count": 276.3,
+          "mean_turn_rate": 0.9240802675585285,
+          "mean_revisit_count": 1.32,
+          "mean_reward": -3.0080000000000022,
+          "mean_path_efficiency": null,
+          "mean_first_static_collision_step": null,
+          "mean_first_dynamic_collision_step": null,
+          "mean_action_latency_ms": 0.3256616402960693,
+          "timeout_rate": 1.0
+        },
+        "teacher_calls": 0,
+        "risk_calls": 0,
+        "updates": 0,
+        "learner_and_rng_unchanged": true
+      }
+    ],
+    "recovery": {
+      "passed": true,
+      "steps": 24,
+      "updates": 21,
+      "formal_training": false,
+      "source": "24-step CPU integration unit; not part of the two 200k runs",
+      "directory": "results\\asvc_fixed_ce_five_seeds_v1\\preflight_attempts\\20261030_112755_306070\\recovery"
+    },
+    "new_training_seeds": [
+      2,
+      3,
+      4
+    ],
+    "pooled_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "training_runs_authorized": 3,
+    "steps_per_run": 200000,
+    "updates_per_run": 199501,
+    "previous_ce_retrained": false,
+    "margin_retrained": false,
+    "independent500_used": false,
+    "same_ce_runner": true,
+    "same_ce_loss": true,
+    "no_learning_parameter_changes": true
+  },
+  "created": "2026-10-30T11:28:25.642426"
+}
