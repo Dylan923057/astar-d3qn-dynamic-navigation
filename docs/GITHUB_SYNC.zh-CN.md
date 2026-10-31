@@ -1,5 +1,16 @@
 # GitHub同步范围
 
+最新批次（2026-10-31）：[固定任务QDagger五seed与最终500确认](ASVC_FIXED_QDAGGER_FIVE_UPLOAD.zh-CN.md) · [完整阅读包](../results/analysis_upload/asvc_fixed_qdagger_five_seeds_v1/LATEST.md)。只新增QDagger seed2/3/4，保留seed0/1；五个最终模型2500回合确认完成。包含25条训练曲线、26250条重复验证、三方法7500条500确认、全部失败及冻结复现代码。旧资料保留，不混入多任务。
+
+```powershell
+# 只读校验与上传预览
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_fixed_qdagger_five_github.ps1 -Preview
+# 用户自行提交推送，默认直连
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync_fixed_qdagger_five_github.ps1
+```
+
+当前固定配置下，QDagger500安全成功94.04%±3.92%，大间隔99.28%±0.73%，CE98.32%±1.48%；原50学习AULC分开报告。上传不含权重/完整回放，范围外改动保留。以下历史批次不覆盖。
+
 最新批次（2026-10-30）：[固定任务CE最终500确认与QDagger两seed](ASVC_FIXED_SUPPLEMENTS_UPLOAD.zh-CN.md) · [完整阅读包](../results/analysis_upload/asvc_fixed_paper_supplements_v1/LATEST.md)。仅新增QDagger两个200000步训练及CE2500回合确认，复用14个旧训练与原组2500回合确认。两类口径分开，不混入50万步多任务。原结果和旧资料包保留。
 
 ```powershell

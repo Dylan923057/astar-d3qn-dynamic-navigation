@@ -1,0 +1,444 @@
+"""Archive/check the completed fixed-task CE control using only the standard library."""
+from __future__ import annotations
+
+import argparse
+import ast
+from collections import defaultdict
+import csv
+from datetime import datetime
+import gzip
+import hashlib
+import json
+import math
+from pathlib import Path
+import re
+import shutil
+import statistics
+import sys
+
+sys.dont_write_bytecode = True
+ROOT = Path(__file__).resolve().parents[1]
+NAME = 'asvc_fixed_ce_v1'
+BASE = ROOT / 'results/analysis_upload' / NAME
+ALLOW = {'.md', '.json', '.csv', '.yaml', '.yml', '.py', '.ps1', '.txt', '.log', '.png', '.pdf', '.gz', '.toml'}
+CODE = ['configs/asvc_fixed_ce_v1.yaml', 'docs/ASVC_FIXED_CE.zh-CN.md',
+        'tests/test_fixed_ce.py', 'scripts/start_fixed_ce.ps1', 'scripts/run_fixed_ce.py',
+        'scripts/analyze_fixed_ce.py', 'scripts/fixed_ce_agent.py', 'scripts/fixed_ce_common.py',
+        'scripts/package_fixed_ce_evidence.py', 'scripts/sync_fixed_ce_github.ps1',
+        'docs/ASVC_FIXED_CE_GITHUB_UPLOAD.zh-CN.md']
+ATTRIBUTES = ['configs/.gitattributes', 'docs/.gitattributes', 'tests/.gitattributes',
+              'scripts/.gitattributes', f'data/{NAME}/.gitattributes',
+              f'results/analysis_upload/{NAME}/.gitattributes']
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def normal(name):
+    return str(name).replace('\\', '/')
+
+
+def local(base, name):
+    name = normal(name)
+    require(not Path(name).is_absolute() and ':' not in name, 'Absolute archive path')
+    path = (base / name).resolve()
+    require(path.is_relative_to(base.resolve()), 'Path escapes archive: ' + name)
+    return path
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            h.update(block)
+    return h.hexdigest()
+
+
+def read(path):
+    return json.loads(Path(path).read_text(encoding='utf-8-sig'))
+
+
+def write(path, value):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + '\n', encoding='utf-8')
+
+
+def rows(path):
+    with Path(path).open(encoding='utf-8-sig', newline='') as stream:
+        return list(csv.DictReader(stream))
+
+
+def write_csv(path, records):
+    with Path(path).open('w', encoding='utf-8-sig', newline='') as stream:
+        writer = csv.DictWriter(stream, fieldnames=list(records[0]))
+        writer.writeheader()
+        writer.writerows(records)
+
+
+def close(actual, expected, label):
+    require(math.isclose(float(actual), float(expected), rel_tol=1e-10, abs_tol=1e-10), 'Statistic differs: ' + label)
+
+
+def integral(curve, start, end, field):
+    """Independent verification of normalized trapezoidal area at actual step coordinates."""
+    points = [(int(r['environment_steps_total']), float(r[field])) for r in curve]
+    require(points[0][0] <= start < end <= points[-1][0], 'Incomplete AULC interval')
+    area = 0.0
+    for (x0, y0), (x1, y1) in zip(points, points[1:]):
+        left, right = max(start, x0), min(end, x1)
+        if right <= left:
+            continue
+        yl = y0 + (y1-y0) * (left-x0) / (x1-x0)
+        yr = y0 + (y1-y0) * (right-x0) / (x1-x0)
+        area += (right-left) * (yl+yr) / 2
+    return area / (end-start)
+
+
+def verify(package, check_sources=False):
+    package = Path(package).resolve()
+    manifest = read(package / 'manifest.json')
+    actual = {p.relative_to(package).as_posix() for p in package.rglob('*') if p.is_file()}
+    require(actual == set(manifest['files_sha256']) | {'manifest.json'}, 'Archive file list changed')
+    patterns = (r'gh[pousr]_[A-Za-z0-9]{30,}', r'github_pat_[A-Za-z0-9_]{40,}',
+                r'AKIA[0-9A-Z]{16}', r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----')
+    for name, digest in manifest['files_sha256'].items():
+        path = local(package, name)
+        require(path.suffix.lower() in ALLOW or path.name == '.gitattributes', 'Unsupported artifact: ' + name)
+        require(path.stat().st_size < 50 * 1024**2, 'Oversized artifact: ' + name)
+        require(sha(path) == digest, 'Archive SHA differs: ' + name)
+        if path.suffix.lower() not in {'.gz', '.png', '.pdf'}:
+            require(not any(re.search(pattern, path.read_text(encoding='utf-8-sig')) for pattern in patterns),
+                    'Potential credential: ' + name)
+    require(manifest['new_training_runs'] == 2 and manifest['new_environment_steps'] == 400000, 'New run budget differs')
+    require(manifest['new_gradient_updates'] == 399002 and manifest['baseline_retrained'] is False, 'Update/reuse scope differs')
+    require(manifest['independent500_used'] is False and manifest['weights_included'] is False, 'Publication scope differs')
+    # Every published source remains byte-identical, including decompressed failure evidence.
+    for name, destination in manifest['source_to_archive'].items():
+        path = local(package, destination)
+        if destination.endswith('.json.gz'):
+            with gzip.open(path, 'rb') as stream:
+                digest = hashlib.sha256(stream.read()).hexdigest()
+        else:
+            digest = sha(path)
+        require(digest == manifest['source_files_sha256'][name], 'Original bytes differ: ' + name)
+    frozen = read(package / f'data/{NAME}/freeze.json')
+    for name, digest in frozen['source_sha256'].items():
+        require(sha(local(package, name)) == digest, 'Training source freeze differs: ' + name)
+    for name, digest in frozen['copied_input_sha256'].items():
+        require(sha(local(package / f'data/{NAME}', name)) == digest, 'Copied input freeze differs: ' + name)
+    for name, digest in frozen['protected_files_sha256'].items():
+        name = normal(name)
+        require(manifest['source_files_sha256'].get(name, manifest['models_sha256'].get(name)) == digest,
+                'Historical protected file differs: ' + name)
+    analysis = package / f'results/{NAME}'
+    require(read(analysis / 'queue_status.json')['complete'], 'Queue not complete')
+    preflight = read(analysis / 'preflight.json')
+    require(preflight['passed'] and preflight['tests'] == 9, 'Missing nine-test preflight')
+    scenarios = read(package / f'data/{NAME}/fixed_validation_scenarios.json')['scenarios']
+    scenario_order = [s['scenario_id'] for s in scenarios]
+    require(len(scenario_order) == len(set(scenario_order)) == 50, 'Frozen50 identity differs')
+    metrics = rows(analysis / 'per_seed_metrics.csv')
+    require({(r['method'], r['seed']) for r in metrics} == {(m, str(s)) for m in ('ce', 'margin') for s in (0, 1)},
+            'Expected four paired runs')
+    episode_count = 0
+    for record in metrics:
+        method, seed = record['method'], int(record['seed'])
+        directory = (package / f'outputs/{NAME}/seed_{seed}' if method == 'ce' else
+                     package / f'outputs/asvc_persistent_teaching_v1/supervision_floor/seed_{seed}')
+        result = read(directory / 'result.json')
+        require(result['complete'] and result['environment_steps'] == 200000 and result['gradient_updates'] == 199501,
+                'Incomplete training budget')
+        require(read(directory / 'completion.json')['complete'], 'Missing completion marker')
+        model_name = (directory / 'model_final.pth').relative_to(package).as_posix()
+        require(manifest['models_sha256'][model_name] == result['final_model_sha256'], 'Final checkpoint identity differs')
+        curve, details = rows(directory / 'validation_curve.csv'), rows(directory / 'validation_details.csv')
+        steps = [int(r['environment_steps_total']) for r in curve]
+        require(steps == sorted(set(steps)) and len(steps) == 21 and steps[0] == 0 and steps[-1] == 200000,
+                'Expected 21 validation checkpoints from 0 to 200k')
+        require(len(details) == 1050, 'Expected 21 x 50 validation episodes per run')
+        grouped = defaultdict(list)
+        for detail in details:
+            grouped[int(detail['environment_steps_total'])].append(detail)
+        for point in curve:
+            step = int(point['environment_steps_total'])
+            part = grouped[step]
+            require([r['scenario_id'] for r in part] == scenario_order, 'Validation scenario order differs')
+            for field, source in [('safe_success_rate', 'safe_success'), ('collision_rate', 'collision')]:
+                close(point[field], statistics.mean(float(r[source]) for r in part), field)
+            close(point['timeout_rate'], sum(r['termination_reason'] == 'timeout' for r in part) / 50, 'timeout rate')
+            failures_path = directory / f'validation_failures_{step:06d}.json.gz'
+            with gzip.open(failures_path, 'rt', encoding='utf-8-sig') as stream:
+                failures = json.load(stream)
+            expected = {r['scenario_id']: r for r in part if float(r['safe_success']) != 1.0}
+            require(len(failures) == len(expected) and {r['scenario_id'] for r in failures} == set(expected),
+                    'Failure trajectories missing/duplicated')
+            for trace in failures:
+                detail = expected[trace['scenario_id']]
+                require(len(trace['steps']) == int(detail['steps']) and trace['termination_reason'] == detail['termination_reason'],
+                        'Failure trajectory length/outcome differs')
+        episode_count += len(details)
+        for start, end in [(0, 50000), (0, 200000), (100000, 200000)]:
+            close(record[f'aulc_{start}_{end}'], integral(curve, start, end, 'safe_success_rate'), 'AULC')
+        late = [r for r in curve if int(r['environment_steps_total']) >= 100000]
+        close(record['late_min_safe_success_rate'], min(float(r['safe_success_rate']) for r in late), 'late minimum')
+        for field in ('safe_success_rate', 'collision_rate', 'timeout_rate'):
+            close(record['final_' + field], curve[-1][field], 'final ' + field)
+        for field in ('collision_rate', 'timeout_rate'):
+            close(record['late_' + field + '_aulc'], integral(curve, 100000, 200000, field), 'late outcome AULC')
+            close(record['late_' + field + '_point_mean'], statistics.mean(float(r[field]) for r in late), 'late mean')
+            close(record['late_' + field + '_point_max'], max(float(r[field]) for r in late), 'late max')
+        training = rows(directory / 'training.csv')
+        close(training[-1]['environment_steps_total'], 200000, 'final training step')
+        close(training[-1]['gradient_updates_total'], 199501, 'final updates')
+        if method == 'ce':
+            baseline = read(package / f'data/{NAME}/baseline_snapshots/seed_{seed}/run_manifest.json')
+            require(result['initial_state_sha256'] == baseline['initial_state_sha256'] and
+                    result['effective_training'] == baseline['effective_training'], 'Paired initialization/budget differs')
+            require(result['temperature'] == 1 and result['pretraining_updates'] == 0 and
+                    not any(result[k] for k in ('evaluation_advice', 'independent500_used', 'route_input', 'soft_risk_weight')),
+                    'CE protocol changed')
+            for row in rows(directory / 'value_learning.csv'):
+                require(row['supervision_loss_type'] == 'CE_T1', 'Wrong loss logger')
+                for key in ('td_loss_mean', 'supervision_ce_loss_mean', 'supervision_weighted_loss_mean', 'q_abs_max'):
+                    require(math.isfinite(float(row[key])), 'Nonfinite learning diagnostic')
+                # Total was summed in float32 on GPU; its components were logged as Python floats.
+                require(math.isclose(float(row['td_loss_mean']) + float(row['supervision_weighted_loss_mean']),
+                                     float(row['total_loss_mean']), rel_tol=2e-7, abs_tol=1e-8), 'CE loss sum differs')
+            for row in rows(directory / 'advice_budget.csv'):
+                if int(row['bin_start_step']) > 100000:
+                    close(row['applied'], 0, 'Teacher advice must have exited')
+    require(episode_count == 4200, 'Repeated-validation episode count differs')
+    summaries = rows(analysis / 'mean_sample_sd.csv')
+    for summary in summaries:
+        values = [float(r[summary['metric']]) for r in metrics if r['method'] == summary['method']]
+        close(summary['available_training_seeds'], 2, 'Statistical unit is training seed')
+        close(summary['mean'], statistics.mean(values), 'seed mean')
+        close(summary['sample_sd'], statistics.stdev(values), 'sample SD')
+    paired = rows(analysis / 'paired_seed_differences.csv')
+    for row in paired:
+        values = {r['method']: r for r in metrics if r['seed'] == row['seed']}
+        for key in row.keys() - {'seed', 'contrast'}:
+            close(row[key], float(values['ce'][key]) - float(values['margin'][key]), 'paired difference')
+    for row in rows(analysis / 'paired_mean_sample_sd.csv'):
+        values = [float(r[row['metric']]) for r in paired]
+        close(row['mean'], statistics.mean(values), 'paired mean')
+        close(row['sample_sd'], statistics.stdev(values), 'paired sample SD')
+    if check_sources:
+        for name, digest in (manifest['source_files_sha256'] | manifest['models_sha256']).items():
+            require(sha(local(ROOT, name)) == digest, 'Local source/model changed: ' + name)
+    size = sum(local(package, name).stat().st_size for name in actual)
+    print(f'PASS: {len(actual)} files / {size / 1024**2:.2f} MiB; 2 completed CE runs, 2 reused margin runs.')
+    print('4 x 21 x 50 = 4200 repeated-validation records; all failure traces, seed statistics and hashes checked.')
+    print('New training: 400000 steps / 399002 updates; final500 unused; no model binaries included.')
+    return manifest
+
+
+README = '''# 固定起终点：同教师在线 CE 对照阅读包
+
+**两次 CE 训练已完成，seed 0、1 各 200000 环境步，从头训练。原持续弱监督大间隔组直接复用。** 本项是固定起终点小论文对照，与 500000 步多任务 CE 提案及动态冲突预测预实验分开。
+
+## 结果
+
+以下是两个训练 seed 的均值 ± 样本标准差，均来自反复使用的原冻结 50 场景验证池，不是独立最终测试。
+
+| 指标 | 原大间隔 m=0.8 | CE，T=1 |
+|---|---:|---:|
+| 前 5 万步 AULC | 85.56% ± 0.88% | 83.68% ± 1.85% |
+| 全程 AULC | 95.54% ± 0.06% | 93.72% ± 0.46% |
+| 后 10 万步 AULC | 99.75% ± 0.07% | 98.00% ± 0.99% |
+| 后半程最低成功率 | 98.00% ± 0.00% | 93.00% ± 1.41% |
+| 最终安全成功率 | 100.00% ± 0.00% | 99.00% ± 1.41% |
+| 后半程碰撞率 AULC | 0.10% ± 0.14% | 0.70% ± 0.28% |
+| 后半程超时率 AULC | 0.15% ± 0.21% | 1.30% ± 0.70% |
+
+CE seed0 最终成功 49/50、碰撞 1/50；seed1 最终成功 50/50。后半程最低成功分别为 94%、92%。原组两个 seed 最终均为 50/50，后半程最低均为 98%。所有失败证据均保留，没有只选成功检查点。
+
+**观测：本协议下 CE 的全程、后半程表现更低，后半程碰撞及超时更多。暂不替换当前大间隔主方法。**
+
+原因假设：损失形式的替换会改变更新及后续采样轨迹，但现有两个 seed 不能确定具体梯度原因，也不能证明普遍优势、显著性或收敛性。CE 与 margin 的损失尺度不同，不能凭标量损失大小评价优劣。创新性判断：这是同教师监督形式的控制实验，采用交叉熵本身不作为创新。
+
+## 阅读顺序
+
+1. [实验报告](results/asvc_fixed_ce_v1/REPORT.zh-CN.md)、[协议与运行命令](docs/ASVC_FIXED_CE.zh-CN.md)。
+2. [逐 seed 指标](results/asvc_fixed_ce_v1/per_seed_metrics.csv)、[均值/样本 SD](results/asvc_fixed_ce_v1/mean_sample_sd.csv)、[配对差](results/asvc_fixed_ce_v1/paired_seed_differences.csv)、[配对差均值/样本 SD](results/asvc_fixed_ce_v1/paired_mean_sample_sd.csv)。
+3. [学习曲线](results/asvc_fixed_ce_v1/learning_curves.png)、[Q 与损失诊断](results/asvc_fixed_ce_v1/value_loss_diagnostics.png)，同目录含 PDF。
+4. [CE 原始日志](outputs/asvc_fixed_ce_v1/)、[复用原组完整日志](outputs/asvc_persistent_teaching_v1/supervision_floor/)。每组每 seed 有 21 次验证、1050 行逐场景记录；合计 4200 行不是 4200 个独立训练样本。训练 CSV、Q 范围、TD/监督损失、标签覆盖和代选记录均在对应 seed 目录。
+5. [冻结 50 场景](data/asvc_fixed_ce_v1/fixed_validation_scenarios.json)、[冻结配置与源码身份](data/asvc_fixed_ce_v1/freeze.json)、[预检结果](results/asvc_fixed_ce_v1/preflight.json)、[训练成本](training_cost.csv)、[模型和检查点索引](model_index.csv)。
+6. [上传说明](docs/ASVC_FIXED_CE_GITHUB_UPLOAD.zh-CN.md)、[最终队列状态](results/asvc_fixed_ce_v1/queue_status.json)。
+
+监督仅把合格标签上的大间隔换为静态合法动作上的 CE（T=1）。教师、风险筛选、碰撞标签排除、独立教师标签/真实执行动作 TD、监督下限 0.1、100k 后代选退出、TD 目标 [-6,10]、epsilon 日程保持原样。没有离线预训练、风险软权重、路径输入、额外 seed、参数扫描或最终 500 场景选参。
+
+AULC 用真实环境步数积分，50k/100k 边界线性插值；验证沿用历史协议，在跨越每 10000 步后的回合边界执行。没有把旧检查点伪装成恰好整数万步。
+
+## 保存与复核
+
+原始科学文件按字节复制。所有失败轨迹以 `.json.gz` 无损压缩，解压内容与原文件 SHA256 一致，本地原文件未删除。全部模型（含中间步骤）及完整优化器/回放/RNG 检查点只登记路径、大小、SHA256，不上传二进制；阅读包足够独立核查统计，不能代替这些本地模型重跑策略评估或续训。
+
+`training_cost.csv` 分列原组历史成本与 CE 本轮成本，预检的 24 步恢复单元检查不混入正式统计。两组墙钟耗时受线程及当时机器负载影响，不据此宣称计算效率优势。旧文档中其他研究/模型的链接依赖完整仓库；本轮图表、原始记录、冻结输入、代码快照与失败轨迹均包含在包内。
+
+进入本包目录，仅需 Python 标准库（无需 PyTorch/GPU/模型）即可核对哈希、4200 行记录、全部失败轨迹、AULC、均值/样本 SD 和配对差：
+
+```powershell
+python tools/verify_bundle.py --verify --package .
+```
+
+在原仓库根目录可运行 `python scripts/package_fixed_ce_evidence.py --verify --check-sources`，额外核对本地所有原文件和模型身份。下载包时只运行上面的独立校验，不运行训练脚本。复现训练需要完整仓库及原组登记的本地模型/检查点，原命令禁止覆盖完成结果。
+'''
+
+
+def dependency_files(initial):
+    """Include statically referenced local Python modules and inherited YAML context."""
+    pending = list(initial)
+    found = set()
+    while pending:
+        name = normal(pending.pop())
+        if name in found:
+            continue
+        path = local(ROOT, name)
+        if not path.is_file():
+            continue
+        found.add(name)
+        if path.suffix == '.py':
+            tree = ast.parse(path.read_text(encoding='utf-8-sig'))
+            modules = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    modules += [a.name for a in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                    modules += [node.module] + [node.module + '.' + a.name for a in node.names]
+            for module in modules:
+                stem = module.replace('.', '/')
+                for candidate in (ROOT / 'scripts' / (stem + '.py'), ROOT / 'src' / (stem + '.py'),
+                                  ROOT / 'src' / stem / '__init__.py'):
+                    if candidate.is_file():
+                        pending.append(candidate.relative_to(ROOT).as_posix())
+        elif path.suffix in ('.yaml', '.yml'):
+            match = re.search(r'^inherits:\s*[\'"]?([^\s\'"#]+)', path.read_text(encoding='utf-8-sig'), re.M)
+            if match:
+                candidate = (path.parent / match.group(1)).resolve()
+                require(candidate.is_relative_to(ROOT), 'Inherited config escapes repository')
+                pending.append(candidate.relative_to(ROOT).as_posix())
+    return found
+
+
+def build(new_revision=False):
+    require((ROOT / '.git').exists(), 'Build requires the original workspace')
+    pointer = BASE / 'latest.json'
+    if pointer.exists() and not new_revision:
+        package = local(ROOT, read(pointer)['package'])
+        verify(package, True)
+        print('Existing immutable package reused:', package.relative_to(ROOT))
+        return package
+    frozen = read(ROOT / f'data/{NAME}/freeze.json')
+    require(read(ROOT / f'results/{NAME}/queue_status.json')['complete'], 'Wait until both CE runs complete')
+    for group in ('source_sha256', 'protected_files_sha256'):
+        for name, digest in frozen[group].items():
+            require(sha(local(ROOT, name)) == digest, 'Original freeze changed: ' + name)
+    for name, digest in frozen['copied_input_sha256'].items():
+        require(sha(local(ROOT / f'data/{NAME}', name)) == digest, 'Copied input changed: ' + name)
+    package = BASE / ('review_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+    package.mkdir(parents=True, exist_ok=False)
+    sources, destinations, models, index = {}, {}, {}, []
+
+    def copy(name, destination=None):
+        name = normal(name)
+        source = local(ROOT, name)
+        digest = sha(source)
+        if source.suffix in ('.pth', '.pt'):
+            if name not in models:
+                models[name] = digest
+                index.append(dict(path=name, bytes=source.stat().st_size, sha256=digest,
+                                  included=False, kind='full_recovery' if 'recovery' in source.name else 'policy_weights'))
+            return
+        destination = normal(destination or name)
+        compressed = source.name.startswith('validation_failures_') and source.suffix == '.json'
+        if compressed:
+            destination += '.gz'
+        if name in destinations and destination == destinations[name]:
+            return
+        target = local(package, destination)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if compressed:
+            with target.open('wb') as raw, gzip.GzipFile(fileobj=raw, mode='wb', filename='', mtime=0) as zipped:
+                with source.open('rb') as stream:
+                    shutil.copyfileobj(stream, zipped)
+        else:
+            require(not target.exists() or sha(target) == digest, 'Conflicting archive destination')
+            shutil.copyfile(source, target)
+        sources[name], destinations[name] = digest, destination
+
+    for name in dependency_files(list(frozen['source_sha256']) + CODE):
+        copy(name)
+    for name in frozen['protected_files_sha256']:
+        copy(name)
+    for folder in (f'data/{NAME}', f'results/{NAME}', f'outputs/{NAME}'):
+        for path in sorted((ROOT / folder).rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts and 'matplotlib_cache' not in path.parts:
+                copy(path.relative_to(ROOT).as_posix())
+    for name in CODE + ATTRIBUTES + ['pyproject.toml']:
+        copy(name)
+    for path in sorted((BASE / 'packaging_checks').glob('*')):
+        if path.is_file():
+            copy(path.relative_to(ROOT).as_posix(), 'publication_checks/' + path.name)
+    copy('scripts/package_fixed_ce_evidence.py', 'tools/verify_bundle.py')
+    costs = []
+    for method in ('margin', 'ce'):
+        for seed in (0, 1):
+            prefix = f'outputs/{NAME}' if method == 'ce' else 'outputs/asvc_persistent_teaching_v1/supervision_floor'
+            result = read(ROOT / prefix / f'seed_{seed}/result.json')
+            costs.append(dict(method=method, seed=seed, environment_steps=result['environment_steps'],
+                gradient_updates=result['gradient_updates'], reused_history=(method == 'margin'),
+                new_environment_steps_this_round=200000 if method == 'ce' else 0,
+                online_training_seconds=result['online_training_seconds'], session_seconds=result['session_seconds']))
+    write_csv(package / 'training_cost.csv', costs)
+    write_csv(package / 'model_index.csv', sorted(index, key=lambda r: r['path']))
+    (package / 'README.md').write_text(README, encoding='utf-8')
+    (package / '.gitattributes').write_text('** -text\n', encoding='utf-8')
+    relative = package.relative_to(ROOT).as_posix()
+    data_scope = [p.relative_to(ROOT).as_posix() for p in (ROOT / f'data/{NAME}').rglob('*') if p.is_file()]
+    scope = sorted(set(CODE + ATTRIBUTES + data_scope + [relative,
+        f'results/analysis_upload/{NAME}/latest.json', f'results/analysis_upload/{NAME}/LATEST.md']))
+    write(package / 'upload_scope.json', scope)
+    write(package / 'manifest.json', dict(created=datetime.now().isoformat(), name=NAME,
+        files_sha256={p.relative_to(package).as_posix(): sha(p) for p in sorted(package.rglob('*')) if p.is_file()},
+        source_files_sha256=sources, source_to_archive=destinations, models_sha256=models,
+        new_training_runs=2, training_seeds=[0, 1], new_environment_steps=400000, new_gradient_updates=399002,
+        baseline_retrained=False, independent500_used=False, weights_included=False,
+        validation_records=4200, new_ce_validation_records=2100, reused_margin_validation_records=2100,
+        statistical_unit='training_seed; two-seed exploratory paired comparison',
+        preflight_recovery_check_steps=24, preflight_recovery_check_in_formal_statistics=False))
+    verify(package, True)
+    write(pointer, dict(package=relative, manifest_sha256=sha(package / 'manifest.json')))
+    (BASE / 'LATEST.md').write_text(f'# 固定起终点 CE 对照\n\n[完整数据阅读包]({package.name}/README.md)\n\n'
+        '两次 CE 各 20 万步已完成，原大间隔 seed0、1 复用。CE 全程 AULC 低 1.82 个百分点，'
+        '后半程低 1.75 个百分点。两 seed 探索性验证，未使用最终 500 场景。\n', encoding='utf-8')
+    print('Package:', relative)
+    return package
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--verify', action='store_true')
+    parser.add_argument('--check-sources', action='store_true')
+    parser.add_argument('--new-revision', action='store_true')
+    parser.add_argument('--package', type=Path)
+    args = parser.parse_args()
+    if args.verify:
+        if args.package:
+            package = args.package
+        elif (ROOT / 'manifest.json').exists():
+            package = ROOT
+        else:
+            pointer = read(BASE / 'latest.json')
+            package = local(ROOT, pointer['package'])
+            require(sha(package / 'manifest.json') == pointer['manifest_sha256'], 'Publication pointer hash differs')
+        verify(package, args.check_sources)
+    else:
+        build(args.new_revision)
+
+
+if __name__ == '__main__':
+    main()

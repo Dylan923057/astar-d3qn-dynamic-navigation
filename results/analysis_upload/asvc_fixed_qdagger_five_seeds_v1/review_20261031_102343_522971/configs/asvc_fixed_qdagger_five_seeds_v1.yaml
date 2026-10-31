@@ -1,0 +1,26 @@
+inherits: asvc_fixed_qdagger_v1.yaml
+experiment: asvc_fixed_qdagger_five_seeds_v1
+protocol: unchanged_fixed_qdagger_seeds234_and_frozen500_v1
+seeds: [2, 3, 4]
+maximum_new_training_runs: 3
+final500_evaluation: true
+qdagger_five_extension:
+  pooled_seeds: [0, 1, 2, 3, 4]
+  reused_seeds: [0, 1]
+  new_seeds: [2, 3, 4]
+  original_registration: data/asvc_fixed_qdagger_v1/freeze.json
+  original_output: outputs/asvc_fixed_qdagger_v1
+  additional_online_environment_steps: 600000
+  additional_offline_updates: 60000
+  additional_online_updates: 598503
+  final500_scenes: data/asvc_fixed_ce_final500_v1/frozen500.json
+  final500_episodes_per_seed: 500
+  final500_epsilon: 0
+  final500_teacher: false
+  final500_dynamic_protection: false
+  final500_static_mask: true
+  final500_device: cpu
+  final500_checkpoint: final_200000_only
+  final500_used_for_tuning: false
+  learning_parameter_changes: none
+  maximum_training_processes: 1

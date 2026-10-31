@@ -1,0 +1,1108 @@
+{
+  "original_freeze": {
+    "config": {
+      "experiment": {
+        "name": "whole_map_91701_dqfd_comparison_v1",
+        "output_root": "outputs/whole_map_91701_dqfd_comparison_v1",
+        "run_name_prefix": "whole_map_pool_91701_7obs",
+        "protocol": "frozen_dqfd_and_observed_risk_ablation_v1",
+        "check_root": "results/whole_map_91701_dqfd_comparison_v1",
+        "initialization": "paired_random"
+      },
+      "dataset": {
+        "source_manifest": "data/risk_handover_v1/manifest.json",
+        "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+        "route_pool_protocol": "dynamic_route_pool_v2",
+        "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+        "map_id": "irregular_workcell_91701",
+        "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+        "validation_reference": "outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json"
+      },
+      "dynamic_route_pool": {
+        "composition": {
+          "high_interaction": 2,
+          "alternative_branch": 2,
+          "background": 1
+        },
+        "move_every": 1,
+        "sampling_trials_per_episode": 1000,
+        "training_sampling_seed_offset": 91701000,
+        "validation_sampling_seed": 91701999,
+        "validation_episodes": 50,
+        "obstacle_counts": [
+          3,
+          4,
+          5
+        ]
+      },
+      "environment": {
+        "window_size": 15,
+        "spatial_channels": 4,
+        "action_count": 5,
+        "max_steps": 300,
+        "terminate_on_collision": true,
+        "mask_static_invalid_actions": true
+      },
+      "reward": {
+        "step": -0.01,
+        "progress": 0.05,
+        "stay": 0.0,
+        "collision": -1.0,
+        "goal": 10.0
+      },
+      "agent": {
+        "learning_rate": 0.0003,
+        "gamma": 0.99,
+        "target_sync_interval": 250,
+        "gradient_clip_norm": 10.0,
+        "hidden_dim": 256,
+        "device": "auto"
+      },
+      "training": {
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "replay_strategy": "uniform",
+        "episodes": 1000000,
+        "max_environment_steps": 200000,
+        "replay_capacity": 10000,
+        "batch_size": 64,
+        "learning_starts": 500,
+        "updates_per_step": 1,
+        "epsilon_start": 1.0,
+        "epsilon_end": 0.05,
+        "epsilon_decay_episodes": 1000000,
+        "epsilon_decay_environment_steps": 150000,
+        "validation_interval_environment_steps": 10000,
+        "demo_fraction": 0.0
+      },
+      "guidance": {
+        "methods": [
+          "unguided",
+          "path_guided"
+        ],
+        "lookahead_steps": 4,
+        "projection": "nearest_manhattan_earliest_tie",
+        "path_source": "frozen_nominal_static_astar",
+        "added_spatial_channels": 1,
+        "added_scalar_dim": 2,
+        "control": "zero_added_inputs_same_network"
+      },
+      "rule_baseline": {
+        "method": "astar_replan_wait",
+        "information": "known_static_map_and_current_local_dynamic_frame"
+      },
+      "integration": {
+        "steps_per_branch": 8,
+        "batch_size": 4,
+        "learning_starts": 4,
+        "device": "cpu"
+      },
+      "training_advice": {
+        "methods": [
+          "unguided",
+          "astar_fixed",
+          "astar_decay",
+          "astar_risk_decay",
+          "astar_budget_matched"
+        ],
+        "probability": 0.8,
+        "decay_environment_steps": 100000,
+        "risk_radius": 1,
+        "rng_seed_offset": 730000,
+        "teacher": "static_astar_replan_from_current_position",
+        "risk_information": "current_and_two_previous_observed_dynamic_frames",
+        "evaluation_advice": false,
+        "observation_guidance": false
+      },
+      "value_repair": {
+        "methods": [
+          "unguided_raw",
+          "unguided_bound",
+          "advice_raw",
+          "advice_bound",
+          "advice_margin",
+          "advice_bound_margin"
+        ],
+        "target_lower": -6.0,
+        "target_upper": 10.0,
+        "margin": 0.8,
+        "margin_weight": 1.0,
+        "margin_decay_environment_steps": 100000,
+        "labels": "matching_executed_astar_action_observed_risk_clear_noncollision",
+        "competitor_mask": "static_valid_only",
+        "evaluation_advice": false,
+        "probe_environment_steps": 2000,
+        "probe_device": "cpu",
+        "probe_epsilon_decay_environment_steps": 150000
+      },
+      "comparison": {
+        "methods": [
+          "dqfd",
+          "dqfd_bound",
+          "advice_bound_margin_no_risk"
+        ],
+        "artifact_root": "data/whole_map_91701_dqfd_comparison_v1",
+        "final_scene_config": "configs/whole_map_91701_supervision_tail_v1.yaml",
+        "demonstration_seed": 91702641,
+        "demonstration_attempts": 128,
+        "demonstration_max_scene_draws": 100000,
+        "demonstration_policy": "static_astar_observed_three_frame_risk_veto_wait",
+        "demonstration_retention": "successful_noncollision_complete_episodes_only",
+        "pretraining_updates": 20000,
+        "n_steps": 10,
+        "n_step_weight": 1.0,
+        "expert_weight": 1.0,
+        "l2_weight": 1e-05,
+        "expert_margin": 0.8,
+        "per_alpha": 0.4,
+        "per_beta_start": 0.6,
+        "per_beta_end": 1.0,
+        "per_agent_bonus": 0.001,
+        "per_demo_bonus": 1.0,
+        "priority_error": "absolute_one_step_td_error",
+        "td_loss": "squared_error",
+        "phase_boundaries": [
+          0,
+          80000,
+          100000,
+          140000,
+          200000
+        ],
+        "original_withdrawal_window": [
+          90000,
+          120500
+        ],
+        "new_withdrawal_window": [
+          130000,
+          160500
+        ],
+        "combined_withdrawal_window": [
+          90000,
+          160500
+        ],
+        "formal_training_requires_explicit_flag": true
+      }
+    },
+    "config_sha256": "e3969928664976daacba061b1943f22b94e7e63776761e2e3f13964f150ad2fc",
+    "source_sha256": {
+      "configs\\whole_map_91701_dqfd_comparison_v1.yaml": "96d44c4213cfd846e7a1ac1a7c05795369c86724e2634b8cf77fe2f86b24f6f4",
+      "scripts\\dqfd_comparison_common.py": "d5bdca1837c53c8c8a647ccfbea1f7202afcc04eafd70ca7650eac21da2ba069",
+      "scripts\\prepare_dqfd_comparison.py": "1ce012a3540f2baaae515a1ebff2fa79ccc089c1ef700ff0da57d3ab3165acb6",
+      "scripts\\run_dqfd_comparison.py": "d2ef2576501c2aa902d420be737d7b81ec47b7b18dad4b68f14fbcaed3da849a",
+      "src\\astar_d3qn\\agents\\dqfd.py": "a6bc1b4549abda698e04339d1d1122b69cf9b7afeeb6b5c0442794e6489ab711",
+      "src\\astar_d3qn\\agents\\astar_no_risk.py": "8885ba3fa4508f79171edfc6fb3b3766bb8749d6bf0bc867aed6376d53d37fc4",
+      "src\\astar_d3qn\\replay\\dqfd.py": "0f108b2945c758c14a974c22d3066391ea64a83edfed6767346c43cd6a1bf518",
+      "src\\astar_d3qn\\training\\dqfd.py": "fb346ab7b8da6023d51722861676d888cd398fadfc3d0c6e27deb722f8162453",
+      "scripts\\run_teaching_efficiency.py": "82c4432122cd29fb96f57aa762364f91eeda08efeb9d734303e0769869643eb0",
+      "src\\astar_d3qn\\envs\\path_guidance.py": "711ca986e0b88f43f449444118f0392660165ef240f3c59544589c9093df3bc8",
+      "src\\astar_d3qn\\envs\\dynamic_grid.py": "701f2aa19588811ee45dddb3ddbed0aa201149df293bd8a0d14254a521abd1cb",
+      "src\\astar_d3qn\\replay\\transition.py": "0575dd7d71cccade23b4984363d86c8f5b2885a2297f9147b264df6ea3b15d53",
+      "src\\astar_d3qn\\agents\\networks.py": "48199f27aee6401cbd1d597c3ee72004c70b8cc7ccb686164e6a29471b60e737",
+      "scripts\\run_value_repair.py": "bfae744bd6e80979c2cf0cff5885dced444c04efa1e5af79facebe35e04c7248",
+      "configs\\whole_map_91701_value_repair_v1.yaml": "1b7fd473b3432293bb18d24931d251b0f5b43a5a60455749ab21e353d11d4892",
+      "configs\\whole_map_91701_value_repair_pilot_v1.yaml": "7c2ac96f988fcc77ac1404dc2131885f54965a49e0ea10046d41a9e6c3ccf2b5",
+      "src\\astar_d3qn\\agents\\astar_value_repair.py": "62b92fcc0608750763159f028e38114f444bb012a1630f552e99ad16de37a467",
+      "src\\astar_d3qn\\agents\\astar_training_handover.py": "b2d9c1f139470531e1714aabeb0154580e6e18da2bc837779e3d2e3baca06826",
+      "src\\astar_d3qn\\agents\\d3qn.py": "f26e572822231c26170840b1ad38186ed23ac63b4b79792450e18d9d7dd51916",
+      "src\\astar_d3qn\\training\\trainer.py": "5ff522b18fdbdbb40a070749638869f14e67cb7560c05291312b1ff821be049f"
+    },
+    "files_sha256": {
+      "demonstrations.npz": "8863cf5fdea2520cd78fa391856c129dabf3cbb5eedc5bc46ecc9290bb42545b",
+      "demonstration_episodes.json": "bf02ad9bad5d0fa2063eda4b9e66016b124d88229ad28db3f7b9eac10a16f563"
+    },
+    "created_at_utc": "2026-10-08T08:54:25.094770+00:00",
+    "frozen_before_new_training": true,
+    "final_scene_sha256": "051c083a8a185ac1738ad71debd3508cca7a20020319009eabe132062c130318",
+    "demo_transition_count": 7260,
+    "attempted_episodes": 128,
+    "retained_episodes": 107,
+    "rejected_heldout_scene_draws": 7,
+    "candidate_draws": 135,
+    "demo_astar_lookups": 10756,
+    "demo_astar_searches": 66,
+    "demo_astar_seconds": 0.05115389882121235,
+    "demonstration_generation_seconds": 5.4632578999735415,
+    "gradient_updates": 0,
+    "formal_training_started": false,
+    "independent_500_performance_evaluated": false,
+    "demo_policy_uses_future_obstacles": false,
+    "demo_heldout_combinations_overlap": 0,
+    "pretraining_updates_per_seed": 20000
+  },
+  "episode_audit": [
+    {
+      "episode": 0,
+      "scenario_id": "train_seed91702641_seed183403641_episode000001",
+      "offset": 0,
+      "steps": 74,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 1,
+      "scenario_id": "train_seed91702641_seed183403641_episode000002",
+      "offset": 74,
+      "steps": 67,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 2,
+      "scenario_id": "train_seed91702641_seed183403641_episode000004",
+      "offset": 141,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 3,
+      "scenario_id": "train_seed91702641_seed183403641_episode000005",
+      "offset": 207,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 4,
+      "scenario_id": "train_seed91702641_seed183403641_episode000006",
+      "offset": 273,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 5,
+      "scenario_id": "train_seed91702641_seed183403641_episode000007",
+      "offset": 339,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 6,
+      "scenario_id": "train_seed91702641_seed183403641_episode000008",
+      "offset": 405,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 7,
+      "scenario_id": "train_seed91702641_seed183403641_episode000009",
+      "offset": 478,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 8,
+      "scenario_id": "train_seed91702641_seed183403641_episode000011",
+      "offset": 544,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 9,
+      "scenario_id": "train_seed91702641_seed183403641_episode000013",
+      "offset": 610,
+      "steps": 70,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 10,
+      "scenario_id": "train_seed91702641_seed183403641_episode000014",
+      "offset": 680,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 11,
+      "scenario_id": "train_seed91702641_seed183403641_episode000015",
+      "offset": 746,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 12,
+      "scenario_id": "train_seed91702641_seed183403641_episode000017",
+      "offset": 815,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 13,
+      "scenario_id": "train_seed91702641_seed183403641_episode000018",
+      "offset": 881,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 14,
+      "scenario_id": "train_seed91702641_seed183403641_episode000019",
+      "offset": 952,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 15,
+      "scenario_id": "train_seed91702641_seed183403641_episode000020",
+      "offset": 1018,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 16,
+      "scenario_id": "train_seed91702641_seed183403641_episode000022",
+      "offset": 1087,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 17,
+      "scenario_id": "train_seed91702641_seed183403641_episode000023",
+      "offset": 1160,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 18,
+      "scenario_id": "train_seed91702641_seed183403641_episode000024",
+      "offset": 1226,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 19,
+      "scenario_id": "train_seed91702641_seed183403641_episode000025",
+      "offset": 1292,
+      "steps": 67,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 20,
+      "scenario_id": "train_seed91702641_seed183403641_episode000026",
+      "offset": 1359,
+      "steps": 67,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 21,
+      "scenario_id": "train_seed91702641_seed183403641_episode000027",
+      "offset": 1426,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 22,
+      "scenario_id": "train_seed91702641_seed183403641_episode000028",
+      "offset": 1492,
+      "steps": 67,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 23,
+      "scenario_id": "train_seed91702641_seed183403641_episode000029",
+      "offset": 1559,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 24,
+      "scenario_id": "train_seed91702641_seed183403641_episode000030",
+      "offset": 1625,
+      "steps": 72,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 25,
+      "scenario_id": "train_seed91702641_seed183403641_episode000031",
+      "offset": 1697,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 26,
+      "scenario_id": "train_seed91702641_seed183403641_episode000032",
+      "offset": 1763,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 27,
+      "scenario_id": "train_seed91702641_seed183403641_episode000034",
+      "offset": 1834,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 28,
+      "scenario_id": "train_seed91702641_seed183403641_episode000035",
+      "offset": 1902,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 29,
+      "scenario_id": "train_seed91702641_seed183403641_episode000037",
+      "offset": 1970,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 30,
+      "scenario_id": "train_seed91702641_seed183403641_episode000038",
+      "offset": 2036,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 31,
+      "scenario_id": "train_seed91702641_seed183403641_episode000039",
+      "offset": 2107,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 32,
+      "scenario_id": "train_seed91702641_seed183403641_episode000040",
+      "offset": 2173,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 33,
+      "scenario_id": "train_seed91702641_seed183403641_episode000041",
+      "offset": 2239,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 34,
+      "scenario_id": "train_seed91702641_seed183403641_episode000043",
+      "offset": 2310,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 35,
+      "scenario_id": "train_seed91702641_seed183403641_episode000044",
+      "offset": 2376,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 36,
+      "scenario_id": "train_seed91702641_seed183403641_episode000046",
+      "offset": 2442,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 37,
+      "scenario_id": "train_seed91702641_seed183403641_episode000047",
+      "offset": 2510,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 38,
+      "scenario_id": "train_seed91702641_seed183403641_episode000048",
+      "offset": 2578,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 39,
+      "scenario_id": "train_seed91702641_seed183403641_episode000049",
+      "offset": 2644,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 40,
+      "scenario_id": "train_seed91702641_seed183403641_episode000050",
+      "offset": 2710,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 41,
+      "scenario_id": "train_seed91702641_seed183403641_episode000051",
+      "offset": 2781,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 42,
+      "scenario_id": "train_seed91702641_seed183403641_episode000052",
+      "offset": 2847,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 43,
+      "scenario_id": "train_seed91702641_seed183403641_episode000053",
+      "offset": 2915,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 44,
+      "scenario_id": "train_seed91702641_seed183403641_episode000054",
+      "offset": 2986,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 45,
+      "scenario_id": "train_seed91702641_seed183403641_episode000056",
+      "offset": 3055,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 46,
+      "scenario_id": "train_seed91702641_seed183403641_episode000057",
+      "offset": 3121,
+      "steps": 67,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 47,
+      "scenario_id": "train_seed91702641_seed183403641_episode000059",
+      "offset": 3188,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 48,
+      "scenario_id": "train_seed91702641_seed183403641_episode000060",
+      "offset": 3254,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 49,
+      "scenario_id": "train_seed91702641_seed183403641_episode000061",
+      "offset": 3320,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 50,
+      "scenario_id": "train_seed91702641_seed183403641_episode000062",
+      "offset": 3386,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 51,
+      "scenario_id": "train_seed91702641_seed183403641_episode000063",
+      "offset": 3452,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 52,
+      "scenario_id": "train_seed91702641_seed183403641_episode000066",
+      "offset": 3518,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 53,
+      "scenario_id": "train_seed91702641_seed183403641_episode000067",
+      "offset": 3584,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 54,
+      "scenario_id": "train_seed91702641_seed183403641_episode000068",
+      "offset": 3650,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 55,
+      "scenario_id": "train_seed91702641_seed183403641_episode000071",
+      "offset": 3721,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 56,
+      "scenario_id": "train_seed91702641_seed183403641_episode000072",
+      "offset": 3787,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 57,
+      "scenario_id": "train_seed91702641_seed183403641_episode000073",
+      "offset": 3853,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 58,
+      "scenario_id": "train_seed91702641_seed183403641_episode000074",
+      "offset": 3922,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 59,
+      "scenario_id": "train_seed91702641_seed183403641_episode000075",
+      "offset": 3990,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 60,
+      "scenario_id": "train_seed91702641_seed183403641_episode000076",
+      "offset": 4056,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 61,
+      "scenario_id": "train_seed91702641_seed183403641_episode000077",
+      "offset": 4122,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 62,
+      "scenario_id": "train_seed91702641_seed183403641_episode000078",
+      "offset": 4188,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 63,
+      "scenario_id": "train_seed91702641_seed183403641_episode000079",
+      "offset": 4261,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 64,
+      "scenario_id": "train_seed91702641_seed183403641_episode000080",
+      "offset": 4327,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 65,
+      "scenario_id": "train_seed91702641_seed183403641_episode000082",
+      "offset": 4396,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 66,
+      "scenario_id": "train_seed91702641_seed183403641_episode000083",
+      "offset": 4469,
+      "steps": 67,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 67,
+      "scenario_id": "train_seed91702641_seed183403641_episode000084",
+      "offset": 4536,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 68,
+      "scenario_id": "train_seed91702641_seed183403641_episode000085",
+      "offset": 4605,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 69,
+      "scenario_id": "train_seed91702641_seed183403641_episode000086",
+      "offset": 4676,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 70,
+      "scenario_id": "train_seed91702641_seed183403641_episode000087",
+      "offset": 4742,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 71,
+      "scenario_id": "train_seed91702641_seed183403641_episode000090",
+      "offset": 4808,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 72,
+      "scenario_id": "train_seed91702641_seed183403641_episode000091",
+      "offset": 4876,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 73,
+      "scenario_id": "train_seed91702641_seed183403641_episode000092",
+      "offset": 4945,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 74,
+      "scenario_id": "train_seed91702641_seed183403641_episode000093",
+      "offset": 5013,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 75,
+      "scenario_id": "train_seed91702641_seed183403641_episode000095",
+      "offset": 5079,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 76,
+      "scenario_id": "train_seed91702641_seed183403641_episode000097",
+      "offset": 5152,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 77,
+      "scenario_id": "train_seed91702641_seed183403641_episode000099",
+      "offset": 5218,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 78,
+      "scenario_id": "train_seed91702641_seed183403641_episode000100",
+      "offset": 5284,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 79,
+      "scenario_id": "train_seed91702641_seed183403641_episode000102",
+      "offset": 5350,
+      "steps": 70,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 80,
+      "scenario_id": "train_seed91702641_seed183403641_episode000103",
+      "offset": 5420,
+      "steps": 74,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 81,
+      "scenario_id": "train_seed91702641_seed183403641_episode000104",
+      "offset": 5494,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 82,
+      "scenario_id": "train_seed91702641_seed183403641_episode000106",
+      "offset": 5567,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 83,
+      "scenario_id": "train_seed91702641_seed183403641_episode000107",
+      "offset": 5633,
+      "steps": 74,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 84,
+      "scenario_id": "train_seed91702641_seed183403641_episode000108",
+      "offset": 5707,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 85,
+      "scenario_id": "train_seed91702641_seed183403641_episode000109",
+      "offset": 5773,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 86,
+      "scenario_id": "train_seed91702641_seed183403641_episode000110",
+      "offset": 5839,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 87,
+      "scenario_id": "train_seed91702641_seed183403641_episode000111",
+      "offset": 5905,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 88,
+      "scenario_id": "train_seed91702641_seed183403641_episode000112",
+      "offset": 5971,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 89,
+      "scenario_id": "train_seed91702641_seed183403641_episode000113",
+      "offset": 6037,
+      "steps": 71,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 90,
+      "scenario_id": "train_seed91702641_seed183403641_episode000114",
+      "offset": 6108,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 91,
+      "scenario_id": "train_seed91702641_seed183403641_episode000116",
+      "offset": 6174,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 92,
+      "scenario_id": "train_seed91702641_seed183403641_episode000117",
+      "offset": 6240,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 93,
+      "scenario_id": "train_seed91702641_seed183403641_episode000118",
+      "offset": 6306,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 94,
+      "scenario_id": "train_seed91702641_seed183403641_episode000119",
+      "offset": 6372,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 95,
+      "scenario_id": "train_seed91702641_seed183403641_episode000120",
+      "offset": 6441,
+      "steps": 73,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 96,
+      "scenario_id": "train_seed91702641_seed183403641_episode000121",
+      "offset": 6514,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 97,
+      "scenario_id": "train_seed91702641_seed183403641_episode000123",
+      "offset": 6580,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 98,
+      "scenario_id": "train_seed91702641_seed183403641_episode000124",
+      "offset": 6646,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 99,
+      "scenario_id": "train_seed91702641_seed183403641_episode000125",
+      "offset": 6712,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 100,
+      "scenario_id": "train_seed91702641_seed183403641_episode000126",
+      "offset": 6781,
+      "steps": 68,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 101,
+      "scenario_id": "train_seed91702641_seed183403641_episode000128",
+      "offset": 6849,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 102,
+      "scenario_id": "train_seed91702641_seed183403641_episode000130",
+      "offset": 6915,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 103,
+      "scenario_id": "train_seed91702641_seed183403641_episode000131",
+      "offset": 6981,
+      "steps": 75,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 104,
+      "scenario_id": "train_seed91702641_seed183403641_episode000133",
+      "offset": 7056,
+      "steps": 66,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 105,
+      "scenario_id": "train_seed91702641_seed183403641_episode000134",
+      "offset": 7122,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    },
+    {
+      "episode": 106,
+      "scenario_id": "train_seed91702641_seed183403641_episode000135",
+      "offset": 7191,
+      "steps": 69,
+      "all_teacher_actions_match": true,
+      "three_step_never_crosses_episode": true
+    }
+  ],
+  "teacher_queries": 7260,
+  "teacher_seconds": 0.8120705053443089,
+  "teacher_mismatches": 0,
+  "retained_episodes": 107,
+  "attempts": 128,
+  "original_demo_generation_seconds": 5.4632578999735415,
+  "original_demo_collection_environment_steps": 10756,
+  "new_demonstration_steps": 0,
+  "n_length_counts": {
+    "1": 107,
+    "2": 107,
+    "3": 7046
+  }
+}

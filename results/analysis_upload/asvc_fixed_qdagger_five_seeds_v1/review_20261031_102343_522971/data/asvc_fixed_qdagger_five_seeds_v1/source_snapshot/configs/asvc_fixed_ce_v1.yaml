@@ -1,0 +1,28 @@
+inherits: asvc_persistent_teaching_v1.yaml
+experiment:
+  name: asvc_fixed_ce_v1
+  protocol: fixed_start_goal_same_teacher_online_ce_v1
+  output_root: outputs/asvc_fixed_ce_v1
+  check_root: results/asvc_fixed_ce_v1
+ce_control:
+  seeds: [0, 1]
+  maximum_new_training_runs: 2
+  environment_steps: 200000
+  expected_gradient_updates: 199501
+  registration_root: data/asvc_fixed_ce_v1
+  baseline_root: outputs/asvc_persistent_teaching_v1/supervision_floor
+  baseline_variant: supervision_floor
+  supervision_loss: masked_cross_entropy
+  temperature: 1.0
+  supervision_floor: 0.1
+  advice_floor: 0.0
+  initialization: fresh_random_paired_with_existing_margin_seed
+  evaluation: original_frozen50_every_10000_crossing_at_episode_end
+  evaluation_advice: false
+  independent500_used: false
+  pretraining_updates: 0
+  soft_risk_weight: false
+  model_selection: final_200000_only
+  aulc_intervals: [[0, 50000], [0, 200000], [100000, 200000]]
+  aulc_rule: piecewise_linear_in_actual_environment_steps_normalized_by_interval_length
+  statistics: paired_two_seed_exploratory_mean_and_sample_sd

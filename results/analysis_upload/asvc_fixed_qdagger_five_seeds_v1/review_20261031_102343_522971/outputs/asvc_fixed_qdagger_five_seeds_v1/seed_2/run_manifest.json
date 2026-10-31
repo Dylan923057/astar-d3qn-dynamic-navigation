@@ -1,0 +1,357 @@
+{
+  "seed": 2,
+  "config": {
+    "experiment": "asvc_fixed_qdagger_five_seeds_v1",
+    "protocol": "unchanged_fixed_qdagger_seeds234_and_frozen500_v1",
+    "seeds": [
+      2,
+      3,
+      4
+    ],
+    "maximum_new_training_runs": 3,
+    "environment_steps": 200000,
+    "offline_updates": 20000,
+    "expected_online_updates": 199501,
+    "teacher_dataset": "data/whole_map_91701_dqfd_comparison_v1/demonstrations.npz",
+    "demo_transitions": 7260,
+    "teacher": "static_astar_observed_three_frame_radius1_veto_wait",
+    "teacher_distribution": "deterministic_one_hot",
+    "n_steps": 3,
+    "temperature": 0.1,
+    "distillation_initial_weight": 3.0,
+    "distillation_exit_online_step": 120000,
+    "distillation_temperature_squared_multiplier": false,
+    "td_loss": "double_dqn_smooth_l1_beta1",
+    "td_target_clip": null,
+    "q_output_clip": null,
+    "supervision_floor": 0.0,
+    "advice": false,
+    "risk_soft_weight": false,
+    "per": false,
+    "permanent_demonstration_replay": false,
+    "online_replay_capacity": 10000,
+    "batch_size": 64,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "target_sync_updates": 250,
+    "gradient_clip_norm": 10,
+    "learning_starts_online_step": 500,
+    "updates_per_online_step": 1,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_online_steps": 150000,
+    "max_steps": 300,
+    "bootstrap_terminated": false,
+    "bootstrap_truncated": true,
+    "bootstrap_budget_end": true,
+    "tail_discount": "gamma_power_actual_length",
+    "offline_sampling": "uniform_without_replacement_per_batch",
+    "online_sampling": "uniform_without_replacement_per_batch",
+    "teacher_query": "label_each_collected_state_once_before_exit_and_reuse_deterministic_label_in_replay",
+    "target_sync_at_offline_online_transition": true,
+    "optimizer_at_offline_online_transition": "preserve",
+    "validation": "frozen50_episode_boundary_every10000_actual_steps",
+    "final_model": "exact_200000_no_selection",
+    "final500_evaluation": true,
+    "route_input": "zero",
+    "device": "auto",
+    "checkpoint_environment_interval": 10000,
+    "checkpoint_offline_updates": 1000,
+    "nonfinite_policy": "preserve_failure_and_last_complete_state_no_automatic_retry",
+    "qdagger_five_extension": {
+      "pooled_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "reused_seeds": [
+        0,
+        1
+      ],
+      "new_seeds": [
+        2,
+        3,
+        4
+      ],
+      "original_registration": "data/asvc_fixed_qdagger_v1/freeze.json",
+      "original_output": "outputs/asvc_fixed_qdagger_v1",
+      "additional_online_environment_steps": 600000,
+      "additional_offline_updates": 60000,
+      "additional_online_updates": 598503,
+      "final500_scenes": "data/asvc_fixed_ce_final500_v1/frozen500.json",
+      "final500_episodes_per_seed": 500,
+      "final500_epsilon": 0,
+      "final500_teacher": false,
+      "final500_dynamic_protection": false,
+      "final500_static_mask": true,
+      "final500_device": "cpu",
+      "final500_checkpoint": "final_200000_only",
+      "final500_used_for_tuning": false,
+      "learning_parameter_changes": "none",
+      "maximum_training_processes": 1
+    }
+  },
+  "shared_config": {
+    "experiment": {
+      "name": "asvc_fixed_ce_five_seeds_v1",
+      "output_root": "outputs/asvc_fixed_ce_five_seeds_v1",
+      "run_name_prefix": "whole_map_pool_91701_7obs",
+      "protocol": "unchanged_fixed_task_ce_extend_seeds234_v1",
+      "check_root": "results/asvc_fixed_ce_five_seeds_v1",
+      "initialization": "paired_random"
+    },
+    "dataset": {
+      "source_manifest": "data/risk_handover_v1/manifest.json",
+      "route_pool_manifest": "data/dynamic_route_pool_v2/manifest.json",
+      "route_pool_protocol": "dynamic_route_pool_v2",
+      "route_pool_design_sha256": "d9a57b3af3fb88bdef4601b07115a0ea8d7f92c040de3a9797b1439d768de3be",
+      "map_id": "irregular_workcell_91701",
+      "grid_sha256": "789e02a19e945736e2ae78fa54163dd58e069df568d777f76577f6b8ccede0ff",
+      "validation_reference": "outputs/foundation_dynamic_ratios_91701_20261002_v1/fixed_validation_scenarios.json"
+    },
+    "dynamic_route_pool": {
+      "composition": {
+        "high_interaction": 2,
+        "alternative_branch": 2,
+        "background": 1
+      },
+      "move_every": 1,
+      "sampling_trials_per_episode": 1000,
+      "training_sampling_seed_offset": 91701000,
+      "validation_sampling_seed": 91701999,
+      "validation_episodes": 50,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ]
+    },
+    "environment": {
+      "window_size": 15,
+      "spatial_channels": 4,
+      "action_count": 5,
+      "max_steps": 300,
+      "terminate_on_collision": true,
+      "mask_static_invalid_actions": true
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto"
+    },
+    "training": {
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "replay_strategy": "uniform",
+      "episodes": 1000000,
+      "max_environment_steps": 200000,
+      "replay_capacity": 10000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 1000000,
+      "epsilon_decay_environment_steps": 150000,
+      "validation_interval_environment_steps": 10000,
+      "demo_fraction": 0.0
+    },
+    "guidance": {
+      "methods": [
+        "unguided",
+        "path_guided"
+      ],
+      "lookahead_steps": 4,
+      "projection": "nearest_manhattan_earliest_tie",
+      "path_source": "frozen_nominal_static_astar",
+      "added_spatial_channels": 1,
+      "added_scalar_dim": 2,
+      "control": "zero_added_inputs_same_network"
+    },
+    "rule_baseline": {
+      "method": "astar_replan_wait",
+      "information": "known_static_map_and_current_local_dynamic_frame"
+    },
+    "integration": {
+      "steps_per_branch": 8,
+      "batch_size": 4,
+      "learning_starts": 4,
+      "device": "cpu"
+    },
+    "training_advice": {
+      "methods": [
+        "unguided",
+        "astar_fixed",
+        "astar_decay",
+        "astar_risk_decay",
+        "astar_budget_matched"
+      ],
+      "probability": 0.8,
+      "decay_environment_steps": 100000,
+      "risk_radius": 1,
+      "rng_seed_offset": 730000,
+      "teacher": "static_astar_replan_from_current_position",
+      "risk_information": "current_and_two_previous_observed_dynamic_frames",
+      "evaluation_advice": false,
+      "observation_guidance": false
+    },
+    "value_repair": {
+      "methods": [
+        "unguided_raw",
+        "unguided_bound",
+        "advice_raw",
+        "advice_bound",
+        "advice_margin",
+        "advice_bound_margin"
+      ],
+      "target_lower": -6.0,
+      "target_upper": 10.0,
+      "margin": 0.8,
+      "margin_weight": 1.0,
+      "margin_decay_environment_steps": 100000,
+      "labels": "matching_executed_astar_action_observed_risk_clear_noncollision",
+      "competitor_mask": "static_valid_only",
+      "evaluation_advice": false,
+      "probe_environment_steps": 2000,
+      "probe_device": "cpu",
+      "probe_epsilon_decay_environment_steps": 150000
+    },
+    "execution_consistency": {
+      "method": "advice_bound_margin_all_eligible",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "require_executed_teacher_match": false,
+      "registration_root": "data/whole_map_91701_execution_consistency_v1",
+      "teacher_action_separate_from_transition_action": true,
+      "reweight_or_resample": false,
+      "use_independent500": false,
+      "pretraining_updates": 0,
+      "offline_demonstrations": 0
+    },
+    "persistent_teaching": {
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "registration_root": "data/asvc_persistent_teaching_v1",
+      "baseline_root": "outputs/whole_map_91701_execution_consistency_v1/advice_bound_margin_all_eligible",
+      "environment_steps": 200000,
+      "schedule": "maximum_of_original_schedule_and_floor",
+      "variants": {
+        "supervision_floor": {
+          "advice_floor": 0.0,
+          "supervision_floor": 0.1
+        },
+        "advice_floor": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.0
+        },
+        "both_floors": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.1
+        }
+      },
+      "evaluation_advice": false,
+      "independent500_used": false
+    },
+    "ce_control": {
+      "seeds": [
+        2,
+        3,
+        4
+      ],
+      "maximum_new_training_runs": 3,
+      "environment_steps": 200000,
+      "expected_gradient_updates": 199501,
+      "registration_root": "data/asvc_fixed_ce_five_seeds_v1",
+      "baseline_root": "outputs/asvc_persistent_teaching_v1/supervision_floor",
+      "baseline_variant": "supervision_floor",
+      "supervision_loss": "masked_cross_entropy",
+      "temperature": 1.0,
+      "supervision_floor": 0.1,
+      "advice_floor": 0.0,
+      "initialization": "fresh_random_paired_with_existing_margin_seed",
+      "evaluation": "original_frozen50_every_10000_crossing_at_episode_end",
+      "evaluation_advice": false,
+      "independent500_used": false,
+      "pretraining_updates": 0,
+      "soft_risk_weight": false,
+      "model_selection": "final_200000_only",
+      "aulc_intervals": [
+        [
+          0,
+          50000
+        ],
+        [
+          0,
+          200000
+        ],
+        [
+          100000,
+          200000
+        ]
+      ],
+      "aulc_rule": "piecewise_linear_in_actual_environment_steps_normalized_by_interval_length",
+      "statistics": "paired_five_seed_mean_and_sample_sd"
+    },
+    "ce_five_seed_extension": {
+      "pooled_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "reused_ce_seeds": [
+        0,
+        1
+      ],
+      "reused_ce_root": "outputs/asvc_fixed_ce_v1",
+      "new_ce_seeds": [
+        2,
+        3,
+        4
+      ],
+      "baseline_registration": "data/asvc_current_method.json",
+      "baseline_retrained": false,
+      "additional_environment_steps": 600000,
+      "additional_gradient_updates": 598503,
+      "independent500_used": false,
+      "parameter_changes": "none",
+      "analysis_unit": "paired_training_seed",
+      "decision": "report_all_five_without_selecting_seeds_or_checkpoints"
+    }
+  },
+  "freeze_sha256": "01979db7bb92a625ad61866ff2b07ba4b1f3aa94e7bd39ae39a5ef195b73979d",
+  "initial_state_sha256": "692b020ab5e2a5b198aaf75bd2c0270d5b77a3ceba88f8831510cc4df1adf11a",
+  "device": "cuda",
+  "torch_version": "2.13.0+cu126",
+  "pid": 66216,
+  "teacher_advice": false,
+  "td_target_clip": false,
+  "demonstration_online_prefill": false,
+  "offline_updates": 20000,
+  "online_budget": 200000,
+  "evaluation_teacher": false
+}
