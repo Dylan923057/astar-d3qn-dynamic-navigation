@@ -1,0 +1,89 @@
+{
+  "complete": true,
+  "identity": {
+    "study": "asvc_multimap_layout_v1",
+    "map_seed": 91707,
+    "train_seed": 4,
+    "method": "dqfd",
+    "freeze_sha256": "4ce8bb6b295e61517e507d55a483328aa502f47f3b2f34f646a346d959e130bc"
+  },
+  "environment_steps": 200000,
+  "online_updates": 199501,
+  "offline_updates": 20000,
+  "total_updates": 219501,
+  "final_model_sha256": "d4c5b718c18e5d857f2be73aa401815ba9768313c81ff5debe0f1a730c6d6771",
+  "final_validation": {
+    "stage": "online",
+    "environment_steps_total": 200000,
+    "episodes": 50,
+    "safe_success_rate": 1.0,
+    "dynamic_collision_rate": 0.0,
+    "timeout_rate": 0.0,
+    "mean_steps": 67.54,
+    "mean_wait_steps": 1.18,
+    "mean_wait_fraction": 0.016769260056113136,
+    "pooled_wait_fraction": 0.017471128220313888,
+    "mean_path_efficiency_success_only": 0.9780956978070077,
+    "safe_success_weighted_path_efficiency": 0.9780956978070076,
+    "mean_action_latency_ms": 1.812704329147004
+  },
+  "final500": {
+    "episodes": 500,
+    "safe_success_rate": 0.986,
+    "dynamic_collision_rate": 0.006,
+    "timeout_rate": 0.008,
+    "mean_steps": 69.61,
+    "mean_wait_steps": 1.894,
+    "mean_wait_fraction": 0.02145575634497126,
+    "pooled_wait_fraction": 0.027208734377244647,
+    "mean_path_efficiency_success_only": 0.9744551570249903,
+    "safe_success_weighted_path_efficiency": 0.9608127848266405,
+    "mean_action_latency_ms": 1.9186033133472895
+  },
+  "offline_seconds": 526.8844225727953,
+  "online_seconds": 5717.5138053298,
+  "evaluation_seconds": 753.7771754001733,
+  "checkpoint_seconds": 209.60059740021825,
+  "demo_registration": {
+    "map_seed": 91707,
+    "config": {
+      "seed": 91702641,
+      "attempts": 128,
+      "maximum_draws": 100000,
+      "retention": "successful_noncollision_complete_episodes_only",
+      "policy": "static_astar_observed_three_frame_radius_one_risk_veto_wait",
+      "shared_by": [
+        "astar_prefill_td",
+        "dqfd",
+        "qdagger"
+      ],
+      "transition_count": "determined_by_fixed_128_attempt_budget_not_forced_to_7260"
+    },
+    "attempts": 128,
+    "successful_attempts": 98,
+    "failed_attempts": 30,
+    "transitions": 6659,
+    "collection_environment_steps": 15659,
+    "generation_seconds": 15.698030899977311,
+    "teacher_queries": 15659,
+    "astar_searches": 66,
+    "teacher_seconds": 3.6732686911709607,
+    "heldout_rejections": 3,
+    "uses_future": false,
+    "budget_equal_across_maps": true,
+    "transition_count_not_forced": true
+  },
+  "online_teacher_queries": 0,
+  "online_teacher_searches": 0,
+  "online_teacher_seconds": 0.0,
+  "astar_timing": {},
+  "hardware": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.13.0+cu126",
+    "cuda": "12.6",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "torch_threads": 1
+  },
+  "max_parallel_training_workers": 2,
+  "completed": "2026-11-10T15:24:42.689282"
+}

@@ -1,0 +1,24 @@
+{
+  "map_seed": 91705,
+  "train_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "generator_source": "src/astar_d3qn/envs/whole_map_route_pool.py",
+  "stream_spec": {
+    "train_seed_formula": "map_seed_times_1000_plus_train_seed",
+    "validation_seed_offset": 700000000,
+    "test_seed_offset": 800000000,
+    "representation": "frozen_sampler_source_pool_seeds_and_initial_state_not_finite_resampled_pool",
+    "audited_prefix_per_seed": 128,
+    "reject_heldout_route_combinations": true,
+    "validation_test_route_combinations_disjoint": true
+  },
+  "validation_test_combinations_unique_and_disjoint": true,
+  "train_excludes_all_heldout_combinations": true,
+  "selection_used_policy_performance": false,
+  "representation_explanation": "Complete deterministic procedural stream, not a finite scene pool. Frozen local RNG seeds, sampler source, route pool, rejection rule, and 128-scene prefixes per train_seed define every subsequent episode; full RNG state saved in recovery."
+}

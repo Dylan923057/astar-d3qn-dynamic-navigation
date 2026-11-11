@@ -1,0 +1,24 @@
+inherits: whole_map_91701_execution_consistency_v1.yaml
+experiment:
+  name: asvc_persistent_teaching_v1
+  protocol: paired_advice_supervision_floors_v1
+  output_root: outputs/asvc_persistent_teaching_v1
+  check_root: results/asvc_persistent_teaching_v1
+persistent_teaching:
+  seeds: [0, 1, 2]
+  registration_root: data/asvc_persistent_teaching_v1
+  baseline_root: outputs/whole_map_91701_execution_consistency_v1/advice_bound_margin_all_eligible
+  environment_steps: 200000
+  schedule: maximum_of_original_schedule_and_floor
+  variants:
+    supervision_floor:
+      advice_floor: 0.0
+      supervision_floor: 0.1
+    advice_floor:
+      advice_floor: 0.05
+      supervision_floor: 0.0
+    both_floors:
+      advice_floor: 0.05
+      supervision_floor: 0.1
+  evaluation_advice: false
+  independent500_used: false

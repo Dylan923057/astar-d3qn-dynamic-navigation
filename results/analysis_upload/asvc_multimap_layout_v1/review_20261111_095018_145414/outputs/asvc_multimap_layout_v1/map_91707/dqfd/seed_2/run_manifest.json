@@ -1,0 +1,394 @@
+{
+  "identity": {
+    "study": "asvc_multimap_layout_v1",
+    "map_seed": 91707,
+    "train_seed": 2,
+    "method": "dqfd",
+    "freeze_sha256": "4ce8bb6b295e61517e507d55a483328aa502f47f3b2f34f646a346d959e130bc"
+  },
+  "config": {
+    "experiment": "asvc_multimap_layout_v1",
+    "scope": "independent_training_under_one_static_map_generator",
+    "candidate_map_seeds": [
+      91704,
+      91705,
+      91706,
+      91707,
+      91708,
+      91709,
+      91710,
+      91711,
+      91712,
+      91713,
+      91714,
+      91715,
+      91716,
+      91717,
+      91718,
+      91719,
+      91720,
+      91721,
+      91722,
+      91723,
+      91724,
+      91725,
+      91726,
+      91727,
+      91728,
+      91729,
+      91730,
+      91731,
+      91732,
+      91733
+    ],
+    "new_map_count": 3,
+    "generator": {
+      "function": "astar_d3qn.maps.adaptation.irregular_problem",
+      "size": 40,
+      "demo_seed": 7400,
+      "target_density": 0.23,
+      "minimum_density": 0.2,
+      "start": [
+        3,
+        3
+      ],
+      "goal": [
+        36,
+        36
+      ],
+      "max_generation_attempts": 200,
+      "max_island_attempts": 2000,
+      "height_range": [
+        2,
+        5
+      ],
+      "width_range": [
+        2,
+        6
+      ],
+      "shape_draws": [
+        "rectangle",
+        "rectangle",
+        "L",
+        "T"
+      ],
+      "start_goal_manhattan_exclusion": 3,
+      "island_chebyshev_separation": 1,
+      "maximum_static_detour": 12,
+      "require_all_free_cells_connected": true
+    },
+    "reference_config": "configs/asvc_persistent_teaching_v1.yaml",
+    "route_design_config": "configs/dynamic_route_pool_v2.yaml",
+    "dqfd_config": "configs/whole_map_91701_dqfd_comparison_v1.yaml",
+    "methods": [
+      "d3qn",
+      "astar_prefill_td",
+      "dqfd",
+      "qdagger",
+      "ce",
+      "asvc"
+    ],
+    "ablation_methods": [
+      "asvc_no_td",
+      "asvc_withdraw"
+    ],
+    "ablation_map_rule": "highest_nominal_path_mean_inverse_clearance_then_smallest_map_seed",
+    "train_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "online_steps": 200000,
+    "offline_updates": 20000,
+    "replay_capacity": 10000,
+    "batch_size": 64,
+    "learning_starts": 500,
+    "validation_interval": 4000,
+    "validation_boundary": "completed_episode_or_budget_end_record_actual_steps",
+    "validation_scenes": 50,
+    "test_scenes": 500,
+    "checkpoint_interval": 4000,
+    "maximum_workers": 2,
+    "torch_threads": 1,
+    "device": "cuda",
+    "scene_stream": {
+      "train_seed_formula": "map_seed_times_1000_plus_train_seed",
+      "validation_seed_offset": 700000000,
+      "test_seed_offset": 800000000,
+      "representation": "frozen_sampler_source_pool_seeds_and_initial_state_not_finite_resampled_pool",
+      "audited_prefix_per_seed": 128,
+      "reject_heldout_route_combinations": true,
+      "validation_test_route_combinations_disjoint": true
+    },
+    "demonstrations": {
+      "seed": 91702641,
+      "attempts": 128,
+      "maximum_draws": 100000,
+      "retention": "successful_noncollision_complete_episodes_only",
+      "policy": "static_astar_observed_three_frame_radius_one_risk_veto_wait",
+      "shared_by": [
+        "astar_prefill_td",
+        "dqfd",
+        "qdagger"
+      ],
+      "transition_count": "determined_by_fixed_128_attempt_budget_not_forced_to_7260"
+    },
+    "aulc_intervals": [
+      [
+        0,
+        50000
+      ],
+      [
+        0,
+        200000
+      ],
+      [
+        100000,
+        200000
+      ]
+    ]
+  },
+  "effective_config": {
+    "experiment": {
+      "name": "asvc_multimap_layout_v1",
+      "output_root": "outputs/asvc_multimap_layout_v1/map_91707/dqfd/seed_2",
+      "initialization": "paired_random_no_foundation"
+    },
+    "dataset": {
+      "map_id": "irregular_workcell_91707",
+      "map_seed": 91707,
+      "grid_sha256": "e9cb10384c8fa1f000b284f97cd7af1f058b4ad0c6a4bcfea9c562ab41272033",
+      "problem": "data/asvc_multimap_layout_v1/map_91707/problem.json",
+      "route_pool": "data/asvc_multimap_layout_v1/map_91707/route_pool.json",
+      "validation": "data/asvc_multimap_layout_v1/map_91707/validation50.json",
+      "test": "data/asvc_multimap_layout_v1/map_91707/test500.json",
+      "training_stream_seed": 91707002
+    },
+    "dynamic_route_pool": {
+      "composition": {
+        "high_interaction": 2,
+        "alternative_branch": 2,
+        "background": 1
+      },
+      "move_every": 1,
+      "sampling_trials_per_episode": 1000,
+      "training_sampling_seed_offset": 91707000,
+      "validation_sampling_seed": 700091707,
+      "validation_episodes": 50,
+      "obstacle_counts": [
+        3,
+        4,
+        5
+      ]
+    },
+    "environment": {
+      "window_size": 15,
+      "spatial_channels": 4,
+      "action_count": 5,
+      "max_steps": 300,
+      "terminate_on_collision": true,
+      "mask_static_invalid_actions": true
+    },
+    "reward": {
+      "step": -0.01,
+      "progress": 0.05,
+      "stay": 0.0,
+      "collision": -1.0,
+      "goal": 10.0
+    },
+    "agent": {
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "target_sync_interval": 250,
+      "gradient_clip_norm": 10.0,
+      "hidden_dim": 256,
+      "device": "auto"
+    },
+    "training": {
+      "seeds": [
+        2
+      ],
+      "replay_strategy": "dqfd_per",
+      "episodes": 1000000,
+      "max_environment_steps": 200000,
+      "replay_capacity": 10000,
+      "batch_size": 64,
+      "learning_starts": 500,
+      "updates_per_step": 1,
+      "epsilon_start": 1.0,
+      "epsilon_end": 0.05,
+      "epsilon_decay_episodes": 1000000,
+      "epsilon_decay_environment_steps": 150000,
+      "validation_interval_environment_steps": 4000,
+      "demo_fraction": 0.0
+    },
+    "guidance": {
+      "methods": [
+        "unguided",
+        "path_guided"
+      ],
+      "lookahead_steps": 4,
+      "projection": "nearest_manhattan_earliest_tie",
+      "path_source": "frozen_nominal_static_astar",
+      "added_spatial_channels": 1,
+      "added_scalar_dim": 2,
+      "control": "zero_added_inputs_same_network"
+    },
+    "rule_baseline": {
+      "method": "astar_replan_wait",
+      "information": "known_static_map_and_current_local_dynamic_frame"
+    },
+    "integration": {
+      "steps_per_branch": 8,
+      "batch_size": 4,
+      "learning_starts": 4,
+      "device": "cpu"
+    },
+    "training_advice": {
+      "methods": [
+        "unguided",
+        "astar_fixed",
+        "astar_decay",
+        "astar_risk_decay",
+        "astar_budget_matched"
+      ],
+      "probability": 0.8,
+      "decay_environment_steps": 100000,
+      "risk_radius": 1,
+      "rng_seed_offset": 730000,
+      "teacher": "static_astar_replan_from_current_position",
+      "risk_information": "current_and_two_previous_observed_dynamic_frames",
+      "evaluation_advice": false,
+      "observation_guidance": false
+    },
+    "value_repair": {
+      "methods": [
+        "unguided_raw",
+        "unguided_bound",
+        "advice_raw",
+        "advice_bound",
+        "advice_margin",
+        "advice_bound_margin"
+      ],
+      "target_lower": -6.0,
+      "target_upper": 10.0,
+      "margin": 0.8,
+      "margin_weight": 1.0,
+      "margin_decay_environment_steps": 100000,
+      "labels": "matching_executed_astar_action_observed_risk_clear_noncollision",
+      "competitor_mask": "static_valid_only",
+      "evaluation_advice": false,
+      "probe_environment_steps": 2000,
+      "probe_device": "cpu",
+      "probe_epsilon_decay_environment_steps": 150000
+    },
+    "execution_consistency": {
+      "method": "advice_bound_margin_all_eligible",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "require_executed_teacher_match": false,
+      "registration_root": "data/whole_map_91701_execution_consistency_v1",
+      "teacher_action_separate_from_transition_action": true,
+      "reweight_or_resample": false,
+      "use_independent500": false,
+      "pretraining_updates": 0,
+      "offline_demonstrations": 0
+    },
+    "persistent_teaching": {
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "registration_root": "data/asvc_persistent_teaching_v1",
+      "baseline_root": "outputs/whole_map_91701_execution_consistency_v1/advice_bound_margin_all_eligible",
+      "environment_steps": 200000,
+      "schedule": "maximum_of_original_schedule_and_floor",
+      "variants": {
+        "supervision_floor": {
+          "advice_floor": 0.0,
+          "supervision_floor": 0.1
+        },
+        "advice_floor": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.0
+        },
+        "both_floors": {
+          "advice_floor": 0.05,
+          "supervision_floor": 0.1
+        }
+      },
+      "evaluation_advice": false,
+      "independent500_used": false
+    },
+    "reference_shared_config": "configs/asvc_persistent_teaching_v1.yaml",
+    "method": {
+      "name": "dqfd",
+      "online_steps": 200000,
+      "offline_updates": 20000,
+      "teacher_advice": false,
+      "td_constraint": false,
+      "persistent_supervision_floor": 0.0
+    },
+    "dqfd": {
+      "methods": [
+        "dqfd",
+        "dqfd_bound",
+        "advice_bound_margin_no_risk"
+      ],
+      "artifact_root": "data/whole_map_91701_dqfd_comparison_v1",
+      "final_scene_config": "configs/whole_map_91701_supervision_tail_v1.yaml",
+      "demonstration_seed": 91702641,
+      "demonstration_attempts": 128,
+      "demonstration_max_scene_draws": 100000,
+      "demonstration_policy": "static_astar_observed_three_frame_risk_veto_wait",
+      "demonstration_retention": "successful_noncollision_complete_episodes_only",
+      "pretraining_updates": 20000,
+      "n_steps": 10,
+      "n_step_weight": 1.0,
+      "expert_weight": 1.0,
+      "l2_weight": 1e-05,
+      "expert_margin": 0.8,
+      "per_alpha": 0.4,
+      "per_beta_start": 0.6,
+      "per_beta_end": 1.0,
+      "per_agent_bonus": 0.001,
+      "per_demo_bonus": 1.0,
+      "priority_error": "absolute_one_step_td_error",
+      "td_loss": "squared_error",
+      "phase_boundaries": [
+        0,
+        80000,
+        100000,
+        140000,
+        200000
+      ],
+      "original_withdrawal_window": [
+        90000,
+        120500
+      ],
+      "new_withdrawal_window": [
+        130000,
+        160500
+      ],
+      "combined_withdrawal_window": [
+        90000,
+        160500
+      ],
+      "formal_training_requires_explicit_flag": true
+    }
+  },
+  "hardware": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.13.0+cu126",
+    "cuda": "12.6",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "torch_threads": 1
+  },
+  "created": "2026-11-10T03:38:59.547232"
+}
